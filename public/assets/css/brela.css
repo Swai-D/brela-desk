@@ -6,3 +6,4 @@ body{background:#f4f6fb}.card{border:0;border-radius:14px;box-shadow:0 2px 12px 
 .btn{border-radius:8px}.badge{font-weight:500}.vertical-menu .menu-title{letter-spacing:.08em}
 .pace,.pace-activity,.pace-progress{display:none!important}
 @media print{.vertical-menu,#page-topbar,.footer,.no-print,.page-title-box{display:none!important}.main-content{margin-left:0!important;padding:0!important}.page-content{padding:10px!important}body{background:#fff!important}.card{box-shadow:none!important;border:1px solid #ddd!important;break-inside:avoid}.col-xl-6,.col-xl-5,.col-xl-7{width:100%!important;flex:0 0 100%!important}}
+#page-topbar a.header-item{display:inline-flex!important;align-items:center;justify-content:center;height:70px;padding:0 14px;vertical-align:top}#page-topbar a.header-item svg{margin:0}

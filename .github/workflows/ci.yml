@@ -1,0 +1,35 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: brela
+          POSTGRES_PASSWORD: brela
+          POSTGRES_DB: brela
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U brela"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://brela:brela@localhost:5432/brela
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Syntax check
+        run: |
+          node --check server.js
+          node --check whatsapp.js
+          for f in public/assets/js/brela.js tests/*.js; do node --check "$f"; done
+      - name: Tests
+        run: npm test
