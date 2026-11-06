@@ -2,7 +2,7 @@
 # Runs each API test suite against a fresh database with the real server and a fake WhatsApp (Meta) API.
 set -uo pipefail
 cd "$(dirname "$0")/.."
-export DATABASE_URL="${DATABASE_URL:-postgres://brela:brela@localhost:5432/brela}"
+export DATABASE_URL="${DATABASE_URL:-postgres://${PG_USER:-brela}:${PG_PASS:-brela}@localhost:5432/${PG_DB:-brela}}"
 export ADMIN_EMAIL=boss@test.co ADMIN_PASSWORD='Secret123!' ADMIN_NAME=Neema JWT_SECRET=ci-secret NODE_ENV=test PORT=3000
 export ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
 export WHATSAPP_TOKEN=tok WHATSAPP_PHONE_NUMBER_ID=PN1 WHATSAPP_VERIFY_TOKEN=vt WHATSAPP_APP_SECRET=sec WA_GRAPH_BASE=http://localhost:4010 WA_AUTOREPLY=true

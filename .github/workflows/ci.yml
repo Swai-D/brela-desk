@@ -18,7 +18,10 @@ jobs:
           --health-cmd "pg_isready -U brela"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgres://brela:brela@localhost:5432/brela
+      # fed by tests/run.sh defaults (PG_USER/PG_PASS/PG_DB from the service container above)
+      PG_USER: brela
+      PG_PASS: brela
+      PG_DB: brela
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

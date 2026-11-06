@@ -1,5 +1,5 @@
 let fails=0;
-const {Pool}=require('pg');const pool=new Pool({connectionString:process.env.DATABASE_URL||'postgres://brela:brela@localhost:5432/brela'});
+const {Pool}=require('pg');const u=process.env.DATABASE_URL;const pool=new Pool(u?{connectionString:u}:{host:'localhost',port:5432,user:'brela',password:'brela',database:'brela'});
 let ck='';const PORT=process.env.PORT||3000,B=`http://localhost:${PORT}/api`;
 const call=async(m,u,b)=>{const r=await fetch(B+u,{method:m,headers:{...(b?{'Content-Type':'application/json'}:{}),cookie:ck},body:b?JSON.stringify(b):undefined});const s=r.headers.get('set-cookie');if(s)ck=s.split(';')[0];return{s:r.status,j:await r.json().catch(()=>({}))}};
 const ok=(n,c,x)=>{if(!c)fails++;console.log(c?'PASS':'FAIL',n,c?'':JSON.stringify(x))};
