@@ -1,0 +1,53 @@
+let fails=0;
+const crypto=require('crypto');let ck='';const PORT=process.env.PORT||3000,B=`http://localhost:${PORT}`;
+const call=async(m,u,b)=>{const r=await fetch(B+u,{method:m,headers:{...(b?{'Content-Type':'application/json'}:{}),cookie:ck},body:b?JSON.stringify(b):undefined});const s=r.headers.get('set-cookie');if(s)ck=s.split(';')[0];const t=await r.text();try{return{s:r.status,j:JSON.parse(t)}}catch{return{s:r.status,j:t}}};
+const ok=(n,c)=>{if(!c)fails++;console.log(c?'PASS':'FAIL',n)};const sleep=ms=>new Promise(r=>setTimeout(r,ms*2.5));
+const sent=async()=>(await (await fetch('http://localhost:4010/__sent',{headers:{authorization:'Bearer tok'}})).json());
+const hook=(payload,sig)=>{const raw=JSON.stringify(payload);return fetch(B+'/webhooks/whatsapp',{method:'POST',headers:{'Content-Type':'application/json','X-Hub-Signature-256':sig||'sha256='+crypto.createHmac('sha256','sec').update(raw).digest('hex')},body:raw})};
+const msg=(id,from,type,extra)=>({entry:[{changes:[{value:{contacts:[{wa_id:from,profile:{name:'Mwanga Owner'}}],messages:[{id,from,type,[type]:extra}]}}]}]});
+(async()=>{
+ await call('POST','/api/login',{email:'boss@test.co',password:'Secret123!'});
+ ok('verify handshake',await (await fetch(B+'/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=vt&hub.challenge=777')).text()==='777');
+ ok('verify wrong token rejected',(await fetch(B+'/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=no&hub.challenge=1')).status===403);
+ const jun=(await call('POST','/api/users',{name:'Juma Kileo',email:'juma@test.co',role:'JUNIOR',password:'Junior123!',phone:'0712 345 678'})).j;
+ await call('PATCH','/api/users/1',{phone:'+255 754 000 111'});
+ const bs=(await call('GET','/api/bootstrap')).j;ok('manager sees phones',bs.users.find(u=>u.id===jun.id).phone==='0712 345 678');
+ const types=bs.types;const cl=(await call('POST','/api/clients',{name:'Mwanga Traders',phone:'0713 999 888'})).j;
+ const c=(await call('POST','/api/cases',{clientId:cl.id,caseTypeId:types[0].id,assigneeId:jun.id,due:'2026-12-01'})).j;await sleep(400);
+ let s=await sent();const a=s.find(x=>x.template&&x.template.name==='brela_case_assigned');
+ ok('assignment alert sent to assignee',a&&a.to==='255712345678'&&a.template.components[0].parameters.length===5&&a.template.components[0].parameters[0].text==='Juma');
+ // inbound doc from the client's phone
+ let r=await hook(msg('wamid.A1','255713999888','document',{id:'MEDIA1',filename:'ID card.pdf',mime_type:'application/pdf'}));ok('webhook accepted',r.status===200);await sleep(800);
+ let ib=(await call('GET','/api/inbox')).j;ok('document landed in inbox, matched to client by phone',ib.length===1&&ib[0].client==='Mwanga Traders'&&ib[0].filename==='ID card.pdf');
+ const dl=await fetch(B+'/api/files/'+ib[0].id,{headers:{cookie:ck}});ok('stored bytes correct',(await dl.text())==='PDFBYTES-1');
+ s=await sent();ok('manager alerted about client doc',s.some(x=>x.template&&x.template.name==='brela_client_doc'&&x.to==='255754000111'));
+ ok('assignee also alerted',s.some(x=>x.template&&x.template.name==='brela_client_doc'&&x.to==='255712345678'));
+ ok('auto-reply to client',s.some(x=>x.type==='text'&&x.to==='255713999888'));
+ await hook(msg('wamid.A1','255713999888','document',{id:'MEDIA1',filename:'ID card.pdf'}));await sleep(500);ok('duplicate delivery ignored',(await call('GET','/api/inbox')).j.length===1);
+ ok('bad signature rejected',(await hook(msg('wamid.A2','255713999888','document',{id:'MEDIA1'}),'sha256=deadbeef')).status===401);
+ await hook(msg('wamid.A3','255700111222','image',{id:'MEDIA2',mime_type:'image/jpeg',caption:'passport'}));await sleep(800);
+ ib=(await call('GET','/api/inbox')).j;const unk=ib.find(x=>x.sender_phone==='255700111222');ok('unknown sender kept, unmatched, named image file',unk&&!unk.client_id&&/\.jpg$/.test(unk.filename)&&unk.note==='passport');
+ await hook(msg('wamid.A4','255700111222','text',{body:'hi'}));await sleep(300);ok('text messages ignored',(await call('GET','/api/inbox')).j.length===2);
+ // file into checklist item
+ const d=(await call('GET','/api/cases/'+c.id)).j;
+ const f=await call('POST','/api/inbox/'+ib.find(x=>x.client).id+'/file',{caseDocId:d.docs[0].id});ok('file inbox doc into checklist item',f.s===200);
+ const d2=(await call('GET','/api/cases/'+c.id)).j;ok('item ticked, file attached, history logged',d2.docs[0].done&&d2.docs[0].files.length===1&&d2.activity[0].text.includes('from WhatsApp'));
+ const f2=await call('POST','/api/inbox/'+unk.id+'/file',{clientId:cl.id,linkPhone:true});ok('file unknown sender to client folder',f2.s===200&&(await call('GET','/api/clients/'+cl.id)).j.files.length===2);
+ ok('inbox empty',(await call('GET','/api/inbox')).j.length===0);
+ // workflow alerts
+ for(const x of d2.docs.slice(1))await call('PATCH','/api/case-docs/'+x.id,{done:true});
+ await call('POST',`/api/cases/${c.id}/move`,{to:'ready'});await sleep(300);
+ await call('POST',`/api/cases/${c.id}/move`,{to:'submitted'});
+ await call('POST',`/api/cases/${c.id}/move`,{to:'returned',reason:'Fix ID scan'});await sleep(500);
+ s=await sent();const rt=s.filter(x=>x.template&&x.template.name==='brela_case_returned');
+ ok('returned alert to assignee, manager excluded as actor',rt.length===1&&rt[0].to==='255712345678'&&rt[0].template.components[0].parameters[3].text==='Fix ID scan');
+ ok('no self-notification for ready (actor is the only senior)',!s.some(x=>x.template&&x.template.name==='brela_ready_review'));
+ const dg=(await call('POST','/api/whatsapp/digest-now',{})).j;await sleep(400);s=await sent();
+ ok('digest sent to assignee with case summary',dg.people===1&&s.some(x=>x.template&&x.template.name==='brela_daily_digest'&&x.template.components[0].parameters[1].text.includes('returned by BRELA')));
+ const st=(await call('GET','/api/whatsapp/status')).j;ok('status endpoint',st.configured&&st.webhookReady&&Object.keys(st.templates).length===5&&st.log.length>3);
+ ok('test message to own phone',(await call('POST','/api/whatsapp/test',{})).s===200);
+ await call('PATCH','/api/users/'+jun.id,{waOptIn:false});const n0=(await sent()).length;await call('POST',`/api/cases/${c.id}/move`,{to:'ready'});await call('POST',`/api/cases/${c.id}/move`,{to:'submitted'});await call('POST',`/api/cases/${c.id}/move`,{to:'returned',reason:'again'});await sleep(500);
+ ok('opted-out user gets nothing',(await sent()).length===n0);
+ ck='';await call('POST','/api/login',{email:'juma@test.co',password:'Junior123!'});ok('junior cannot open WA status',(await call('GET','/api/whatsapp/status')).s===403);
+ ok('junior bootstrap hides phones',(await call('GET','/api/bootstrap')).j.users.every(u=>u.phone===undefined));
+})().then(()=>{console.log(fails?'\n'+fails+' FAILED':'\nall passed');process.exit(fails?1:0)}).catch(e=>{console.error(e);process.exit(1)});

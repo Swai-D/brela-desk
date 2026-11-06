@@ -61,3 +61,8 @@ Uses the official **WhatsApp Business Cloud API** (Meta). Two things work out of
 - Only documents and images are captured (PDF, JPG, PNG...). Tell clients to send photos **as Document** to keep full quality. Voice notes and videos are ignored.
 - Numbers like `0712 345 678` are read as Tanzanian (`DEFAULT_COUNTRY_CODE=255`).
 - Every send is logged (Settings → WhatsApp → Recent sends), and Meta's duplicate deliveries are ignored.
+
+## Tests & CI
+`npm test` starts the real server against a fresh PostgreSQL database (set `DATABASE_URL`, e.g. a throwaway local database) with a fake WhatsApp API, then runs the API, WhatsApp and report suites. GitHub Actions runs the same on every pull request (`.github/workflows/ci.yml`). **Never point `DATABASE_URL` at a database with real data when running tests: it is wiped.**
+
+Document preview: PDFs and images (PNG, JPG, WebP, GIF) open in a viewer from case pages, client folders and the WhatsApp Inbox; other file types download.
