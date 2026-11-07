@@ -17,5 +17,5 @@ run() {
   kill $srv $mock 2>/dev/null; wait $srv $mock 2>/dev/null
   if [ $code -ne 0 ]; then echo "---- server log ($name)"; tail -40 "/tmp/server-$name.log"; exit $code; fi
 }
-run api; run whatsapp; run report; run playbook
+run api; run whatsapp; run report; run playbook; run crud
 echo "All test suites passed"

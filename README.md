@@ -36,6 +36,21 @@ The tables and the 5 starter case types are created automatically on first start
 - Every vault reveal is recorded (who, when). Passwords are encrypted with AES-256-GCM before saving.
 - Local run: copy `.env.example` to `.env`, then `npm install && npm run dev` (needs a local Postgres).
 
+## Who can change what
+| Item | Create | Edit | Delete |
+|---|---|---|---|
+| Team members | Manager | Manager: name, email, role, phone, password, active | Manager, only if the person has no work history (otherwise deactivate) |
+| Case types | Manager | Manager: name, checklist, notes, hide/show | Manager, only if no case uses it (otherwise hide) |
+| Clients | everyone | rename: Senior/Manager; phone and email: everyone | Manager, only if the client has no cases |
+| Cases | everyone | assignee and due date: Senior/Manager; client and case type: Manager | Manager, after typing the case code |
+| Checklist items | everyone | rename: Senior/Manager | Senior/Manager |
+| Files | everyone | the uploader, Senior or Manager | the uploader, Senior or Manager |
+| Comments | everyone | the author | the author, or a Manager |
+| Vault logins | Senior/Manager | Senior/Manager | Senior/Manager |
+| Playbook texts | n/a | Manager | n/a |
+
+Every deletion and sensitive change (role or password changes, client or type changes on a case, vault edits, deleted files and comments) is written to the **Audit log** (Settings, Manager only). Deletes are permanent, so the app refuses the risky ones (a person with history, a type or client still in use) and tells you what to do instead.
+
 ## Playbook: roles, responsibilities and guided workflow
 The system tells people what to do, so a new team member can simply follow it:
 - **Playbook** (menu, everyone): *My role* (your responsibilities, what you can and cannot do), *How a case flows* (the six stages: who is responsible, the steps, and when it is done) and *Everyone's responsibilities*. The Manager can edit every text there; the starter content is a sensible default for the BRELA process.
