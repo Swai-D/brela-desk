@@ -44,10 +44,17 @@ const msg=(id,from,type,extra)=>({entry:[{changes:[{value:{contacts:[{wa_id:from
  ok('no self-notification for ready (actor is the only senior)',!s.some(x=>x.template&&x.template.name==='brela_ready_review'));
  const dg=(await call('POST','/api/whatsapp/digest-now',{})).j;await sleep(400);s=await sent();
  ok('digest sent to assignee with case summary',dg.people===1&&s.some(x=>x.template&&x.template.name==='brela_daily_digest'&&x.template.components[0].parameters[1].text.includes('returned by BRELA')));
- const st=(await call('GET','/api/whatsapp/status')).j;ok('status endpoint',st.configured&&st.webhookReady&&Object.keys(st.templates).length===5&&st.log.length>3);
+ const st=(await call('GET','/api/whatsapp/status')).j;ok('status endpoint',st.configured&&st.webhookReady&&Object.keys(st.templates).length===6&&st.log.length>3);
  ok('test message to own phone',(await call('POST','/api/whatsapp/test',{})).s===200);
  await call('PATCH','/api/users/'+jun.id,{waOptIn:false});const n0=(await sent()).length;await call('POST',`/api/cases/${c.id}/move`,{to:'ready'});await call('POST',`/api/cases/${c.id}/move`,{to:'submitted'});await call('POST',`/api/cases/${c.id}/move`,{to:'returned',reason:'again'});await sleep(500);
  ok('opted-out user gets nothing',(await sent()).length===n0);
+ const sen=(await call('POST','/api/users',{name:'Sia Senior',email:'sia@test.co',role:'SENIOR',password:'Senior123!',phone:'0755 111 222'})).j;
+ const c2=(await call('POST','/api/cases',{clientId:cl.id,caseTypeId:types[0].id,assigneeId:sen.id})).j;
+ const d3=(await call('GET','/api/cases/'+c2.id)).j;for(const x of d3.docs)await call('PATCH','/api/case-docs/'+x.id,{done:true});
+ await call('POST',`/api/cases/${c2.id}/move`,{to:'ready'});await call('POST',`/api/cases/${c2.id}/move`,{to:'submitted'});
+ const mgr=ck;ck='';await call('POST','/api/login',{email:'sia@test.co',password:'Senior123!'});
+ await call('POST',`/api/cases/${c2.id}/move`,{to:'done'});await sleep(500);ck=mgr;
+ s=await sent();ok('manager alerted when BRELA approves (not the actor)',s.some(x=>x.template&&x.template.name==='brela_case_approved'&&x.to==='255754000111')&&!s.some(x=>x.template&&x.template.name==='brela_case_approved'&&x.to==='255755111222'));
  ck='';await call('POST','/api/login',{email:'juma@test.co',password:'Junior123!'});ok('junior cannot open WA status',(await call('GET','/api/whatsapp/status')).s===403);
  ok('junior bootstrap hides phones',(await call('GET','/api/bootstrap')).j.users.every(u=>u.phone===undefined));
 })().then(()=>{console.log(fails?'\n'+fails+' FAILED':'\nall passed');process.exit(fails?1:0)}).catch(e=>{console.error(e);process.exit(1)});

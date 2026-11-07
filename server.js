@@ -34,17 +34,17 @@ app.post('/api/logout',(req,res)=>{res.clearCookie('t');res.json({ok:1})});
 app.use('/api',auth);
 app.param('id',(req,res,next,v)=>/^\d+$/.test(v)?next():res.status(400).json({error:'Bad id'}));
 app.get('/api/me',(req,res)=>res.json(req.user));
-const CASE_SQL=`SELECT c.id,c.code,c.status,c.due::text AS due,c.rounds,c.note,c.assignee_id AS who,c.client_id,cl.name AS client,c.case_type_id,t.name AS type,
+const CASE_SQL=`SELECT c.id,c.code,c.status,c.completed_at,c.due::text AS due,c.rounds,c.note,c.assignee_id AS who,c.client_id,cl.name AS client,c.case_type_id,t.name AS type,
  (SELECT count(*) FROM case_docs d WHERE d.case_id=c.id AND d.done)::int AS docs_done,(SELECT count(*) FROM case_docs d WHERE d.case_id=c.id)::int AS docs_total
  FROM cases c JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id`;
 app.get('/api/bootstrap',wrap(async(req,res)=>{
-  const [users,types,docs,clients,cases,recent,inbox]=await Promise.all([
-   q('SELECT id,name,role,active'+(req.user.role==='MANAGER'?',phone,wa_opt_in':'')+' FROM users ORDER BY id'),q('SELECT id,name,active FROM case_types ORDER BY name'),
+  const [users,types,docs,clients,cases,recent,inbox,guide]=await Promise.all([
+   q('SELECT id,name,role,active'+(req.user.role==='MANAGER'?',phone,wa_opt_in':'')+' FROM users ORDER BY id'),q('SELECT id,name,active,sop FROM case_types ORDER BY name'),
    q('SELECT case_type_id,name FROM case_type_docs ORDER BY position,id'),q('SELECT id,name,phone,email FROM clients ORDER BY name'),
    q(CASE_SQL+' ORDER BY c.id DESC'),
-   q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox')]);
+   q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id])]);
   types.forEach(t=>t.docs=docs.filter(d=>d.case_type_id===t.id).map(d=>d.name));
-  res.json({me:req.user,users,types,clients,cases,recent,inboxCount:inbox.n})}));
+  res.json({me:{...req.user,seenGuide:!!(guide&&guide.seen_guide)},users,types,clients,cases,recent,inboxCount:inbox.n})}));
 // ---- team
 app.post('/api/users',need('MANAGER'),wrap(async(req,res)=>{
   const {name,email,role,password,phone}=req.body;if(!name||!email||!ROLES.includes(role)||String(password||'').length<8)fail(400,'Name, email, role and a password of 8+ characters are required');
@@ -62,10 +62,11 @@ app.patch('/api/users/:id',need('MANAGER'),wrap(async(req,res)=>{
 const saveDocs=async(id,docs)=>{await q('DELETE FROM case_type_docs WHERE case_type_id=$1',[id]);let i=0;for(const n of docs.map(s=>String(s).trim()).filter(Boolean))await q('INSERT INTO case_type_docs(case_type_id,name,position) VALUES($1,$2,$3)',[id,n,i++])};
 app.post('/api/case-types',need('MANAGER'),wrap(async(req,res)=>{
   const name=String(req.body.name||'').trim();if(!name)fail(400,'Name required');
-  try{const t=await one('INSERT INTO case_types(name) VALUES($1) RETURNING id',[name]);await saveDocs(t.id,req.body.docs||[]);res.json(t)}catch(e){if(e.status)throw e;fail(400,'A case type with this name already exists')}}));
+  try{const t=await one('INSERT INTO case_types(name,sop) VALUES($1,$2) RETURNING id',[name,String(req.body.sop||'').trim()||null]);await saveDocs(t.id,req.body.docs||[]);res.json(t)}catch(e){if(e.status)throw e;fail(400,'A case type with this name already exists')}}));
 app.put('/api/case-types/:id',need('MANAGER'),wrap(async(req,res)=>{
   const id=+req.params.id;if(req.body.name)await q('UPDATE case_types SET name=$1 WHERE id=$2',[req.body.name.trim(),id]);
   if(typeof req.body.active==='boolean')await q('UPDATE case_types SET active=$1 WHERE id=$2',[req.body.active,id]);
+  if(req.body.sop!==undefined)await q('UPDATE case_types SET sop=$1 WHERE id=$2',[String(req.body.sop).trim()||null,id]);
   if(req.body.docs)await saveDocs(id,req.body.docs);res.json({ok:1})}));
 // ---- clients, files, vault
 app.post('/api/clients',wrap(async(req,res)=>{
@@ -118,7 +119,8 @@ app.get('/api/cases/:id',wrap(async(req,res)=>{
    q('SELECT m.id,m.body,m.created_at,m.user_id FROM comments m WHERE m.case_id=$1 ORDER BY m.id',[id]),q('SELECT text,created_at,user_id FROM activity WHERE case_id=$1 ORDER BY id DESC',[id]),
    q('SELECT id,label,username FROM credentials WHERE client_id=$1 ORDER BY id',[c.client_id])]);
   docs.forEach(d=>d.files=files.filter(f=>f.case_doc_id===d.id));
-  res.json({case:c,docs,comments,activity,creds})}));
+  const steps=await q('SELECT stage,idx FROM case_steps WHERE case_id=$1',[id]),sop=(await one('SELECT sop FROM case_types WHERE id=$1',[c.case_type_id])).sop;
+  res.json({case:c,docs,comments,activity,creds,steps,sop})}));
 app.patch('/api/cases/:id',need('MANAGER','SENIOR'),wrap(async(req,res)=>{
   const {assigneeId,due}=req.body,id=+req.params.id;
   if(assigneeId){await q('UPDATE cases SET assignee_id=$1 WHERE id=$2',[+assigneeId,id]);if(+assigneeId!==req.user.id){const ci=await caseInfo(id);WA.notify([+assigneeId],'brela_case_assigned',[ci.code,ci.client,ci.type,ci.due||'not set'])}}if(due)await q('UPDATE cases SET due=$1 WHERE id=$2',[due,id]);
@@ -146,8 +148,24 @@ app.post('/api/cases/:id/move',wrap(async(req,res)=>{
   await q(`UPDATE cases SET status=$1,rounds=rounds+$2,note=$3,completed_at=CASE WHEN $1='done' THEN now() ELSE NULL END,submitted_at=CASE WHEN $1='submitted' THEN COALESCE(submitted_at,now()) ELSE submitted_at END WHERE id=$4`,[to,to==='returned'?1:0,to==='returned'?reason:(from==='returned'?null:c.note),id]);
   await log(id,req.user.id,to==='returned'?`marked as returned by BRELA (round ${c.rounds+1}): ${reason}`:`moved ${from} → ${to}`);  const ci=await caseInfo(id);
   if(to==='returned')WA.notify([...(await WA.managers()),ci.who].filter(x=>x&&x!==req.user.id),'brela_case_returned',[ci.code,ci.client,reason]);
+  if(to==='done')WA.managers().then(ids=>WA.notify(ids.filter(x=>x!==req.user.id),'brela_case_approved',[ci.code,ci.client]));
   if(to==='ready')WA.seniors().then(ids=>WA.notify(ids.filter(x=>x!==req.user.id),'brela_ready_review',[ci.code,ci.client]));
   res.json({ok:1})}));
+// ---- playbook: what each role does and how each stage works (Manager edits, everyone reads)
+const strs=a=>(Array.isArray(a)?a:[]).map(x=>String(x).trim()).filter(Boolean).slice(0,30);
+app.get('/api/playbook',wrap(async(req,res)=>res.json({roles:await q('SELECT role,summary,duties FROM role_playbook'),stages:await q('SELECT stage,owner_roles,steps,done_when FROM stage_playbook')})));
+app.put('/api/playbook/roles/:role',need('MANAGER'),wrap(async(req,res)=>{
+  if(!ROLES.includes(req.params.role))fail(400,'Unknown role');
+  await q(`INSERT INTO role_playbook(role,summary,duties) VALUES($1,$2,$3::jsonb) ON CONFLICT(role) DO UPDATE SET summary=EXCLUDED.summary,duties=EXCLUDED.duties`,[req.params.role,String(req.body.summary||'').trim(),JSON.stringify(strs(req.body.duties))]);res.json({ok:1})}));
+app.put('/api/playbook/stages/:stage',need('MANAGER'),wrap(async(req,res)=>{
+  if(!STAGES.includes(req.params.stage))fail(400,'Unknown stage');
+  await q(`INSERT INTO stage_playbook(stage,owner_roles,steps,done_when) VALUES($1,$2::jsonb,$3::jsonb,$4) ON CONFLICT(stage) DO UPDATE SET owner_roles=EXCLUDED.owner_roles,steps=EXCLUDED.steps,done_when=EXCLUDED.done_when`,
+   [req.params.stage,JSON.stringify(strs(req.body.owner_roles).filter(r=>ROLES.includes(r))),JSON.stringify(strs(req.body.steps)),String(req.body.done_when||'').trim()]);res.json({ok:1})}));
+app.post('/api/cases/:id/steps',wrap(async(req,res)=>{
+  const {stage,idx,done}=req.body;if(!STAGES.includes(stage)||!Number.isInteger(idx)||idx<0||idx>29)fail(400,'Bad step');
+  if(done)await q('INSERT INTO case_steps(case_id,stage,idx,by_user) VALUES($1,$2,$3,$4) ON CONFLICT(case_id,stage,idx) DO UPDATE SET by_user=EXCLUDED.by_user,at=now()',[+req.params.id,stage,idx,req.user.id]);
+  else await q('DELETE FROM case_steps WHERE case_id=$1 AND stage=$2 AND idx=$3',[+req.params.id,stage,idx]);res.json({ok:1})}));
+app.post('/api/me/seen-guide',wrap(async(req,res)=>{await q('UPDATE users SET seen_guide=TRUE WHERE id=$1',[req.user.id]);res.json({ok:1})}));
 // ---- monthly report (Manager). Months are counted in East Africa Time.
 const LOC=c=>`(${c} AT TIME ZONE 'Africa/Dar_es_Salaam')::date`,INR=c=>`${LOC(c)} >= $1::date AND ${LOC(c)} < ($1::date + interval '1 month')`;
 const monthCounts=async s=>({received:(await one(`SELECT count(*)::int n FROM cases WHERE ${INR('created_at')}`,[s])).n,completed:(await one(`SELECT count(*)::int n FROM cases WHERE ${INR('completed_at')}`,[s])).n,
@@ -192,6 +210,19 @@ app.post('/api/whatsapp/digest-now',need('MANAGER'),wrap(async(req,res)=>res.jso
 // ---- static + boot
 app.use(express.static(path.join(__dirname,'public')));
 app.use((req,res)=>res.status(404).send('Not found'));
+const DEFAULT_ROLES={
+ MANAGER:['Receives jobs from clients, assigns the work and reports back to the client.',['Receive the client\'s request and confirm exactly what they need','Open the case, pick the case type, assign it and set a due date','Check requirements and documents are complete before work starts','Watch the board: overdue, returned and waiting cases','Send the final report and documents to the client when BRELA approves','Handle escalations and review the monthly report']],
+ SENIOR:['Does the technical work: reviews cases, submits to BRELA and fixes corrections.',['Review every case before it goes to BRELA (names, IDs, forms, documents)','Submit the application on the client\'s BRELA account','Record BRELA\'s answer: approved, or returned with the reason','Fix BRELA corrections (or guide the Junior to) and send the case back for review','Guide Juniors and answer their questions in the case comments','Keep client account logins in the vault only']],
+ JUNIOR:['Does routine tasks quickly and accurately.',['Prepare documents and forms for the cases assigned to you','Upload each document and tick it in the checklist','Ask questions in the case comments, not on WhatsApp','Mark the case ready for review when everything is complete','Never submit to BRELA yourself: a Senior reviews first']],
+ SECRETARY:['Runs the office side: receives and files documents and follows up with clients.',['Receive documents from clients (physical, email, WhatsApp) and upload them','File WhatsApp Inbox documents under the right client, case and checklist item','Scan and name files clearly','Follow up with clients for missing documents and note it in the case comments','Keep client details and phone numbers up to date']],
+ ASSOCIATE:['Takes on tasks assigned by the Manager.',['Work on the cases assigned to you and follow each case\'s guide','Upload documents and comment on your progress','Ask the Manager or a Senior when you are unsure']]};
+const DEFAULT_STAGES={
+ new:[['MANAGER'],['Read the client\'s request and confirm what they need','Check the client\'s details and phone number are saved on the client page','Confirm the case type and assign the right person with a due date','Tell the assignee anything special about this client'],'The case has the right assignee and due date.'],
+ docs:[['SECRETARY','JUNIOR','ASSOCIATE'],['Open the documents checklist and see what is missing','Collect missing documents from the client (phone, WhatsApp, email)','Upload each document and check it is readable and complete','Check names and ID numbers match across all documents','Write in the comments if the client is slow to respond'],'Every item in the checklist is uploaded and ticked.'],
+ ready:[['SENIOR','MANAGER'],['Open every document and check it is correct and readable','Check names, ID numbers and details match the application','Check the client\'s authorization is signed','Fix or send back anything wrong, with a comment','When everything is correct, submit to BRELA'],'A Senior is satisfied that everything is correct.'],
+ submitted:[['SENIOR'],['Submit the application on the client\'s BRELA account (the vault has the login)','Write the BRELA reference number in a comment','Check the BRELA status regularly','When BRELA answers, record it here: approved, or returned with the reason'],'BRELA has approved or returned the application.'],
+ returned:[['SENIOR','JUNIOR'],['Read BRELA\'s correction request carefully','Decide what must change and who will fix it','Fix the documents or details and upload the new versions','Comment on what was changed','Press "Corrections done" to send it back for review'],'All corrections are fixed and uploaded.'],
+ done:[['MANAGER'],['Check BRELA\'s approval documents are uploaded to the case','Send the final report and documents to the client','Confirm in the comments that the client received them','Remind the client of the next deadline (for example the annual return)'],'The client has their documents.']};
 const STARTER={'Business Name Registration':['Client ID / passport copy','Passport photo','Proposed business names (2-3)','Signed client authorization','Proof of address'],
  'Company Incorporation':['Directors & shareholders ID / passport copies','Passport photos','Proposed company names','MEMARTS (Memorandum & Articles)','Registered office address proof','Signed client authorization'],
  'Annual Return':['Previous annual return / certificate','Financial statements','Shareholders & directors details','Signed client authorization'],
@@ -203,6 +234,8 @@ async function init(){
     const pw=process.env.ADMIN_PASSWORD||crypto.randomBytes(6).toString('base64url'),email=(process.env.ADMIN_EMAIL||'admin@example.com').toLowerCase();
     await q('INSERT INTO users(name,email,role,password_hash) VALUES($1,$2,$3,$4)',[process.env.ADMIN_NAME||'Manager',email,'MANAGER',await bcrypt.hash(pw,10)]);
     console.log(`First Manager created: ${email}${process.env.ADMIN_PASSWORD?'':' / temporary password: '+pw}`)}
+  if(!(await one('SELECT 1 FROM role_playbook LIMIT 1')))for(const [r,[sum,d]] of Object.entries(DEFAULT_ROLES))await q('INSERT INTO role_playbook(role,summary,duties) VALUES($1,$2,$3::jsonb)',[r,sum,JSON.stringify(d)]);
+  if(!(await one('SELECT 1 FROM stage_playbook LIMIT 1')))for(const [st,[o,steps,dw]] of Object.entries(DEFAULT_STAGES))await q('INSERT INTO stage_playbook(stage,owner_roles,steps,done_when) VALUES($1,$2::jsonb,$3::jsonb,$4)',[st,JSON.stringify(o),JSON.stringify(steps),dw]);
   if(!(await one('SELECT 1 FROM case_types LIMIT 1')))for(const [n,d] of Object.entries(STARTER)){const t=await one('INSERT INTO case_types(name) VALUES($1) RETURNING id',[n]);await saveDocs(t.id,d)}
   WA.startScheduler();app.listen(process.env.PORT||3000,()=>console.log('BRELA Desk running on port '+(process.env.PORT||3000)))}
 init().catch(e=>{console.error(e);process.exit(1)});

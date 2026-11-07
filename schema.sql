@@ -27,3 +27,8 @@ ALTER TABLE cases ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMPTZ;
 UPDATE cases c SET completed_at=(SELECT max(a.created_at) FROM activity a WHERE a.case_id=c.id AND a.text LIKE '%→ done') WHERE c.status='done' AND c.completed_at IS NULL;
 UPDATE cases c SET submitted_at=(SELECT min(a.created_at) FROM activity a WHERE a.case_id=c.id AND a.text LIKE '%→ submitted') WHERE c.submitted_at IS NULL AND c.status IN ('submitted','returned','done');
+ALTER TABLE users ADD COLUMN IF NOT EXISTS seen_guide BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE case_types ADD COLUMN IF NOT EXISTS sop TEXT;
+CREATE TABLE IF NOT EXISTS role_playbook(role TEXT PRIMARY KEY, summary TEXT NOT NULL DEFAULT '', duties JSONB NOT NULL DEFAULT '[]');
+CREATE TABLE IF NOT EXISTS stage_playbook(stage TEXT PRIMARY KEY, owner_roles JSONB NOT NULL DEFAULT '[]', steps JSONB NOT NULL DEFAULT '[]', done_when TEXT NOT NULL DEFAULT '');
+CREATE TABLE IF NOT EXISTS case_steps(case_id INT NOT NULL REFERENCES cases(id) ON DELETE CASCADE, stage TEXT NOT NULL, idx INT NOT NULL, by_user INT REFERENCES users(id), at TIMESTAMPTZ DEFAULT now(), PRIMARY KEY(case_id,stage,idx));
