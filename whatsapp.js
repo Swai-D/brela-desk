@@ -10,6 +10,7 @@ module.exports=({q,one})=>{
   brela_case_assigned:'Hi {{1}}, case {{2}} for {{3}} ({{4}}) has been assigned to you. Due: {{5}}.',
   brela_case_returned:'Hi {{1}}, BRELA returned case {{2}} for {{3}}. Reason: {{4}}',
   brela_ready_review:'Hi {{1}}, case {{2}} for {{3}} is ready for review and submission to BRELA.',
+  brela_case_approved:'Hi {{1}}, BRELA approved case {{2}} for {{3}}. Please send the final report and documents to the client.',
   brela_client_doc:'Hi {{1}}, {{2}} sent a document on WhatsApp: {{3}}. Please file it in the WhatsApp Inbox.',
   brela_daily_digest:'Good morning {{1}}. Your cases today: {{2}}'};
  const gfetch=(url,o={})=>fetch(url.startsWith('http')?url:`${BASE}/${V}/${url}`,{...o,headers:{Authorization:'Bearer '+E.WHATSAPP_TOKEN,...(o.headers||{})}});

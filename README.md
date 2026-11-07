@@ -27,7 +27,7 @@ The tables and the 5 starter case types are created automatically on first start
 ## Roles
 | Role | Can do |
 |---|---|
-| Manager | everything, plus Settings (team, case types, WhatsApp) and the monthly Reports |
+| Manager | everything, plus Settings (team, case types, WhatsApp), the monthly Reports and editing the Playbook |
 | Senior | submit to BRELA, record BRELA outcome, add vault credentials, edit cases |
 | Junior / Secretary / Associate | create cases, upload docs, comment, prepare cases; open a client's vault only while an open case of that client is assigned to them |
 
@@ -36,6 +36,15 @@ The tables and the 5 starter case types are created automatically on first start
 - Every vault reveal is recorded (who, when). Passwords are encrypted with AES-256-GCM before saving.
 - Local run: copy `.env.example` to `.env`, then `npm install && npm run dev` (needs a local Postgres).
 
+## Playbook: roles, responsibilities and guided workflow
+The system tells people what to do, so a new team member can simply follow it:
+- **Playbook** (menu, everyone): *My role* (your responsibilities, what you can and cannot do), *How a case flows* (the six stages: who is responsible, the steps, and when it is done) and *Everyone's responsibilities*. The Manager can edit every text there; the starter content is a sensible default for the BRELA process.
+- **What to do now** (on every case): the current stage, who is responsible, the steps to follow, the "done when" rule and the next action. The steps are advisory: they can be ticked or skipped, they never block anyone. Hard rules (all documents ready before review, only a Senior or Manager submits, a reason when BRELA returns a case) stay enforced by the server.
+- **Case type notes** (Settings → Case types): optional tips for a kind of case (for example BRELA portal steps), shown on every case of that type.
+- **My Work** shows your own cases plus the **team queue for your role** (Manager, Senior and Secretary; completed cases show for 7 days).
+- First sign-in shows a short welcome with your role's responsibilities.
+- A case counts as finished when BRELA approves it; the Manager is alerted to send the report to the client.
+
 ## Monthly report (Manager)
 **Reports** in the menu: pick any month (counted in East Africa Time) to see cases received and completed (compared with the previous month), BRELA corrections and the reasons given, average turnaround, first-time approval rate, breakdowns by case type, team member and client, and the list of completed cases. **Print / Save PDF** gives a clean one-page-style printout, **Download CSV** opens in Excel. Completion and submission dates are recorded from now on (older cases are filled in from their history).
 
@@ -43,7 +52,7 @@ The tables and the 5 starter case types are created automatically on first start
 
 Uses the official **WhatsApp Business Cloud API** (Meta). Two things work out of the box once it is connected:
 
-1. **Alerts to the team** (WhatsApp messages): new case assigned to you, BRELA returned a case (to the assignee and Managers), a case is ready for review (to Seniors/Managers), a client sent a document, plus a **daily digest at 07:00 East Africa Time** (not Sundays) listing each person's returned, overdue and due-soon cases. You never get an alert for your own action.
+1. **Alerts to the team** (WhatsApp messages): new case assigned to you, BRELA returned a case (to the assignee and Managers), a case is ready for review (to Seniors/Managers), BRELA approved a case (to Managers: send the report to the client), a client sent a document, plus a **daily digest at 07:00 East Africa Time** (not Sundays) listing each person's returned, overdue and due-soon cases. You never get an alert for your own action.
 2. **Client documents into cases:** clients send PDFs or photos to the business number. They land in **WhatsApp Inbox**, matched to the client by phone number when it is known. Someone files each one under a client, case and checklist item in two clicks, which ticks the item and writes the history.
 
 ### Set up
@@ -51,7 +60,7 @@ Uses the official **WhatsApp Business Cloud API** (Meta). Two things work out of
 2. For real use: verify your Meta Business account and register the business number (check Meta's current rules for numbers already used in the regular WhatsApp app).
 3. Create a **System User** token with WhatsApp permissions → `WHATSAPP_TOKEN`. Copy the **Phone number ID** → `WHATSAPP_PHONE_NUMBER_ID`. App settings → Basic → **App secret** → `WHATSAPP_APP_SECRET`. Invent any string for `WHATSAPP_VERIFY_TOKEN`. Put all four in Railway Variables.
 4. Meta → WhatsApp → Configuration → **Webhook**: callback URL `https://YOUR-DOMAIN/webhooks/whatsapp`, your verify token, then subscribe to the **messages** field.
-5. Create the **5 message templates** (category *Utility*, language *English*) exactly as listed in **Settings → WhatsApp** (copy the text). Alerts only work after Meta approves them.
+5. Create the **6 message templates** (category *Utility*, language *English*) exactly as listed in **Settings → WhatsApp** (copy the text). Alerts only work after Meta approves them.
 6. Add phone numbers: team members in **Settings → Team → Phone**, clients on the client page (**edit** next to the WhatsApp number).
 7. **Settings → WhatsApp → Send test to my phone** (uses Meta's built-in `hello_world` template).
 
