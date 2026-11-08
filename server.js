@@ -11,7 +11,7 @@ const enc=s=>{const iv=crypto.randomBytes(12),c=crypto.createCipheriv('aes-256-g
 const dec=s=>{const [iv,t,e]=s.split('.').map(x=>Buffer.from(x,'base64')),d=crypto.createDecipheriv('aes-256-gcm',KEY,iv);d.setAuthTag(t);return Buffer.concat([d.update(e),d.final()]).toString('utf8')};
 const LEVELS=['MANAGER','SENIOR','STAFF'], STAGES=['new','docs','ready','submitted','returned','done'];
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:15*1024*1024}});
-const app=express();app.use(express.json({limit:'1mb',verify:(req,res,buf)=>{req.rawBody=buf}}));app.use(cookieParser());
+const app=express();app.set('trust proxy',1);app.disable('x-powered-by');app.use(express.json({limit:'1mb',verify:(req,res,buf)=>{req.rawBody=buf}}));app.use(cookieParser());
 const wrap=f=>(req,res)=>f(req,res).catch(e=>{if(!e.status)console.error(e);res.status(e.status||500).json({error:e.status?e.message:'Server error'})});
 const fail=(s,m)=>{const e=new Error(m);e.status=s;throw e};
 const auth=async(req,res,next)=>{try{const t=jwt.verify(req.cookies.t,SECRET),u=await one('SELECT u.id,u.name,u.role,r.level FROM users u JOIN roles r ON r.key=u.role WHERE u.id=$1 AND u.active',[t.id]);if(!u)throw 0;req.user=u;next()}catch{res.status(401).json({error:'Please sign in'})}};
@@ -289,8 +289,18 @@ app.post('/api/whatsapp/test',need('MANAGER'),wrap(async(req,res)=>{
   const r=await WA.sendTemplate(to,'hello_world',[],req.user.id,'en_US');if(!r.ok)fail(400,r.error||'Send failed');res.json({ok:1})}));
 app.post('/api/whatsapp/digest-now',need('MANAGER'),wrap(async(req,res)=>res.json({people:await WA.runDigest(true)})));
 // ---- static + boot
-app.use(express.static(path.join(__dirname,'public')));
-app.use((req,res)=>res.status(404).send('Not found'));
+// ---- static files, safe across deploys (Railway sits behind a proxy/CDN)
+// HTML is never cached and links to CSS/JS carry the build id (?v=...), so a new deploy can never be paired with old styles or scripts.
+const PUB=path.join(__dirname,'public'),VER=String(process.env.RAILWAY_GIT_COMMIT_SHA||process.env.SOURCE_COMMIT||process.env.GIT_SHA||Date.now().toString(36)).slice(0,12),pageCache=new Map();
+const stamp=h=>h.replace(/((?:href|src)=")(assets\/[^"?]+\.(?:css|js))(")/g,`$1$2?v=${VER}$3`);
+app.get('/version',(req,res)=>res.json({version:VER}));
+app.get(/^\/(?:([\w-]+)\.html)?$/,(req,res,next)=>{
+  const name=(req.params[0]||'index')+'.html';let h=pageCache.get(name);
+  if(!h){const f=path.join(PUB,name);if(!fs.existsSync(f))return next();h=stamp(fs.readFileSync(f,'utf8'));pageCache.set(name,h)}
+  res.set({'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache'}).send(h)});
+app.use('/assets',(req,res,next)=>{if(req.query.v&&/\.(css|js)$/.test(req.path))res.set('Cache-Control','public, max-age=31536000, immutable');next()});
+app.use(express.static(PUB,{index:false,cacheControl:false,setHeaders:(res,fp)=>{if(!res.getHeader('Cache-Control'))res.setHeader('Cache-Control',/\.(css|js|html)$/.test(fp)?'no-cache':'public, max-age=604800')}}));
+app.use((req,res)=>res.status(404).type('text/plain').send('Not found'));
 const DEFAULT_ROLES={
  MANAGER:['Receives jobs from clients, assigns the work and reports back to the client.',['Receive the client\'s request and confirm exactly what they need','Open the case, pick the case type, assign it and set a due date','Check requirements and documents are complete before work starts','Watch the board: overdue, returned and waiting cases','Send the final report and documents to the client when BRELA approves','Handle escalations and review the monthly report']],
  SENIOR:['Does the technical work: reviews cases, submits to BRELA and fixes corrections.',['Review every case before it goes to BRELA (names, IDs, forms, documents)','Submit the application on the client\'s BRELA account','Record BRELA\'s answer: approved, or returned with the reason','Fix BRELA corrections (or guide the Junior to) and send the case back for review','Guide Juniors and answer their questions in the case comments','Keep client account logins in the vault only']],
