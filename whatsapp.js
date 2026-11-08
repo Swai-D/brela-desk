@@ -29,8 +29,8 @@ module.exports=({q,one})=>{
   q('SELECT id,name,phone FROM users WHERE id=ANY($1) AND active AND wa_opt_in AND phone IS NOT NULL',[[...new Set(userIds)]])
    .then(us=>us.forEach(u=>{const to=norm(u.phone);if(to)sendTemplate(to,name,[u.name.split(' ')[0],...params],u.id)}))
    .catch(e=>console.error('wa notify',e.message))}
- const managers=()=>q(`SELECT id FROM users WHERE active AND role='MANAGER'`).then(r=>r.map(x=>x.id));
- const seniors=()=>q(`SELECT id FROM users WHERE active AND role IN ('MANAGER','SENIOR')`).then(r=>r.map(x=>x.id));
+ const managers=()=>q(`SELECT u.id FROM users u JOIN roles r ON r.key=u.role WHERE u.active AND r.level='MANAGER'`).then(r=>r.map(x=>x.id));
+ const seniors=()=>q(`SELECT u.id FROM users u JOIN roles r ON r.key=u.role WHERE u.active AND r.level IN ('MANAGER','SENIOR')`).then(r=>r.map(x=>x.id));
  // ---- webhook
  function verify(req,res){const t=E.WHATSAPP_VERIFY_TOKEN;if(req.query['hub.mode']==='subscribe'&&t&&req.query['hub.verify_token']===t)return res.status(200).send(req.query['hub.challenge']);res.sendStatus(403)}
  function receive(req,res){
