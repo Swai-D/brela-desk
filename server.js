@@ -102,6 +102,15 @@ app.delete('/api/clients/:id',need('MANAGER'),wrap(async(req,res)=>{
   if((await one('SELECT count(*)::int AS n FROM cases WHERE client_id=$1',[id])).n)fail(400,'This client has cases. Delete or move those cases first.');
   await q('DELETE FROM clients WHERE id=$1',[id]);await audit(req,'client.delete',`${c.name} (with their documents and saved logins)`);res.json({ok:1})}));
 const FILES='SELECT f.id,f.filename,f.mime,f.uploaded_by,f.size,f.case_doc_id,f.case_id,f.created_at,u.name AS by FROM files f LEFT JOIN users u ON u.id=f.uploaded_by';
+// Paginated list with search (name, email, phone: digits match even when the number has spaces) and 'focus' (jump to the page holding one client)
+app.get('/api/clients',wrap(async(req,res)=>{
+  const n0=parseInt(req.query.size),size=n0>0?Math.min(50,n0):10,qs=String(req.query.q||'').trim().slice(0,80),like='%'+qs.replace(/[\\%_]/g,m=>'\\'+m)+'%',digits=qs.replace(/\D/g,''),dl=digits.length>=3?'%'+digits+'%':'';
+  const W=a=>`(${a}name ILIKE $1 OR ${a}email ILIKE $1 OR ${a}phone ILIKE $1 OR ($2<>'' AND translate(coalesce(${a}phone,''),' +-().','') LIKE $2))`;
+  const total=(await one(`SELECT count(*)::int AS n FROM clients WHERE ${W('')}`,[like,dl])).n,pages=Math.max(1,Math.ceil(total/size));
+  let page=Math.min(pages,Math.max(1,parseInt(req.query.page)||1));const focus=parseInt(req.query.focus);
+  if(focus&&await one(`SELECT 1 FROM clients WHERE id=$3 AND ${W('')}`,[like,dl,focus]))page=Math.floor((await one(`SELECT count(*)::int AS n FROM clients WHERE ${W('')} AND name<(SELECT name FROM clients WHERE id=$3)`,[like,dl,focus])).n/size)+1;
+  const items=await q(`SELECT cl.id,cl.name,cl.phone,cl.email,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id AND c.status<>'done') AS open,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id) AS cases FROM clients cl WHERE ${W('cl.')} ORDER BY cl.name,cl.id LIMIT $3 OFFSET $4`,[like,dl,size,(page-1)*size]);
+  res.json({items,total,page,pages,size})}));
 app.get('/api/clients/:id',wrap(async(req,res)=>{
   const id=+req.params.id,client=await one('SELECT id,name,phone,email FROM clients WHERE id=$1',[id]);if(!client)fail(404,'Not found');
   const [cases,files,creds]=await Promise.all([q(CASE_SQL+' WHERE c.client_id=$1 ORDER BY c.id DESC',[id]),
