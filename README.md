@@ -90,6 +90,13 @@ Uses the official **WhatsApp Business Cloud API** (Meta). Two things work out of
 - Numbers like `0712 345 678` are read as Tanzanian (`DEFAULT_COUNTRY_CODE=255`).
 - Every send is logged (Settings → WhatsApp → Recent sends), and Meta's duplicate deliveries are ignored.
 
+## Static files and Railway (why styles no longer break after a deploy)
+- **Every page is served with the build id on its CSS and JS links** (`app.min.css?v=<commit>`). Railway sets `RAILWAY_GIT_COMMIT_SHA` on each deploy, so a new deploy always gets fresh files and a browser or CDN can never pair new HTML with old styles or scripts. `GET /version` shows which build is running.
+- HTML is never cached; versioned CSS/JS is cached for a year (`immutable`); fonts and images for a week.
+- The app runs behind Railway's proxy, so it trusts one proxy hop (`trust proxy`): client IPs are real (the login throttle counts each person separately instead of locking everyone out together) and `https` is detected correctly.
+- Rules for new assets: put files under `public/assets/`, reference them with **relative** paths (`assets/css/x.css`, never `http://...`), and match the file name's capitals exactly (Linux, where Railway runs, is case-sensitive; Windows and macOS are not). `npm test` includes a **deploy check** that opens every page, loads every CSS, JS, font and image they reference (including `url(...)` inside CSS), and fails the pull request if one is missing, has the wrong type, uses plain `http`, or lacks the version.
+- This replaces the Laravel/Vite asset helper approach (`ASSET_HELPER_GUIDE.md` in cici-store): there is no build step or hashed file names here, so the version is added when the page is served.
+
 ## Tests & CI
 `npm test` starts the real server against a fresh PostgreSQL database (set `DATABASE_URL`, e.g. a throwaway local database) with a fake WhatsApp API, then runs the API, WhatsApp and report suites. GitHub Actions runs the same on every pull request (`.github/workflows/ci.yml`). **Never point `DATABASE_URL` at a database with real data when running tests: it is wiped.**
 
