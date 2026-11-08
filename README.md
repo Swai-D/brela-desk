@@ -24,13 +24,16 @@ The tables and the 5 starter case types are created automatically on first start
 
 > **Keep `ENCRYPTION_KEY` safe (password manager).** If it is lost or changed, saved client passwords cannot be decrypted.
 
-## Roles
-| Role | Can do |
-|---|---|
-| Manager | everything, plus Settings (team, case types, WhatsApp), the monthly Reports and editing the Playbook |
-| Senior | submit to BRELA, record BRELA outcome, add vault credentials, edit cases |
-| Junior / Secretary / Associate | create cases, upload docs, comment, prepare cases; open a client's vault only while an open case of that client is assigned to them |
+## Roles and access levels
+A **role** is a job in your team (Manager, Senior, Junior, Secretary, Associate, or any you create). Each role has an **access level** that decides what its people can do:
 
+| Access level | Can do |
+|---|---|
+| **Manager** | everything: Settings (team, roles, case types, WhatsApp), monthly Reports, the audit log, editing the Playbook, and the deletions listed below |
+| **Senior** | everything a Staff can, plus review and submit to BRELA, record BRELA's answer, edit a case's assignee and due date, manage vault logins, rename clients and checklist items, rename or delete any file |
+| **Staff** | create cases and clients, upload and preview documents, comment, work the cases assigned to them; open a client's vault only while an open case of that client is assigned to them |
+
+The Manager creates, renames, edits and deletes roles in **Settings, Roles & access** (name, access level, responsibilities for the Playbook, and whether the role sees the *team queue* in My Work). Safeguards: a role cannot be deleted while people have it, and there must always be at least one active Manager (the app refuses to remove, demote or deactivate the last one). Permissions are checked on every request, so changing a person's role or a role's access level, or deactivating someone, takes effect immediately, without signing out and in.
 ## Notes
 - Uploaded files are stored inside PostgreSQL (max 15 MB each), so one Railway database backup covers everything. Enable backups on the Postgres service.
 - Every vault reveal is recorded (who, when). Passwords are encrypted with AES-256-GCM before saving.
@@ -39,6 +42,7 @@ The tables and the 5 starter case types are created automatically on first start
 ## Who can change what
 | Item | Create | Edit | Delete |
 |---|---|---|---|
+| Roles | Manager | Manager: name, access level, text, team queue | Manager, only if nobody has the role (and not the last Manager-level role) |
 | Team members | Manager | Manager: name, email, role, phone, password, active | Manager, only if the person has no work history (otherwise deactivate) |
 | Case types | Manager | Manager: name, checklist, notes, hide/show | Manager, only if no case uses it (otherwise hide) |
 | Clients | everyone | rename: Senior/Manager; phone and email: everyone | Manager, only if the client has no cases |

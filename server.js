@@ -9,14 +9,17 @@ const KEY=Buffer.from(process.env.ENCRYPTION_KEY||(PROD?'':'0'.repeat(64)),'hex'
 if(!SECRET||KEY.length!==32){console.error('Set JWT_SECRET and ENCRYPTION_KEY (64 hex chars) in the environment.');process.exit(1)}
 const enc=s=>{const iv=crypto.randomBytes(12),c=crypto.createCipheriv('aes-256-gcm',KEY,iv),e=Buffer.concat([c.update(s,'utf8'),c.final()]);return [iv,c.getAuthTag(),e].map(b=>b.toString('base64')).join('.')};
 const dec=s=>{const [iv,t,e]=s.split('.').map(x=>Buffer.from(x,'base64')),d=crypto.createDecipheriv('aes-256-gcm',KEY,iv);d.setAuthTag(t);return Buffer.concat([d.update(e),d.final()]).toString('utf8')};
-const ROLES=['MANAGER','SENIOR','JUNIOR','SECRETARY','ASSOCIATE'], STAGES=['new','docs','ready','submitted','returned','done'];
+const LEVELS=['MANAGER','SENIOR','STAFF'], STAGES=['new','docs','ready','submitted','returned','done'];
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:15*1024*1024}});
 const app=express();app.use(express.json({limit:'1mb',verify:(req,res,buf)=>{req.rawBody=buf}}));app.use(cookieParser());
 const wrap=f=>(req,res)=>f(req,res).catch(e=>{if(!e.status)console.error(e);res.status(e.status||500).json({error:e.status?e.message:'Server error'})});
 const fail=(s,m)=>{const e=new Error(m);e.status=s;throw e};
-const auth=(req,res,next)=>{try{req.user=jwt.verify(req.cookies.t,SECRET);next()}catch{res.status(401).json({error:'Please sign in'})}};
-const need=(...r)=>(req,res,next)=>r.includes(req.user.role)?next():res.status(403).json({error:'Your role cannot do this'});
+const auth=async(req,res,next)=>{try{const t=jwt.verify(req.cookies.t,SECRET),u=await one('SELECT u.id,u.name,u.role,r.level FROM users u JOIN roles r ON r.key=u.role WHERE u.id=$1 AND u.active',[t.id]);if(!u)throw 0;req.user=u;next()}catch{res.status(401).json({error:'Please sign in'})}};
+const need=(...r)=>(req,res,next)=>r.includes(req.user.level)?next():res.status(403).json({error:'Your role cannot do this'});
 const audit=(req,action,details)=>q('INSERT INTO audit_log(user_id,actor_name,action,details) VALUES($1,$2,$3,$4)',[req.user.id,req.user.name,action,details]).catch(()=>{});
+const roleExists=async k=>!!(k&&await one('SELECT 1 FROM roles WHERE key=$1',[String(k)]));
+const roleLevel=async k=>((await one('SELECT level FROM roles WHERE key=$1',[String(k)]))||{}).level;
+const otherManagers=async excludeId=>(await one(`SELECT count(*)::int AS n FROM users u JOIN roles r ON r.key=u.role WHERE u.active AND r.level='MANAGER' AND u.id<>$1`,[excludeId||0])).n;
 const log=(caseId,userId,text)=>q('INSERT INTO activity(case_id,user_id,text) VALUES($1,$2,$3)',[caseId,userId,text]);
 const WA=require('./whatsapp')({q,one});
 const caseInfo=id=>one(CASE_SQL+' WHERE c.id=$1',[id]);
@@ -39,33 +42,36 @@ const CASE_SQL=`SELECT c.id,c.code,c.status,c.completed_at,c.due::text AS due,c.
  (SELECT count(*) FROM case_docs d WHERE d.case_id=c.id AND d.done)::int AS docs_done,(SELECT count(*) FROM case_docs d WHERE d.case_id=c.id)::int AS docs_total
  FROM cases c JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id`;
 app.get('/api/bootstrap',wrap(async(req,res)=>{
-  const [users,types,docs,clients,cases,recent,inbox,guide]=await Promise.all([
-   q('SELECT id,name,role,active'+(req.user.role==='MANAGER'?',email,phone,wa_opt_in':'')+' FROM users ORDER BY id'),q('SELECT id,name,active,sop FROM case_types ORDER BY name'),
+  const [users,types,docs,clients,cases,recent,inbox,guide,roles]=await Promise.all([
+   q('SELECT id,name,role,active'+(req.user.level==='MANAGER'?',email,phone,wa_opt_in':'')+' FROM users ORDER BY id'),q('SELECT id,name,active,sop FROM case_types ORDER BY name'),
    q('SELECT case_type_id,name FROM case_type_docs ORDER BY position,id'),q('SELECT id,name,phone,email FROM clients ORDER BY name'),
    q(CASE_SQL+' ORDER BY c.id DESC'),
-   q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id])]);
+   q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id]),q(`SELECT key,name,level,team_queue FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`)]);
   types.forEach(t=>t.docs=docs.filter(d=>d.case_type_id===t.id).map(d=>d.name));
-  res.json({me:{...req.user,seenGuide:!!(guide&&guide.seen_guide)},users,types,clients,cases,recent,inboxCount:inbox.n})}));
+  res.json({me:{...req.user,seenGuide:!!(guide&&guide.seen_guide)},roles,users,types,clients,cases,recent,inboxCount:inbox.n})}));
 // ---- team
 app.post('/api/users',need('MANAGER'),wrap(async(req,res)=>{
-  const {name,email,role,password,phone}=req.body;if(!name||!email||!ROLES.includes(role)||String(password||'').length<8)fail(400,'Name, email, role and a password of 8+ characters are required');
+  const {name,email,role,password,phone}=req.body;if(!name||!email||!role||String(password||'').length<8)fail(400,'Name, email, role and a password of 8+ characters are required');
+  if(!await roleExists(role))fail(400,'Choose a valid role');
   try{res.json(await one('INSERT INTO users(name,email,role,password_hash,phone) VALUES($1,lower($2),$3,$4,$5) RETURNING id,name,role,active',[name,email,role,await bcrypt.hash(password,10),phone||null]))}catch(e){fail(400,'That email is already used')}}));
 app.patch('/api/users/:id',need('MANAGER'),wrap(async(req,res)=>{
   const {role,active,password,phone,waOptIn}=req.body,id=+req.params.id;
-  const {name,email}=req.body,who=await one('SELECT name,email,role FROM users WHERE id=$1',[id]);if(!who)fail(404,'Not found');
+  const {name,email}=req.body,who=await one('SELECT u.name,u.email,u.role,r.level FROM users u JOIN roles r ON r.key=u.role WHERE u.id=$1',[id]);if(!who)fail(404,'Not found');
   if(name!==undefined){if(!String(name).trim())fail(400,'Name required');await q('UPDATE users SET name=$1 WHERE id=$2',[String(name).trim(),id])}
   if(email!==undefined){if(!/^\S+@\S+\.\S+$/.test(String(email).trim()))fail(400,'Enter a valid email');try{await q('UPDATE users SET email=lower($1) WHERE id=$2',[String(email).trim(),id])}catch(e){fail(400,'That email is already used')}}
   if(role||typeof active==='boolean'||password||name!==undefined||email!==undefined)await audit(req,'user.update',`${who.name}: ${[role&&`role ${who.role} → ${role}`,typeof active==='boolean'&&(active?'activated':'deactivated'),password&&'password reset',name!==undefined&&'name',email!==undefined&&'email'].filter(Boolean).join(', ')}`);
   if(phone!==undefined)await q('UPDATE users SET phone=$1 WHERE id=$2',[String(phone).trim()||null,id]);
   if(typeof waOptIn==='boolean')await q('UPDATE users SET wa_opt_in=$1 WHERE id=$2',[waOptIn,id]);
-  if(id===req.user.id&&(active===false||(role&&role!=='MANAGER')))fail(400,'You cannot demote or deactivate yourself');
-  if(role){if(!ROLES.includes(role))fail(400,'Bad role');await q('UPDATE users SET role=$1 WHERE id=$2',[role,id])}
+  if(id===req.user.id&&(active===false||(role&&role!==who.role)))fail(400,'You cannot demote or deactivate yourself');
+  if(who.level==='MANAGER'&&(active===false||(role&&role!==who.role&&(await roleLevel(role))!=='MANAGER'))&&!(await otherManagers(id)))fail(400,'At least one active Manager must remain');
+  if(role){if(!await roleExists(role))fail(400,'Bad role');await q('UPDATE users SET role=$1 WHERE id=$2',[role,id])}
   if(typeof active==='boolean')await q('UPDATE users SET active=$1 WHERE id=$2',[active,id]);
   if(password){if(password.length<8)fail(400,'Password must be 8+ characters');await q('UPDATE users SET password_hash=$1 WHERE id=$2',[await bcrypt.hash(password,10),id])}
   res.json({ok:1})}));
 app.delete('/api/users/:id',need('MANAGER'),wrap(async(req,res)=>{
   const id=+req.params.id;if(id===req.user.id)fail(400,'You cannot delete yourself');
-  const u=await one('SELECT name,email FROM users WHERE id=$1',[id]);if(!u)fail(404,'Not found');
+  const u=await one('SELECT u.name,u.email,r.level FROM users u JOIN roles r ON r.key=u.role WHERE u.id=$1',[id]);if(!u)fail(404,'Not found');
+  if(u.level==='MANAGER'&&!(await otherManagers(id)))fail(400,'At least one active Manager must remain');
   const used=await one(`SELECT (SELECT count(*) FROM cases WHERE assignee_id=$1 OR created_by=$1)+(SELECT count(*) FROM activity WHERE user_id=$1)+(SELECT count(*) FROM comments WHERE user_id=$1)+(SELECT count(*) FROM files WHERE uploaded_by=$1)+(SELECT count(*) FROM credentials WHERE created_by=$1)+(SELECT count(*) FROM credential_access WHERE user_id=$1) AS n`,[id]);
   if(+used.n)fail(400,'This person has work history. Deactivate them instead: their history stays correct.');
   await q('DELETE FROM users WHERE id=$1',[id]);await audit(req,'user.delete',`${u.name} <${u.email}>`);res.json({ok:1})}));
@@ -88,7 +94,7 @@ app.post('/api/clients',wrap(async(req,res)=>{
   const name=String(req.body.name||'').trim();if(!name)fail(400,'Client name required');
   res.json(await one('INSERT INTO clients(name,phone,email) VALUES($1,$2,$3) ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id,name',[name,req.body.phone||null,req.body.email||null]))}));
 app.patch('/api/clients/:id',wrap(async(req,res)=>{const {name,phone,email}=req.body,id=+req.params.id;
-  if(name!==undefined){if(!['MANAGER','SENIOR'].includes(req.user.role))fail(403,'Only a Senior or Manager can rename a client');if(!String(name).trim())fail(400,'Name required');
+  if(name!==undefined){if(!['MANAGER','SENIOR'].includes(req.user.level))fail(403,'Only a Senior or Manager can rename a client');if(!String(name).trim())fail(400,'Name required');
    try{await q('UPDATE clients SET name=$1 WHERE id=$2',[String(name).trim(),id])}catch(e){fail(400,'A client with this name already exists')}}
   if(phone!==undefined)await q('UPDATE clients SET phone=$1 WHERE id=$2',[String(phone).trim()||null,id]);if(email!==undefined)await q('UPDATE clients SET email=$1 WHERE id=$2',[String(email).trim()||null,id]);res.json({ok:1})}));
 app.delete('/api/clients/:id',need('MANAGER'),wrap(async(req,res)=>{
@@ -114,11 +120,11 @@ app.get('/api/files/:id',wrap(async(req,res)=>{
   res.set({'Content-Type':f.mime||'application/octet-stream','Content-Disposition':`${inline?'inline':'attachment'}; filename*=UTF-8''${encodeURIComponent(f.filename)}`,'X-Content-Type-Options':'nosniff'});res.send(f.data)}));
 app.delete('/api/files/:id',wrap(async(req,res)=>{
   const f=await one('SELECT uploaded_by,filename FROM files WHERE id=$1',[+req.params.id]);if(!f)fail(404,'Not found');
-  if(!['MANAGER','SENIOR'].includes(req.user.role)&&f.uploaded_by!==req.user.id)fail(403,'Only the uploader, a Senior or a Manager can delete this');
+  if(!['MANAGER','SENIOR'].includes(req.user.level)&&f.uploaded_by!==req.user.id)fail(403,'Only the uploader, a Senior or a Manager can delete this');
   await q('DELETE FROM files WHERE id=$1',[+req.params.id]);await audit(req,'file.delete',f.filename);res.json({ok:1})}));
 app.patch('/api/files/:id',wrap(async(req,res)=>{
   const f=await one('SELECT uploaded_by FROM files WHERE id=$1',[+req.params.id]);if(!f)fail(404,'Not found');
-  if(!['MANAGER','SENIOR'].includes(req.user.role)&&f.uploaded_by!==req.user.id)fail(403,'Only the uploader, a Senior or a Manager can rename this');
+  if(!['MANAGER','SENIOR'].includes(req.user.level)&&f.uploaded_by!==req.user.id)fail(403,'Only the uploader, a Senior or a Manager can rename this');
   const n=String(req.body.filename||'').trim().slice(0,200);if(!n)fail(400,'Name required');await q('UPDATE files SET filename=$1 WHERE id=$2',[n,+req.params.id]);res.json({ok:1})}));
 app.post('/api/clients/:id/credentials',need('MANAGER','SENIOR'),wrap(async(req,res)=>{
   const {label,username,password}=req.body;if(!label||!password)fail(400,'Label and password are required');
@@ -134,7 +140,7 @@ app.delete('/api/credentials/:id',need('MANAGER','SENIOR'),wrap(async(req,res)=>
   await q('DELETE FROM credentials WHERE id=$1',[+req.params.id]);await audit(req,'credential.delete',c.label);res.json({ok:1})}));
 app.post('/api/credentials/:id/reveal',wrap(async(req,res)=>{
   const c=await one('SELECT * FROM credentials WHERE id=$1',[+req.params.id]);if(!c)fail(404,'Not found');
-  if(!['MANAGER','SENIOR'].includes(req.user.role)&&!await one(`SELECT 1 FROM cases WHERE client_id=$1 AND assignee_id=$2 AND status<>'done'`,[c.client_id,req.user.id]))fail(403,'You can open this only while an open case of this client is assigned to you');
+  if(!['MANAGER','SENIOR'].includes(req.user.level)&&!await one(`SELECT 1 FROM cases WHERE client_id=$1 AND assignee_id=$2 AND status<>'done'`,[c.client_id,req.user.id]))fail(403,'You can open this only while an open case of this client is assigned to you');
   await q('INSERT INTO credential_access(credential_id,user_id) VALUES($1,$2)',[c.id,req.user.id]);
   res.json({username:c.username,password:dec(c.secret_enc)})}));
 // ---- cases
@@ -157,7 +163,7 @@ app.get('/api/cases/:id',wrap(async(req,res)=>{
   res.json({case:c,docs,comments,activity,creds,steps,sop})}));
 app.patch('/api/cases/:id',need('MANAGER','SENIOR'),wrap(async(req,res)=>{
   const {assigneeId,due,clientId,caseTypeId}=req.body,id=+req.params.id,old=await caseInfo(id);if(!old)fail(404,'Case not found');
-  if((clientId||caseTypeId)&&req.user.role!=='MANAGER')fail(403,'Only a Manager can change the client or case type');
+  if((clientId||caseTypeId)&&req.user.level!=='MANAGER')fail(403,'Only a Manager can change the client or case type');
   const ch=[];
   if(assigneeId&&+assigneeId!==old.who){await q('UPDATE cases SET assignee_id=$1 WHERE id=$2',[+assigneeId,id]);ch.push('assignee');if(+assigneeId!==req.user.id)WA.notify([+assigneeId],'brela_case_assigned',[old.code,old.client,old.type,due||old.due||'not set'])}
   if(due!==undefined&&(due||null)!==(old.due||null)){await q('UPDATE cases SET due=$1 WHERE id=$2',[due||null,id]);ch.push('due date')}
@@ -171,7 +177,7 @@ app.post('/api/cases/:id/docs',wrap(async(req,res)=>{
   const n=String(req.body.name||'').trim();if(!n)fail(400,'Name required');
   res.json(await one('INSERT INTO case_docs(case_id,name) VALUES($1,$2) RETURNING id',[+req.params.id,n]))}));
 app.patch('/api/case-docs/:id',wrap(async(req,res)=>{const id=+req.params.id;
-  if(req.body.name!==undefined){if(!['MANAGER','SENIOR'].includes(req.user.role))fail(403,'Only a Senior or Manager can rename items');const n=String(req.body.name).trim();if(!n)fail(400,'Name required');await q('UPDATE case_docs SET name=$1 WHERE id=$2',[n,id])}
+  if(req.body.name!==undefined){if(!['MANAGER','SENIOR'].includes(req.user.level))fail(403,'Only a Senior or Manager can rename items');const n=String(req.body.name).trim();if(!n)fail(400,'Name required');await q('UPDATE case_docs SET name=$1 WHERE id=$2',[n,id])}
   if(req.body.done!==undefined)await q('UPDATE case_docs SET done=$1 WHERE id=$2',[!!req.body.done,id]);res.json({ok:1})}));
 app.delete('/api/case-docs/:id',need('MANAGER','SENIOR'),wrap(async(req,res)=>{await q('DELETE FROM case_docs WHERE id=$1',[+req.params.id]);res.json({ok:1})}));
 app.post('/api/case-docs/:id/files',up,wrap(async(req,res)=>{
@@ -186,13 +192,13 @@ app.patch('/api/comments/:id',wrap(async(req,res)=>{
   const b=String(req.body.body||'').trim();if(!b)fail(400,'Write something');await q('UPDATE comments SET body=$1,edited_at=now() WHERE id=$2',[b,+req.params.id]);res.json({ok:1})}));
 app.delete('/api/comments/:id',wrap(async(req,res)=>{
   const m=await one('SELECT m.user_id,m.body,c.code FROM comments m JOIN cases c ON c.id=m.case_id WHERE m.id=$1',[+req.params.id]);if(!m)fail(404,'Not found');
-  if(m.user_id!==req.user.id&&req.user.role!=='MANAGER')fail(403,'You can delete only your own comments');
+  if(m.user_id!==req.user.id&&req.user.level!=='MANAGER')fail(403,'You can delete only your own comments');
   await q('DELETE FROM comments WHERE id=$1',[+req.params.id]);if(m.user_id!==req.user.id)await audit(req,'comment.delete',`${m.code}: "${m.body.slice(0,80)}"`);res.json({ok:1})}));
 app.get('/api/audit',need('MANAGER'),wrap(async(req,res)=>res.json(await q('SELECT created_at,actor_name,action,details FROM audit_log ORDER BY id DESC LIMIT 100'))));
 app.post('/api/cases/:id/move',wrap(async(req,res)=>{
   const id=+req.params.id,to=req.body.to,reason=String(req.body.reason||'').trim(),c=await one('SELECT * FROM cases WHERE id=$1',[id]);
   if(!c)fail(404,'Case not found');if(!STAGES.includes(to))fail(400,'Bad stage');if(to===c.status)return res.json({ok:1});
-  const senior=['MANAGER','SENIOR'].includes(req.user.role);
+  const senior=['MANAGER','SENIOR'].includes(req.user.level);
   if(['ready','submitted','done'].includes(to)){const r=await one('SELECT count(*) FILTER (WHERE NOT done)::int AS open FROM case_docs WHERE case_id=$1',[id]);if(r.open)fail(400,'Complete all documents in the checklist first.')}
   if(['submitted','done','returned'].includes(to)&&!senior)fail(403,'Only a Senior or Manager can do this step.');
   if(to==='returned'&&!reason)fail(400,'Write what BRELA asked to correct.');
@@ -205,14 +211,37 @@ app.post('/api/cases/:id/move',wrap(async(req,res)=>{
   res.json({ok:1})}));
 // ---- playbook: what each role does and how each stage works (Manager edits, everyone reads)
 const strs=a=>(Array.isArray(a)?a:[]).map(x=>String(x).trim()).filter(Boolean).slice(0,30);
-app.get('/api/playbook',wrap(async(req,res)=>res.json({roles:await q('SELECT role,summary,duties FROM role_playbook'),stages:await q('SELECT stage,owner_roles,steps,done_when FROM stage_playbook')})));
+app.get('/api/playbook',wrap(async(req,res)=>res.json({roles:await q(`SELECT key AS role,name,level,team_queue,summary,duties FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`),stages:await q('SELECT stage,owner_roles,steps,done_when FROM stage_playbook')})));
 app.put('/api/playbook/roles/:role',need('MANAGER'),wrap(async(req,res)=>{
-  if(!ROLES.includes(req.params.role))fail(400,'Unknown role');
-  await q(`INSERT INTO role_playbook(role,summary,duties) VALUES($1,$2,$3::jsonb) ON CONFLICT(role) DO UPDATE SET summary=EXCLUDED.summary,duties=EXCLUDED.duties`,[req.params.role,String(req.body.summary||'').trim(),JSON.stringify(strs(req.body.duties))]);res.json({ok:1})}));
+  if(!await roleExists(req.params.role))fail(400,'Unknown role');
+  await q('UPDATE roles SET summary=$2,duties=$3::jsonb WHERE key=$1',[req.params.role,String(req.body.summary||'').trim(),JSON.stringify(strs(req.body.duties))]);res.json({ok:1})}));
 app.put('/api/playbook/stages/:stage',need('MANAGER'),wrap(async(req,res)=>{
   if(!STAGES.includes(req.params.stage))fail(400,'Unknown stage');
+  const validRoles=(await q('SELECT key FROM roles')).map(r=>r.key);
   await q(`INSERT INTO stage_playbook(stage,owner_roles,steps,done_when) VALUES($1,$2::jsonb,$3::jsonb,$4) ON CONFLICT(stage) DO UPDATE SET owner_roles=EXCLUDED.owner_roles,steps=EXCLUDED.steps,done_when=EXCLUDED.done_when`,
-   [req.params.stage,JSON.stringify(strs(req.body.owner_roles).filter(r=>ROLES.includes(r))),JSON.stringify(strs(req.body.steps)),String(req.body.done_when||'').trim()]);res.json({ok:1})}));
+   [req.params.stage,JSON.stringify(strs(req.body.owner_roles).filter(r=>validRoles.includes(r))),JSON.stringify(strs(req.body.steps)),String(req.body.done_when||'').trim()]);res.json({ok:1})}));
+const roleKey=n=>String(n).trim().toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,30);
+app.post('/api/roles',need('MANAGER'),wrap(async(req,res)=>{
+  const name=String(req.body.name||'').trim(),level=req.body.level,key=roleKey(name);
+  if(name.length<2||name.length>40)fail(400,'Role name must be 2 to 40 characters');if(!key)fail(400,'Use letters or numbers in the role name');
+  if(!LEVELS.includes(level))fail(400,'Choose an access level');
+  if(await one('SELECT 1 FROM roles WHERE lower(name)=lower($1) OR key=$2',[name,key]))fail(400,'A role with this name already exists');
+  await q('INSERT INTO roles(key,name,level,team_queue,summary,duties) VALUES($1,$2,$3,$4,$5,$6::jsonb)',[key,name,level,!!req.body.team_queue,String(req.body.summary||'').trim(),JSON.stringify(strs(req.body.duties))]);
+  await audit(req,'role.create',`${name} (${level})`);res.json({key})}));
+app.put('/api/roles/:key',need('MANAGER'),wrap(async(req,res)=>{
+  const k=req.params.key,r=await one('SELECT * FROM roles WHERE key=$1',[k]);if(!r)fail(404,'Role not found');
+  const b=req.body,name=b.name!==undefined?String(b.name).trim():r.name,level=b.level!==undefined?b.level:r.level;
+  if(name.length<2||name.length>40)fail(400,'Role name must be 2 to 40 characters');if(!LEVELS.includes(level))fail(400,'Choose an access level');
+  if(await one('SELECT 1 FROM roles WHERE lower(name)=lower($1) AND key<>$2',[name,k]))fail(400,'A role with this name already exists');
+  if(r.level==='MANAGER'&&level!=='MANAGER'&&!(await one(`SELECT 1 FROM users u JOIN roles x ON x.key=u.role WHERE u.active AND x.level='MANAGER' AND x.key<>$1 LIMIT 1`,[k])))fail(400,'At least one active Manager must remain');
+  await q('UPDATE roles SET name=$2,level=$3,team_queue=$4,summary=$5,duties=$6::jsonb WHERE key=$1',[k,name,level,b.team_queue!==undefined?!!b.team_queue:r.team_queue,b.summary!==undefined?String(b.summary).trim():r.summary,JSON.stringify(b.duties!==undefined?strs(b.duties):r.duties)]);
+  if(name!==r.name||level!==r.level)await audit(req,'role.update',`${r.name}${name!==r.name?' → '+name:''}${level!==r.level?`: access ${r.level} → ${level}`:''}`);res.json({ok:1})}));
+app.delete('/api/roles/:key',need('MANAGER'),wrap(async(req,res)=>{
+  const k=req.params.key,r=await one('SELECT * FROM roles WHERE key=$1',[k]);if(!r)fail(404,'Role not found');
+  const n=(await one('SELECT count(*)::int AS n FROM users WHERE role=$1',[k])).n;if(n)fail(400,`${n} ${n===1?'person has':'people have'} this role. Move them to another role first.`);
+  if(r.level==='MANAGER'&&!(await one(`SELECT 1 FROM roles WHERE level='MANAGER' AND key<>$1`,[k])))fail(400,'Keep at least one Manager-level role');
+  await q('DELETE FROM roles WHERE key=$1',[k]);await q('UPDATE stage_playbook SET owner_roles=owner_roles - $1::text',[k]);
+  await audit(req,'role.delete',`${r.name} (${r.level})`);res.json({ok:1})}));
 app.post('/api/cases/:id/steps',wrap(async(req,res)=>{
   const {stage,idx,done}=req.body;if(!STAGES.includes(stage)||!Number.isInteger(idx)||idx<0||idx>29)fail(400,'Bad step');
   if(done)await q('INSERT INTO case_steps(case_id,stage,idx,by_user) VALUES($1,$2,$3,$4) ON CONFLICT(case_id,stage,idx) DO UPDATE SET by_user=EXCLUDED.by_user,at=now()',[+req.params.id,stage,idx,req.user.id]);
@@ -282,11 +311,13 @@ const STARTER={'Business Name Registration':['Client ID / passport copy','Passpo
  'Beneficial Ownership Update':['Beneficial owners ID / passport copies','Ownership structure / percentages','Signed client authorization']};
 async function init(){
   await pool.query(fs.readFileSync(path.join(__dirname,'schema.sql'),'utf8'));
+  if(!(await one('SELECT 1 FROM roles LIMIT 1'))){
+    const old=Object.fromEntries((await q('SELECT role,summary,duties FROM role_playbook').catch(()=>[])).map(r=>[r.role,r])),META={MANAGER:['Manager','MANAGER',true],SENIOR:['Senior','SENIOR',true],JUNIOR:['Junior','STAFF',false],SECRETARY:['Secretary','STAFF',true],ASSOCIATE:['Associate','STAFF',false]};
+    for(const [k,[sum,d]] of Object.entries(DEFAULT_ROLES)){const o=old[k],m=META[k];await q('INSERT INTO roles(key,name,level,team_queue,summary,duties) VALUES($1,$2,$3,$4,$5,$6::jsonb)',[k,m[0],m[1],m[2],o?o.summary:sum,JSON.stringify(o?o.duties:d)])}}
   if(!(await one('SELECT 1 FROM users LIMIT 1'))){
     const pw=process.env.ADMIN_PASSWORD||crypto.randomBytes(6).toString('base64url'),email=(process.env.ADMIN_EMAIL||'admin@example.com').toLowerCase();
     await q('INSERT INTO users(name,email,role,password_hash) VALUES($1,$2,$3,$4)',[process.env.ADMIN_NAME||'Manager',email,'MANAGER',await bcrypt.hash(pw,10)]);
     console.log(`First Manager created: ${email}${process.env.ADMIN_PASSWORD?'':' / temporary password: '+pw}`)}
-  if(!(await one('SELECT 1 FROM role_playbook LIMIT 1')))for(const [r,[sum,d]] of Object.entries(DEFAULT_ROLES))await q('INSERT INTO role_playbook(role,summary,duties) VALUES($1,$2,$3::jsonb)',[r,sum,JSON.stringify(d)]);
   if(!(await one('SELECT 1 FROM stage_playbook LIMIT 1')))for(const [st,[o,steps,dw]] of Object.entries(DEFAULT_STAGES))await q('INSERT INTO stage_playbook(stage,owner_roles,steps,done_when) VALUES($1,$2::jsonb,$3::jsonb,$4)',[st,JSON.stringify(o),JSON.stringify(steps),dw]);
   if(!(await one('SELECT 1 FROM case_types LIMIT 1')))for(const [n,d] of Object.entries(STARTER)){const t=await one('INSERT INTO case_types(name) VALUES($1) RETURNING id',[n]);await saveDocs(t.id,d)}
   WA.startScheduler();app.listen(process.env.PORT||3000,()=>console.log('BRELA Desk running on port '+(process.env.PORT||3000)))}
