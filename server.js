@@ -167,11 +167,17 @@ app.post('/api/cases',wrap(async(req,res)=>{
 app.get('/api/cases/:id',wrap(async(req,res)=>{
   const id=+req.params.id,c=await one(CASE_SQL+' WHERE c.id=$1',[id]);if(!c)fail(404,'Case not found');
   const [docs,files,comments,activity,creds]=await Promise.all([q('SELECT id,name,done FROM case_docs WHERE case_id=$1 ORDER BY id',[id]),q(FILES+' WHERE f.case_id=$1 ORDER BY f.id',[id]),
-   q('SELECT m.id,m.body,m.created_at,m.edited_at,m.user_id FROM comments m WHERE m.case_id=$1 ORDER BY m.id',[id]),q('SELECT text,created_at,user_id FROM activity WHERE case_id=$1 ORDER BY id DESC',[id]),
+   q('SELECT m.id,m.body,m.created_at,m.edited_at,m.user_id FROM comments m WHERE m.case_id=$1 ORDER BY m.id',[id]),q('SELECT text,created_at,user_id FROM activity WHERE case_id=$1 ORDER BY id DESC LIMIT 10',[id]),
    q('SELECT id,label,username FROM credentials WHERE client_id=$1 ORDER BY id',[c.client_id])]);
   docs.forEach(d=>d.files=files.filter(f=>f.case_doc_id===d.id));
-  const steps=await q('SELECT stage,idx FROM case_steps WHERE case_id=$1',[id]),sop=(await one('SELECT sop FROM case_types WHERE id=$1',[c.case_type_id])).sop;
-  res.json({case:c,docs,comments,activity,creds,steps,sop})}));
+  const activity_total=(await one('SELECT count(*)::int AS n FROM activity WHERE case_id=$1',[id])).n,steps=await q('SELECT stage,idx FROM case_steps WHERE case_id=$1',[id]),sop=(await one('SELECT sop FROM case_types WHERE id=$1',[c.case_type_id])).sop;
+  res.json({case:c,docs,comments,activity,activity_total,creds,steps,sop})}));
+// Paginated history of one case (newest first)
+app.get('/api/cases/:id/history',wrap(async(req,res)=>{
+  const id=+req.params.id;if(!await one('SELECT 1 FROM cases WHERE id=$1',[id]))fail(404,'Case not found');
+  const n0=parseInt(req.query.size),size=n0>0?Math.min(50,n0):10,total=(await one('SELECT count(*)::int AS n FROM activity WHERE case_id=$1',[id])).n,pages=Math.max(1,Math.ceil(total/size)),page=Math.min(pages,Math.max(1,parseInt(req.query.page)||1));
+  const items=await q('SELECT text,created_at,user_id FROM activity WHERE case_id=$1 ORDER BY id DESC LIMIT $2 OFFSET $3',[id,size,(page-1)*size]);
+  res.json({items,total,page,pages,size})}));
 app.patch('/api/cases/:id/track',wrap(async(req,res)=>{
   const id=+req.params.id,c=await caseInfo(id);if(!c)fail(404,'Case not found');
   const v=cleanTrack(req.body.track_number);
