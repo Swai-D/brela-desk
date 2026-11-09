@@ -16,6 +16,7 @@ const wrap=f=>(req,res)=>f(req,res).catch(e=>{if(!e.status)console.error(e);res.
 const fail=(s,m)=>{const e=new Error(m);e.status=s;throw e};
 const auth=async(req,res,next)=>{try{const t=jwt.verify(req.cookies.t,SECRET),u=await one('SELECT u.id,u.name,u.role,r.level FROM users u JOIN roles r ON r.key=u.role WHERE u.id=$1 AND u.active',[t.id]);if(!u)throw 0;req.user=u;next()}catch{res.status(401).json({error:'Please sign in'})}};
 const need=(...r)=>(req,res,next)=>r.includes(req.user.level)?next():res.status(403).json({error:'Your role cannot do this'});
+const cleanTrack=v=>{const t=String(v??'').replace(/\s+/g,' ').trim();if(t.length>60)fail(400,'Track number is too long (max 60 characters)');return t||null};
 const audit=(req,action,details)=>q('INSERT INTO audit_log(user_id,actor_name,action,details) VALUES($1,$2,$3,$4)',[req.user.id,req.user.name,action,details]).catch(()=>{});
 const roleExists=async k=>!!(k&&await one('SELECT 1 FROM roles WHERE key=$1',[String(k)]));
 const roleLevel=async k=>((await one('SELECT level FROM roles WHERE key=$1',[String(k)]))||{}).level;
@@ -38,13 +39,13 @@ app.post('/api/logout',(req,res)=>{res.clearCookie('t');res.json({ok:1})});
 app.use('/api',auth);
 app.param('id',(req,res,next,v)=>/^\d+$/.test(v)?next():res.status(400).json({error:'Bad id'}));
 app.get('/api/me',(req,res)=>res.json(req.user));
-const CASE_SQL=`SELECT c.id,c.code,c.status,c.completed_at,c.due::text AS due,c.rounds,c.note,c.assignee_id AS who,c.client_id,cl.name AS client,c.case_type_id,t.name AS type,
+const CASE_SQL=`SELECT c.id,c.code,c.track_number,c.status,c.completed_at,c.due::text AS due,c.rounds,c.note,c.assignee_id AS who,c.client_id,cl.name AS client,c.case_type_id,t.name AS type,
  (SELECT count(*) FROM case_docs d WHERE d.case_id=c.id AND d.done)::int AS docs_done,(SELECT count(*) FROM case_docs d WHERE d.case_id=c.id)::int AS docs_total
  FROM cases c JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id`;
 app.get('/api/bootstrap',wrap(async(req,res)=>{
   const [users,types,docs,clients,cases,recent,inbox,guide,roles]=await Promise.all([
    q('SELECT id,name,role,active'+(req.user.level==='MANAGER'?',email,phone,wa_opt_in':'')+' FROM users ORDER BY id'),q('SELECT id,name,active,sop FROM case_types ORDER BY name'),
-   q('SELECT case_type_id,name FROM case_type_docs ORDER BY position,id'),q('SELECT id,name,phone,email FROM clients ORDER BY name'),
+   q('SELECT case_type_id,name FROM case_type_docs ORDER BY position,id'),q('SELECT id,name,phone,email,track_number FROM clients ORDER BY name'),
    q(CASE_SQL+' ORDER BY c.id DESC'),
    q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id]),q(`SELECT key,name,level,team_queue FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`)]);
   types.forEach(t=>t.docs=docs.filter(d=>d.case_type_id===t.id).map(d=>d.name));
@@ -92,8 +93,9 @@ app.delete('/api/case-types/:id',need('MANAGER'),wrap(async(req,res)=>{
 // ---- clients, files, vault
 app.post('/api/clients',wrap(async(req,res)=>{
   const name=String(req.body.name||'').trim();if(!name)fail(400,'Client name required');
-  res.json(await one('INSERT INTO clients(name,phone,email) VALUES($1,$2,$3) ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id,name',[name,req.body.phone||null,req.body.email||null]))}));
-app.patch('/api/clients/:id',wrap(async(req,res)=>{const {name,phone,email}=req.body,id=+req.params.id;
+  res.json(await one('INSERT INTO clients(name,phone,email,track_number) VALUES($1,$2,$3,$4) ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id,name',[name,req.body.phone||null,req.body.email||null,cleanTrack(req.body.track_number)]))}));
+app.patch('/api/clients/:id',wrap(async(req,res)=>{const {name,phone,email,track_number}=req.body,id=+req.params.id;
+  if(track_number!==undefined)await q('UPDATE clients SET track_number=$1 WHERE id=$2',[cleanTrack(track_number),id]);
   if(name!==undefined){if(!['MANAGER','SENIOR'].includes(req.user.level))fail(403,'Only a Senior or Manager can rename a client');if(!String(name).trim())fail(400,'Name required');
    try{await q('UPDATE clients SET name=$1 WHERE id=$2',[String(name).trim(),id])}catch(e){fail(400,'A client with this name already exists')}}
   if(phone!==undefined)await q('UPDATE clients SET phone=$1 WHERE id=$2',[String(phone).trim()||null,id]);if(email!==undefined)await q('UPDATE clients SET email=$1 WHERE id=$2',[String(email).trim()||null,id]);res.json({ok:1})}));
@@ -105,14 +107,14 @@ const FILES='SELECT f.id,f.filename,f.mime,f.uploaded_by,f.size,f.case_doc_id,f.
 // Paginated list with search (name, email, phone: digits match even when the number has spaces) and 'focus' (jump to the page holding one client)
 app.get('/api/clients',wrap(async(req,res)=>{
   const n0=parseInt(req.query.size),size=n0>0?Math.min(50,n0):10,qs=String(req.query.q||'').trim().slice(0,80),like='%'+qs.replace(/[\\%_]/g,m=>'\\'+m)+'%',digits=qs.replace(/\D/g,''),dl=digits.length>=3?'%'+digits+'%':'';
-  const W=a=>`(${a}name ILIKE $1 OR ${a}email ILIKE $1 OR ${a}phone ILIKE $1 OR ($2<>'' AND translate(coalesce(${a}phone,''),' +-().','') LIKE $2))`;
-  const total=(await one(`SELECT count(*)::int AS n FROM clients WHERE ${W('')}`,[like,dl])).n,pages=Math.max(1,Math.ceil(total/size));
+  const W=a=>`(${a}name ILIKE $1 OR ${a}email ILIKE $1 OR ${a}phone ILIKE $1 OR ${a}track_number ILIKE $1 OR EXISTS(SELECT 1 FROM cases x WHERE x.client_id=${a}id AND x.track_number ILIKE $1) OR ($2<>'' AND translate(coalesce(${a}phone,''),' +-().','') LIKE $2))`;
+  const total=(await one(`SELECT count(*)::int AS n FROM clients cl WHERE ${W('cl.')}`,[like,dl])).n,pages=Math.max(1,Math.ceil(total/size));
   let page=Math.min(pages,Math.max(1,parseInt(req.query.page)||1));const focus=parseInt(req.query.focus);
-  if(focus&&await one(`SELECT 1 FROM clients WHERE id=$3 AND ${W('')}`,[like,dl,focus]))page=Math.floor((await one(`SELECT count(*)::int AS n FROM clients WHERE ${W('')} AND name<(SELECT name FROM clients WHERE id=$3)`,[like,dl,focus])).n/size)+1;
-  const items=await q(`SELECT cl.id,cl.name,cl.phone,cl.email,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id AND c.status<>'done') AS open,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id) AS cases FROM clients cl WHERE ${W('cl.')} ORDER BY cl.name,cl.id LIMIT $3 OFFSET $4`,[like,dl,size,(page-1)*size]);
+  if(focus&&await one(`SELECT 1 FROM clients cl WHERE cl.id=$3 AND ${W('cl.')}`,[like,dl,focus]))page=Math.floor((await one(`SELECT count(*)::int AS n FROM clients cl WHERE ${W('cl.')} AND cl.name<(SELECT name FROM clients WHERE id=$3)`,[like,dl,focus])).n/size)+1;
+  const items=await q(`SELECT cl.id,cl.name,cl.phone,cl.email,cl.track_number,(SELECT coalesce(json_agg(x.track_number ORDER BY x.id DESC),'[]'::json) FROM cases x WHERE x.client_id=cl.id AND x.track_number IS NOT NULL) AS tracks,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id AND c.status<>'done') AS open,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id) AS cases FROM clients cl WHERE ${W('cl.')} ORDER BY cl.name,cl.id LIMIT $3 OFFSET $4`,[like,dl,size,(page-1)*size]);
   res.json({items,total,page,pages,size})}));
 app.get('/api/clients/:id',wrap(async(req,res)=>{
-  const id=+req.params.id,client=await one('SELECT id,name,phone,email FROM clients WHERE id=$1',[id]);if(!client)fail(404,'Not found');
+  const id=+req.params.id,client=await one('SELECT id,name,phone,email,track_number FROM clients WHERE id=$1',[id]);if(!client)fail(404,'Not found');
   const [cases,files,creds]=await Promise.all([q(CASE_SQL+' WHERE c.client_id=$1 ORDER BY c.id DESC',[id]),
    q(FILES+' WHERE f.client_id=$1 AND NOT f.inbox ORDER BY f.id DESC',[id]),
    q(`SELECT c.id,c.label,c.username,(SELECT u.name||' · '||to_char(a.created_at,'DD Mon HH24:MI') FROM credential_access a JOIN users u ON u.id=a.user_id WHERE a.credential_id=c.id ORDER BY a.id DESC LIMIT 1) AS last_access FROM credentials c WHERE c.client_id=$1 ORDER BY c.id`,[id])]);
@@ -170,6 +172,12 @@ app.get('/api/cases/:id',wrap(async(req,res)=>{
   docs.forEach(d=>d.files=files.filter(f=>f.case_doc_id===d.id));
   const steps=await q('SELECT stage,idx FROM case_steps WHERE case_id=$1',[id]),sop=(await one('SELECT sop FROM case_types WHERE id=$1',[c.case_type_id])).sop;
   res.json({case:c,docs,comments,activity,creds,steps,sop})}));
+app.patch('/api/cases/:id/track',wrap(async(req,res)=>{
+  const id=+req.params.id,c=await caseInfo(id);if(!c)fail(404,'Case not found');
+  const v=cleanTrack(req.body.track_number);
+  if((c.track_number||null)!==v){await q('UPDATE cases SET track_number=$1 WHERE id=$2',[v,id]);await log(id,req.user.id,v?`set the BRELA track number to ${v}`:'cleared the BRELA track number')}
+  const duplicates=v?(await q(`SELECT code FROM cases WHERE id<>$1 AND upper(translate(track_number,' ',''))=upper(translate($2,' ',''))`,[id,v])).map(r=>r.code):[];
+  res.json({ok:1,track_number:v,duplicates})}));
 app.patch('/api/cases/:id',need('MANAGER','SENIOR'),wrap(async(req,res)=>{
   const {assigneeId,due,clientId,caseTypeId}=req.body,id=+req.params.id,old=await caseInfo(id);if(!old)fail(404,'Case not found');
   if((clientId||caseTypeId)&&req.user.level!=='MANAGER')fail(403,'Only a Manager can change the client or case type');
@@ -263,7 +271,7 @@ const monthCounts=async s=>({received:(await one(`SELECT count(*)::int n FROM ca
 app.get('/api/reports/monthly',need('MANAGER'),wrap(async(req,res)=>{
   let m=String(req.query.month||'');if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(m))m=new Date(Date.now()+3*3600e3).toISOString().slice(0,7);
   const s=m+'-01',prevS=(await one(`SELECT to_char($1::date - interval '1 month','YYYY-MM-DD') d`,[s])).d;
-  const base=`SELECT c.id,c.code,c.rounds,c.assignee_id AS who,cl.name AS client,t.name AS type,cl.id AS client_id`;
+  const base=`SELECT c.id,c.code,c.track_number,c.rounds,c.assignee_id AS who,cl.name AS client,t.name AS type,cl.id AS client_id`;
   const from=` FROM cases c JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id`;
   const [recv,done,rets,open,users,sub,prev]=await Promise.all([
    q(base+from+` WHERE ${INR('c.created_at')}`,[s]),
@@ -278,7 +286,7 @@ app.get('/api/reports/monthly',need('MANAGER'),wrap(async(req,res)=>{
   const byPerson=users.filter(u=>u.active||recv.some(r=>r.who===u.id)||done.some(r=>r.who===u.id)).map(u=>({name:u.name,role:u.role,received:cnt(recv,r=>r.who===u.id),completed:cnt(done,r=>r.who===u.id),returns:cnt(rets,r=>r.who===u.id),openNow:cnt(open,r=>r.who===u.id),overdueNow:cnt(open,r=>r.who===u.id&&r.late)}));
   const byClient=[...new Set([...recv,...done].map(r=>r.client))].map(c=>({client:c,received:cnt(recv,r=>r.client===c),completed:cnt(done,r=>r.client===c)})).sort((a,b)=>b.received+b.completed-a.received-a.completed).slice(0,10);
   res.json({month:m,summary:{received:recv.length,completed:done.length,submitted:sub.n,returns:rets.length,avgDays:avg(days),firstTimeRate:done.length?Math.round(cnt(done,d=>d.rounds===0)/done.length*100):null,openNow:open.length,overdueNow:cnt(open,o=>o.late)},
-   prev,byType,byPerson,byClient,completed:done.map(d=>({code:d.code,client:d.client,type:d.type,who:d.who,created:d.created,completed:d.completed,days:Math.round(+d.days*10)/10,rounds:d.rounds})),
+   prev,byType,byPerson,byClient,completed:done.map(d=>({code:d.code,track:d.track_number,client:d.client,type:d.type,who:d.who,created:d.created,completed:d.completed,days:Math.round(+d.days*10)/10,rounds:d.rounds})),
    returnsList:rets.map(r=>({at:r.created_at,code:r.code,client:r.client,type:r.type,who:r.who,reason:reason(r.text)}))})}));
 // ---- WhatsApp inbox + admin
 app.get('/api/inbox',wrap(async(req,res)=>res.json(await q(`SELECT f.id,f.filename,f.size,f.mime,f.created_at,f.sender_phone,f.sender_name,f.note,f.client_id,cl.name AS client FROM files f LEFT JOIN clients cl ON cl.id=f.client_id WHERE f.inbox ORDER BY f.id DESC`))));
@@ -320,7 +328,7 @@ const DEFAULT_STAGES={
  new:[['MANAGER'],['Read the client\'s request and confirm what they need','Check the client\'s details and phone number are saved on the client page','Confirm the case type and assign the right person with a due date','Tell the assignee anything special about this client'],'The case has the right assignee and due date.'],
  docs:[['SECRETARY','JUNIOR','ASSOCIATE'],['Open the documents checklist and see what is missing','Collect missing documents from the client (phone, WhatsApp, email)','Upload each document and check it is readable and complete','Check names and ID numbers match across all documents','Write in the comments if the client is slow to respond'],'Every item in the checklist is uploaded and ticked.'],
  ready:[['SENIOR','MANAGER'],['Open every document and check it is correct and readable','Check names, ID numbers and details match the application','Check the client\'s authorization is signed','Fix or send back anything wrong, with a comment','When everything is correct, submit to BRELA'],'A Senior is satisfied that everything is correct.'],
- submitted:[['SENIOR'],['Submit the application on the client\'s BRELA account (the vault has the login)','Write the BRELA reference number in a comment','Check the BRELA status regularly','When BRELA answers, record it here: approved, or returned with the reason'],'BRELA has approved or returned the application.'],
+ submitted:[['SENIOR'],['Submit the application on the client\'s BRELA account (the vault has the login)','Enter the BRELA track number in the Track number field at the top of the case','Check the BRELA status regularly','When BRELA answers, record it here: approved, or returned with the reason'],'BRELA has approved or returned the application.'],
  returned:[['SENIOR','JUNIOR'],['Read BRELA\'s correction request carefully','Decide what must change and who will fix it','Fix the documents or details and upload the new versions','Comment on what was changed','Press "Corrections done" to send it back for review'],'All corrections are fixed and uploaded.'],
  done:[['MANAGER'],['Check BRELA\'s approval documents are uploaded to the case','Send the final report and documents to the client','Confirm in the comments that the client received them','Remind the client of the next deadline (for example the annual return)'],'The client has their documents.']};
 const STARTER={'Business Name Registration':['Client ID / passport copy','Passport photo','Proposed business names (2-3)','Signed client authorization','Proof of address'],

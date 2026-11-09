@@ -64,6 +64,9 @@ The system tells people what to do, so a new team member can simply follow it:
 - First sign-in shows a short welcome with your role's responsibilities.
 - A case counts as finished when BRELA approves it; the Manager is alerted to send the report to the client.
 
+## BRELA track number
+Every case has a **BRELA track number** field under the client name (type it after submitting; Enter or the tick saves it). Every team member can set it, it is recorded in the case history, and the app warns if another case already uses the same number (ignoring spaces and capitals). Clients can also carry a track number (client page, *edit client*). The number shows on the board cards, My Work, the client page (next to each case), the monthly report and its CSV, and the **Clients search finds a client by any of their track numbers**, so when BRELA calls with a number you can find the case in seconds.
+
 ## Monthly report (Manager)
 **Reports** in the menu: pick any month (counted in East Africa Time) to see cases received and completed (compared with the previous month), BRELA corrections and the reasons given, average turnaround, first-time approval rate, breakdowns by case type, team member and client, and the list of completed cases. **Print / Save PDF** gives a clean one-page-style printout, **Download CSV** opens in Excel. Completion and submission dates are recorded from now on (older cases are filled in from their history).
 
