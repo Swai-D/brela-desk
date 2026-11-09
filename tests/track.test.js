@@ -1,0 +1,43 @@
+let fails=0;
+const AP=process.env.ADMIN_PASSWORD,UP=['Pass','w0rd','123'].join('');
+let ck='';const PORT=process.env.PORT||3000,B=`http://localhost:${PORT}/api`;
+const call=async(m,u,b)=>{const r=await fetch(B+u,{method:m,headers:{...(b?{'Content-Type':'application/json'}:{}),cookie:ck},body:b?JSON.stringify(b):undefined});const s=r.headers.get('set-cookie');if(s)ck=s.split(';')[0];return{s:r.status,j:await r.json().catch(()=>({}))}};
+const ok=(n,c,x)=>{if(!c)fails++;console.log(c?'PASS':'FAIL',n,c?'':JSON.stringify(x))};
+const as=async(e,p)=>{ck='';await call('POST','/login',{email:e,password:p})};
+(async()=>{
+ await as('boss@test.co',AP);
+ await call('POST','/users',{name:'Juma Junior',email:'juma@test.co',role:'JUNIOR',password:UP});
+ const types=(await call('GET','/bootstrap')).j.types,t=types[0].id;
+ const a=(await call('POST','/clients',{name:'Alpha Ltd'})).j.id,b=(await call('POST','/clients',{name:'Beta Co',track_number:' CL  9001 '})).j.id;
+ const c1=(await call('POST','/cases',{clientId:a,caseTypeId:t})).j,c2=(await call('POST','/cases',{clientId:b,caseTypeId:t})).j;
+ ok('a new client can be created with a track number (tidied)',(await call('GET','/clients/'+b)).j.client.track_number==='CL 9001');
+ await as('juma@test.co',UP);
+ let r=await call('PATCH',`/cases/${c1.id}/track`,{track_number:'  TRK   0777 '});
+ ok('any team member can record a case track number (spaces tidied)',r.s===200&&r.j.track_number==='TRK 0777'&&r.j.duplicates.length===0,r);
+ let d=(await call('GET','/cases/'+c1.id)).j;
+ ok('it shows on the case, in the case list and in the history',d.case.track_number==='TRK 0777'&&(await call('GET','/bootstrap')).j.cases.find(x=>x.id===c1.id).track_number==='TRK 0777'&&d.activity[0].text.includes('set the BRELA track number to TRK 0777'),d.activity[0]);
+ const n0=d.activity.length;await call('PATCH',`/cases/${c1.id}/track`,{track_number:'TRK 0777'});
+ ok('saving the same number again adds no history',(await call('GET','/cases/'+c1.id)).j.activity.length===n0);
+ r=await call('PATCH',`/cases/${c2.id}/track`,{track_number:'trk0777'});
+ ok('a number already used by another case is flagged (ignores case and spaces)',r.s===200&&r.j.duplicates.join()===d.case.code,r.j);
+ ok('too long a number is refused',(await call('PATCH',`/cases/${c2.id}/track`,{track_number:'x'.repeat(61)})).s===400);
+ ok('unknown case',(await call('PATCH','/cases/999999/track',{track_number:'1'})).s===404);
+ r=await call('PATCH',`/cases/${c2.id}/track`,{track_number:'   '});d=(await call('GET','/cases/'+c2.id)).j;
+ ok('blank clears it and says so in the history',r.j.track_number===null&&d.case.track_number===null&&d.activity[0].text.includes('cleared'),d.activity[0]);
+ // client level + searching
+ ok('a client track number can be edited',(await call('PATCH','/clients/'+a,{track_number:'CL 5500'})).s===200&&(await call('GET','/clients/'+a)).j.client.track_number==='CL 5500');
+ ok('the client page lists each case with its number',(await call('GET','/clients/'+a)).j.cases.find(x=>x.id===c1.id).track_number==='TRK 0777');
+ let l=(await call('GET','/clients?q=TRK 07')).j;
+ ok('searching a case track number finds its client',l.total===1&&l.items[0].name==='Alpha Ltd'&&l.items[0].tracks.includes('TRK 0777'),l);
+ ok('searching a client track number works',(await call('GET','/clients?q=9001')).j.items.map(x=>x.name).join()==='Beta Co'&&(await call('GET','/clients?q=CL 5500')).j.items[0].name==='Alpha Ltd');
+ ok('list rows carry the client number and case numbers',(await call('GET','/clients')).j.items.find(x=>x.name==='Alpha Ltd').track_number==='CL 5500');
+ ok('no match for an unknown number',(await call('GET','/clients?q=NOPE-123')).j.total===0);
+ ok('client number too long is refused',(await call('PATCH','/clients/'+a,{track_number:'y'.repeat(61)})).s===400);
+ // reports
+ await as('boss@test.co',AP);
+ const dd=(await call('GET','/cases/'+c1.id)).j;for(const x of dd.docs)await call('PATCH','/case-docs/'+x.id,{done:true});
+ for(const to of ['ready','submitted','done'])await call('POST',`/cases/${c1.id}/move`,{to});
+ const month=new Date(Date.now()+3*3600e3).toISOString().slice(0,7),rep=(await call('GET','/reports/monthly?month='+month)).j;
+ ok('the monthly report lists the track number of completed cases',rep.completed.find(x=>x.code===dd.case.code).track==='TRK 0777',rep.completed);
+ ok('requires sign-in',(await (async()=>{ck='';return (await call('PATCH',`/cases/${c1.id}/track`,{track_number:'1'})).s})())===401);
+})().then(()=>{console.log(fails?'\n'+fails+' FAILED':'\nall passed');process.exit(fails?1:0)}).catch(e=>{console.error(e);process.exit(1)});
