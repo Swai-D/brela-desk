@@ -167,11 +167,17 @@ app.post('/api/cases',wrap(async(req,res)=>{
 app.get('/api/cases/:id',wrap(async(req,res)=>{
   const id=+req.params.id,c=await one(CASE_SQL+' WHERE c.id=$1',[id]);if(!c)fail(404,'Case not found');
   const [docs,files,comments,activity,creds]=await Promise.all([q('SELECT id,name,done FROM case_docs WHERE case_id=$1 ORDER BY id',[id]),q(FILES+' WHERE f.case_id=$1 ORDER BY f.id',[id]),
-   q('SELECT m.id,m.body,m.created_at,m.edited_at,m.user_id FROM comments m WHERE m.case_id=$1 ORDER BY m.id',[id]),q('SELECT text,created_at,user_id FROM activity WHERE case_id=$1 ORDER BY id DESC LIMIT 10',[id]),
+   q('SELECT * FROM (SELECT m.id,m.body,m.created_at,m.edited_at,m.user_id FROM comments m WHERE m.case_id=$1 ORDER BY m.id DESC LIMIT 10) x ORDER BY id',[id]),q('SELECT text,created_at,user_id FROM activity WHERE case_id=$1 ORDER BY id DESC LIMIT 10',[id]),
    q('SELECT id,label,username FROM credentials WHERE client_id=$1 ORDER BY id',[c.client_id])]);
   docs.forEach(d=>d.files=files.filter(f=>f.case_doc_id===d.id));
-  const activity_total=(await one('SELECT count(*)::int AS n FROM activity WHERE case_id=$1',[id])).n,steps=await q('SELECT stage,idx FROM case_steps WHERE case_id=$1',[id]),sop=(await one('SELECT sop FROM case_types WHERE id=$1',[c.case_type_id])).sop;
-  res.json({case:c,docs,comments,activity,activity_total,creds,steps,sop})}));
+  const activity_total=(await one('SELECT count(*)::int AS n FROM activity WHERE case_id=$1',[id])).n,comments_total=(await one('SELECT count(*)::int AS n FROM comments WHERE case_id=$1',[id])).n,steps=await q('SELECT stage,idx FROM case_steps WHERE case_id=$1',[id]),sop=(await one('SELECT sop FROM case_types WHERE id=$1',[c.case_type_id])).sop;
+  res.json({case:c,docs,comments,comments_total,activity,activity_total,creds,steps,sop})}));
+// Paginated comments of one case: page 1 is the newest; items inside a page are in reading order (oldest first)
+app.get('/api/cases/:id/comments',wrap(async(req,res)=>{
+  const id=+req.params.id;if(!await one('SELECT 1 FROM cases WHERE id=$1',[id]))fail(404,'Case not found');
+  const n0=parseInt(req.query.size),size=n0>0?Math.min(50,n0):10,total=(await one('SELECT count(*)::int AS n FROM comments WHERE case_id=$1',[id])).n,pages=Math.max(1,Math.ceil(total/size)),page=Math.min(pages,Math.max(1,parseInt(req.query.page)||1));
+  const items=(await q('SELECT m.id,m.body,m.created_at,m.edited_at,m.user_id FROM comments m WHERE m.case_id=$1 ORDER BY m.id DESC LIMIT $2 OFFSET $3',[id,size,(page-1)*size])).reverse();
+  res.json({items,total,page,pages,size})}));
 // Paginated history of one case (newest first)
 app.get('/api/cases/:id/history',wrap(async(req,res)=>{
   const id=+req.params.id;if(!await one('SELECT 1 FROM cases WHERE id=$1',[id]))fail(404,'Case not found');
@@ -217,7 +223,10 @@ app.delete('/api/comments/:id',wrap(async(req,res)=>{
   const m=await one('SELECT m.user_id,m.body,c.code FROM comments m JOIN cases c ON c.id=m.case_id WHERE m.id=$1',[+req.params.id]);if(!m)fail(404,'Not found');
   if(m.user_id!==req.user.id&&req.user.level!=='MANAGER')fail(403,'You can delete only your own comments');
   await q('DELETE FROM comments WHERE id=$1',[+req.params.id]);if(m.user_id!==req.user.id)await audit(req,'comment.delete',`${m.code}: "${m.body.slice(0,80)}"`);res.json({ok:1})}));
-app.get('/api/audit',need('MANAGER'),wrap(async(req,res)=>res.json(await q('SELECT created_at,actor_name,action,details FROM audit_log ORDER BY id DESC LIMIT 100'))));
+app.get('/api/audit',need('MANAGER'),wrap(async(req,res)=>{
+  const n0=parseInt(req.query.size),size=n0>0?Math.min(100,n0):20,total=(await one('SELECT count(*)::int AS n FROM audit_log')).n,pages=Math.max(1,Math.ceil(total/size)),page=Math.min(pages,Math.max(1,parseInt(req.query.page)||1));
+  const items=await q('SELECT created_at,actor_name,action,details FROM audit_log ORDER BY id DESC LIMIT $1 OFFSET $2',[size,(page-1)*size]);
+  res.json({items,total,page,pages,size})}));
 app.post('/api/cases/:id/move',wrap(async(req,res)=>{
   const id=+req.params.id,to=req.body.to,reason=String(req.body.reason||'').trim(),c=await one('SELECT * FROM cases WHERE id=$1',[id]);
   if(!c)fail(404,'Case not found');if(!STAGES.includes(to))fail(400,'Bad stage');if(to===c.status)return res.json({ok:1});

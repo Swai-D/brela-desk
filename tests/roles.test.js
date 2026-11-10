@@ -70,6 +70,6 @@ const as=async(e,p)=>{ck='';await call('POST','/login',{email:e,password:p})};
  await as('juma@test.co','x');await call('POST','/login',{email:'amani@test.co',password:UP});
  ok('only a Manager can create, edit or delete roles',(await call('POST','/roles',{name:'Hack',level:'MANAGER'})).s===403&&(await call('PUT','/roles/JUNIOR',{name:'x'})).s===403&&(await call('DELETE','/roles/JUNIOR')).s===403);
  await as('boss2@test.co',UP);
- const acts=(await call('GET','/audit')).j.map(x=>x.action);
+ const acts=(await call('GET','/audit?size=100')).j.items.map(x=>x.action);
  ok('role changes are in the audit log',['role.create','role.update','role.delete'].every(x=>acts.includes(x)),acts);
 })().then(()=>{console.log(fails?'\n'+fails+' FAILED':'\nall passed');process.exit(fails?1:0)}).catch(e=>{console.error(e);process.exit(1)});
