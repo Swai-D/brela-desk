@@ -67,7 +67,7 @@ const upload=async(path,name)=>{const fd=new FormData();fd.append('file',new Blo
  ok('delete unknown case is a clean 404',(await call('DELETE','/cases/999999')).s===404);
  ok('client can now be deleted',(await call('DELETE','/clients/'+b)).s===200);
  // ---- audit
- const au=(await call('GET','/audit')).j;const acts=au.map(x=>x.action);
+ const au=(await call('GET','/audit?size=100')).j.items;const acts=au.map(x=>x.action);
  ok('audit log records sensitive actions',['user.delete','user.update','case_type.delete','client.delete','case.update','case.delete','credential.update','credential.delete','comment.delete','file.delete'].every(x=>acts.includes(x))&&au[0].actor_name==='Neema',acts);
  await as('juma@test.co',UP);ok('audit log is Manager only',(await call('GET','/audit')).s===403);
  ok('only a Manager can delete users and types',(await call('DELETE','/users/'+sia)).s===403&&(await call('DELETE','/case-types/'+t2)).s===403);
