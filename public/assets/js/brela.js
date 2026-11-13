@@ -49,7 +49,7 @@ const toast=(msg,type='success',ms=4200)=>{let box=$('toast-box');if(!box){box=d
 /* ---- custom confirm dialog (replaces window.confirm) ---- */
 const ask=(msg,o={})=>new Promise(res=>{const id='cf'+Date.now();document.body.insertAdjacentHTML('beforeend',`<div class="modal fade" id="${id}" tabindex="-1" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content confirm-box ${o.danger?'danger':''}"><div class="modal-body text-center pt-4"><div class="confirm-ico"><i class='bx ${o.icon||(o.danger?'bx-trash':'bx-help-circle')}'></i></div><h5 class="mb-1">${o.title||'Are you sure?'}</h5><p class="text-muted mb-0">${msg}</p></div><div class="modal-footer justify-content-center border-0 pt-0"><button class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button><button class="btn ${o.danger?'btn-danger':'btn-primary'} px-4 cf-ok">${o.ok||'Yes, continue'}</button></div></div></div></div>`);
  const el=$(id),m=new bootstrap.Modal(el);let done=false;const end=v=>{if(!done){done=true;res(v)}};
- el.querySelector('.cf-ok').onclick=()=>end(true);el.addEventListener('hidden.bs.modal',()=>{el.remove();end(false)});m.show()});
+ el.querySelector('.cf-ok').onclick=()=>{end(true);m.hide()};el.addEventListener('hidden.bs.modal',()=>{el.remove();end(false)});m.show()});
 /* ---- custom text prompt (replaces window.prompt) ---- */
 const askText=(title,msg,ph='')=>new Promise(res=>{const el=modal(title,`${msg?`<p class="text-muted mb-2">${msg}</p>`:''}<input id="at-i" class="form-control" placeholder="${esc(ph)}">`,'Save',el=>{const v=el.querySelector('#at-i').value.trim();if(!v)throw new Error('Please write something');res(v)});
  el.addEventListener('hidden.bs.modal',()=>res(null))});
