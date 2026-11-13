@@ -59,6 +59,29 @@ function newCase(preClient){modal('New case',`<label class="form-label">Client</
  <label class="form-label">Case type</label><select id="nc-t" class="form-select mb-3">${opts(S.types.filter(t=>t.active),t=>`<option value="${t.id}">${esc(t.name)}</option>`)}</select>
  <div class="row"><div class="col"><label class="form-label">Assign to</label><select id="nc-w" class="form-select">${opts(S.users.filter(u=>u.active),u=>`<option value="${u.id}" ${u.id===ME.id?'selected':''}>${esc(u.name)} (${RN(u.role)})</option>`)}</select></div><div class="col"><label class="form-label">Due date</label><input id="nc-d" type="date" class="form-control"></div></div>`,'Create case',
  async el=>{const r=await api('/cases',{body:{clientName:val(el,'#nc-c'),caseTypeId:val(el,'#nc-t'),assigneeId:val(el,'#nc-w'),due:val(el,'#nc-d')}});location.href='case-detail.html?id='+r.id})}
+/* ---- universal search: highlight helper ---- */
+const HLM=(t,qs)=>{const s=esc(t??'');const q=String(qs||'').trim();if(!q)return s;const i=s.toLowerCase().indexOf(q.toLowerCase());return i<0?s:s.slice(0,i)+'<mark>'+s.slice(i,i+q.length)+'</mark>'+s.slice(i+q.length)};
+function initSearch(){const f=document.querySelector('.app-search');if(!f)return;const inp=f.querySelector('input'),box=f.querySelector('.us-box');if(!inp||!box)return;
+ let sel=-1,timer;inp.setAttribute('autocomplete','off');
+ const close=()=>{box.classList.remove('open');box.innerHTML='';sel=-1};
+ const items=()=>[...box.querySelectorAll('.us-item')];
+ const paint=()=>{items().forEach((a,i)=>a.classList.toggle('sel',i===sel));const c=items()[sel];if(c)c.scrollIntoView({block:'nearest'})};
+ const move=d=>{const n=items().length;if(!n)return;sel=(sel+d+n)%n;paint()};
+ const go=()=>{const l=items()[sel>=0?sel:0];location.href=l?l.getAttribute('href'):'search.html?q='+encodeURIComponent(inp.value.trim())};
+ inp.addEventListener('input',()=>{clearTimeout(timer);const v=inp.value.trim();if(v.length<2)return close();timer=setTimeout(async()=>{
+  let r;try{r=await api('/search?q='+encodeURIComponent(v))}catch{return close()}
+  if(inp.value.trim()!==v)return;
+  const G=[['Clients','bx-user-circle',r.clients,x=>`clients.html?id=${x.id}`,x=>HLM(x.name,v),x=>[x.phone,x.email,x.track_number].filter(Boolean).map(esc).join(' · ')],
+   ['Cases','bx-briefcase',r.cases,x=>`case-detail.html?id=${x.id}`,x=>HLM(x.client,v)+' · '+esc(x.code),x=>`${st(x.status).n} · ${esc(x.type)}${x.track_number?' · '+esc(x.track_number):''}`],
+   ['Documents','bx-file-blank',r.files,x=>`/api/files/${x.id}`,x=>HLM(x.filename,v),x=>[x.client,x.case_code].filter(Boolean).map(esc).join(' · ')],
+   ['Comments','bx-comment-detail',r.comments,x=>`case-detail.html?id=${x.case_id}`,x=>HLM(x.body.length>72?x.body.slice(0,72)+'…':x.body,v),x=>esc(x.client)+' · '+esc(x.case_code)],
+   ['Vault logins','bx-lock-alt',r.creds,x=>`clients.html?id=${x.client_id}`,x=>HLM(x.label,v),x=>esc(x.client)]].filter(g=>g[2].length);
+  box.innerHTML=G.length?G.map(g=>`<div class="us-head">${g[0]}</div>`+g[2].map(x=>`<a class="us-item" href="${g[3](x)}"><i class="bx ${g[1]}"></i><span class="flex-grow-1"><span class="us-t">${g[4](x)}</span><span class="us-s">${g[5](x)}</span></span><i class="bx bx-chevron-right us-go"></i></a>`).join('')).join(''):`<div class="us-empty">No matches for “${esc(v)}” — press Enter to search everything</div>`;
+  sel=-1;box.classList.add('open')},220)});
+ inp.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){e.preventDefault();move(1)}else if(e.key==='ArrowUp'){e.preventDefault();move(-1)}else if(e.key==='Enter'){e.preventDefault();go()}else if(e.key==='Escape'){close();inp.blur()}});
+ f.addEventListener('submit',e=>{e.preventDefault();go()});
+ document.addEventListener('click',e=>{if(!f.contains(e.target))close()});
+ const pre=new URLSearchParams(location.search).get('q');if(pre&&document.getElementById('page').dataset.page==='search')inp.value=pre}
 let PB;
 const NEXT_TXT={new:'Gathering Docs',docs:'Ready to Submit',ready:'Submitted to BRELA',submitted:'Completed, or Returned if BRELA asks for corrections',returned:'Ready to Submit again',done:null};
 function guideCard(d,NEXT){const c=d.case,sp=PB.stages.find(s=>s.stage===c.status)||{owner_roles:[],steps:[],done_when:''},own=sp.owner_roles.map(RN).join(' / ')||'the team',mine=sp.owner_roles.includes(ME.role)||c.who===ME.id,tk=new Set(d.steps.filter(x=>x.stage===c.status).map(x=>x.idx));
@@ -114,6 +137,7 @@ async function boot(){
  $('logout').onclick=async e=>{e.preventDefault();await api('/logout',{method:'POST',body:{}}).catch(()=>{});location.href='login.html'};
  const nb=$('newCaseBtn');if(nb)nb.onclick=()=>newCase();
  await PAGES[document.getElementById('page').dataset.page]();
+ initSearch();
  if(!ME.seenGuide)welcome();
  if(window.feather)feather.replace()}
 const PAGES={
@@ -256,6 +280,21 @@ async playbook(){
  document.querySelectorAll('#pbtabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#pbtabs button').forEach(x=>x.className='btn '+(x===b?'btn-primary':'btn-light'));document.querySelectorAll('[data-p]').forEach(p=>p.classList.toggle('d-none',p.dataset.p!==b.dataset.t))});
  document.querySelectorAll('.er').forEach(b=>b.onclick=()=>roleModal(b.dataset.r,()=>location.reload()));
  document.querySelectorAll('.es').forEach(b=>b.onclick=()=>{const x=PB.stages.find(s=>s.stage===b.dataset.s);modal('Edit stage: '+st(x.stage).n,`<label class="form-label">Responsible roles</label><div class="mb-3">${ROLES.map(r=>`<div class="form-check form-check-inline"><input class="form-check-input ow" type="checkbox" id="ow${r}" value="${r}" ${x.owner_roles.includes(r)?'checked':''}><label class="form-check-label" for="ow${r}">${RN(r)}</label></div>`).join('')}</div><label class="form-label">Steps <small class="text-muted">(one per line, in order)</small></label><textarea id="s-d" class="form-control mb-3" rows="8">${esc(x.steps.join('\n'))}</textarea><label class="form-label">Done when</label><input id="s-w" class="form-control" value="${esc(x.done_when)}">`,'Save',async el=>{await api('/playbook/stages/'+x.stage,{method:'PUT',body:{owner_roles:[...el.querySelectorAll('.ow:checked')].map(i=>i.value),steps:el.querySelector('#s-d').value.split('\n'),done_when:val(el,'#s-w')}});location.reload()})})},
+async search(){const q0=new URLSearchParams(location.search).get('q')||'',v=q0.trim(),root=$('sres');
+ if(v.length<2){root.innerHTML='<div class="card"><div class="card-body text-center py-5"><i class="bx bx-search-alt font-size-24 text-muted d-block mb-2"></i><p class="text-muted mb-1">Type at least 2 characters to search.</p><p class="text-muted small mb-0">You can search client names, phones, emails, BRELA track numbers, case codes, case types, file names, comments and vault logins.</p></div></div>';return}
+ root.innerHTML='<div class="card mb-3"><div class="card-body text-muted py-3"><i class="bx bx-loader-alt bx-spin me-1"></i>Searching…</div></div>';
+ let r;try{r=await api('/search?q='+encodeURIComponent(v))}catch(e){root.innerHTML='<div class="card"><div class="card-body text-danger">'+esc(e.message)+'</div></div>';return}
+ const n=r.clients.length+r.cases.length+r.files.length+r.comments.length+r.creds.length;
+ const sec=(title,icon,rows)=>rows.length?`<div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center"><h5 class="card-title mb-0"><i class="bx ${icon} me-1"></i>${title}</h5><span class="badge bg-primary-subtle text-primary">${rows.length}</span></div><div class="card-body p-0 us-results">${rows.join('')}</div></div>`:'';
+ const clRow=c=>`<a href="clients.html?id=${c.id}" class="us-item"><i class="bx bx-user-circle"></i><span class="flex-grow-1"><span class="us-t">${HLM(c.name,v)}</span><span class="us-s">${[c.phone,c.email,c.track_number].filter(Boolean).map(esc).join(' · ')||'No contact details'}</span></span><i class="bx bx-chevron-right us-go"></i></a>`;
+ const caRow=c=>`<a href="case-detail.html?id=${c.id}" class="us-item"><i class="bx bx-briefcase"></i><span class="flex-grow-1"><span class="us-t">${esc(c.code)} · ${HLM(c.client,v)}</span><span class="us-s">${badge(c.status)} ${esc(c.type)}${c.track_number?' · '+esc(c.track_number):''}${c.note?' · '+esc(c.note):''}</span></span><i class="bx bx-chevron-right us-go"></i></a>`;
+ const fiRow=f=>`<a href="/api/files/${f.id}" class="us-item"><i class="bx bx-file-blank"></i><span class="flex-grow-1"><span class="us-t">${HLM(f.filename,v)}</span><span class="us-s">${[f.client,f.case_code].filter(Boolean).map(esc).join(' · ')||'Client folder'}</span></span><i class="bx bx-chevron-right us-go"></i></a>`;
+ const coRow=m=>`<a href="case-detail.html?id=${m.case_id}" class="us-item"><i class="bx bx-comment-detail"></i><span class="flex-grow-1"><span class="us-t">${HLM(m.body.length>90?m.body.slice(0,90)+'…':m.body,v)}</span><span class="us-s">${esc(m.client)} · ${esc(m.case_code)}${m.by?' · '+esc(m.by):''}</span></span><i class="bx bx-chevron-right us-go"></i></a>`;
+ const crRow=k=>`<a href="clients.html?id=${k.client_id}" class="us-item"><i class="bx bx-lock-alt"></i><span class="flex-grow-1"><span class="us-t">${HLM(k.label,v)}</span><span class="us-s">${esc(k.client)} · vault login</span></span><i class="bx bx-chevron-right us-go"></i></a>`;
+ root.innerHTML=`<div class="d-flex flex-wrap align-items-center mb-3 gap-2"><h5 class="mb-0">Results for “<b>${esc(v)}</b>”</h5>${n?`<span class="badge bg-primary-subtle text-primary">${n} found</span>`:''}<a href="#" id="us-back" class="ms-auto small text-muted"><i class="bx bx-left-arrow-alt"></i> back</a></div>`+
+  (n?sec('Clients','bx-user-circle',r.clients.map(clRow))+sec('Cases','bx-briefcase',r.cases.map(caRow))+sec('Documents','bx-file-blank',r.files.map(fiRow))+sec('Comments','bx-comment-detail',r.comments.map(coRow))+sec('Vault logins','bx-lock-alt',r.creds.map(crRow))
+   :'<div class="card"><div class="card-body text-center py-5"><i class="bx bx-search-alt font-size-24 text-muted d-block mb-2"></i><p class="text-muted mb-1">No results for “<b>'+esc(v)+'</b>”.</p><p class="text-muted small mb-0">Try a client name, phone, BRELA track number, case code, file name or a word from a comment.</p></div></div>');
+ $('us-back').onclick=e=>{e.preventDefault();history.back()}},
 async settings(){if(ME.level!=='MANAGER'){$('settings').innerHTML='<div class="alert alert-warning">Only a Manager can open Settings.</div>';return}
  const typeForm=t=>`<label class="form-label">Case type name</label><input id="t-n" class="form-control mb-3" value="${esc(t?t.name:'')}"><label class="form-label">Document checklist <small class="text-muted">(one per line; new cases copy this list, and each case can add more)</small></label><textarea id="t-d" class="form-control" rows="8">${esc(t?t.docs.join('\n'):'')}</textarea><label class="form-label mt-3">Notes for the team <small class="text-muted">(optional: steps and tips for this kind of case, shown on every case of this type)</small></label><textarea id="t-s" class="form-control" rows="5">${esc(t?t.sop||'':'')}</textarea>`;
  const waCard=async()=>{const w=await api('/whatsapp/status'),on=w.configured;$('wa').innerHTML=`<div class="card"><div class="card-header d-flex justify-content-between"><h5 class="card-title mb-0">WhatsApp</h5><span class="badge bg-${on?'success':'warning'}-subtle text-${on?'success':'warning'}">${on?'Connected':'Not set up'}</span></div><div class="card-body">
