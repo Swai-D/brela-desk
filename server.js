@@ -113,6 +113,19 @@ app.get('/api/clients',wrap(async(req,res)=>{
   if(focus&&await one(`SELECT 1 FROM clients cl WHERE cl.id=$3 AND ${W('cl.')}`,[like,dl,focus]))page=Math.floor((await one(`SELECT count(*)::int AS n FROM clients cl WHERE ${W('cl.')} AND cl.name<(SELECT name FROM clients WHERE id=$3)`,[like,dl,focus])).n/size)+1;
   const items=await q(`SELECT cl.id,cl.name,cl.phone,cl.email,cl.track_number,(SELECT coalesce(json_agg(x.track_number ORDER BY x.id DESC),'[]'::json) FROM cases x WHERE x.client_id=cl.id AND x.track_number IS NOT NULL) AS tracks,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id AND c.status<>'done') AS open,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id) AS cases FROM clients cl WHERE ${W('cl.')} ORDER BY cl.name,cl.id LIMIT $3 OFFSET $4`,[like,dl,size,(page-1)*size]);
   res.json({items,total,page,pages,size})}));
+// ---- universal search (navbar suggestions + results page): clients, cases, files, comments, vault labels
+app.get('/api/search',wrap(async(req,res)=>{
+  const qs=String(req.query.q||'').trim().slice(0,80);
+  const empty={q:qs,clients:[],cases:[],files:[],comments:[],creds:[]};
+  if(qs.length<2)return res.json(empty);
+  const like='%'+qs.replace(/[\\%_]/g,m=>'\\'+m)+'%',digits=qs.replace(/\D/g,''),dl=digits.length>=3?'%'+digits+'%':'';
+  const [clients,cases,files,comments,creds]=await Promise.all([
+   q(`SELECT id,name,phone,email,track_number FROM clients WHERE name ILIKE $1 OR coalesce(email,'') ILIKE $1 OR coalesce(phone,'') ILIKE $1 OR coalesce(track_number,'') ILIKE $1 OR ($2<>'' AND translate(coalesce(phone,''),' +-().','') LIKE $2) ORDER BY name LIMIT 5`,[like,dl]),
+   q(`SELECT c.id,c.code,c.status,c.track_number,c.note,cl.name AS client,t.name AS type FROM cases c JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id WHERE c.code ILIKE $1 OR c.track_number ILIKE $1 OR cl.name ILIKE $1 OR t.name ILIKE $1 OR c.note ILIKE $1 ORDER BY c.id DESC LIMIT 6`,[like]),
+   q(`SELECT f.id,f.filename,coalesce(cl.name,cl2.name) AS client,c.id AS case_id,c.code AS case_code FROM files f LEFT JOIN cases c ON c.id=f.case_id LEFT JOIN clients cl ON cl.id=f.client_id LEFT JOIN clients cl2 ON cl2.id=c.client_id WHERE f.filename ILIKE $1 AND NOT f.inbox ORDER BY f.id DESC LIMIT 5`,[like]),
+   q(`SELECT m.id,m.body,m.case_id,c.code AS case_code,cl.name AS client,u.name AS by FROM comments m JOIN cases c ON c.id=m.case_id JOIN clients cl ON cl.id=c.client_id LEFT JOIN users u ON u.id=m.user_id WHERE m.body ILIKE $1 ORDER BY m.id DESC LIMIT 5`,[like]),
+   ['MANAGER','SENIOR'].includes(req.user.level)?q(`SELECT cr.id,cr.label,cr.client_id,cl.name AS client FROM credentials cr JOIN clients cl ON cl.id=cr.client_id WHERE cr.label ILIKE $1 ORDER BY cr.id DESC LIMIT 4`,[like]):[]]);
+  res.json({q:qs,clients,cases,files,comments,creds})}));
 app.get('/api/clients/:id',wrap(async(req,res)=>{
   const id=+req.params.id,client=await one('SELECT id,name,phone,email,track_number FROM clients WHERE id=$1',[id]);if(!client)fail(404,'Not found');
   const [cases,files,creds]=await Promise.all([q(CASE_SQL+' WHERE c.client_id=$1 ORDER BY c.id DESC',[id]),
