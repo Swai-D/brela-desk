@@ -3,6 +3,10 @@ body{background:#f4f6fb}.card{border:0;border-radius:14px;box-shadow:0 2px 12px 
 .kcol{border:1px dashed #d8deeb}.stepper .step{position:relative}.stepper .step:not(:last-child):after{content:"";position:absolute;top:13px;left:60%;width:80%;height:2px;background:#e3e7f0}
 .stepper .step.on:not(:last-child):after{background:#5b73e8}.stepper small{font-size:11px;display:block}
 .list-group-item.active{background:#eef1ff;color:#3b4cb8;border-color:#e3e7f0}.page-title-box h4{font-weight:700}
+.dashboard-stat-card{height:100%;min-height:132px}
+.dashboard-stat-content{min-width:0}
+.dashboard-stat-label{min-height:2.4em;line-height:1.2}
+.dashboard-stat-chart{width:72px;height:72px}
 .btn{border-radius:8px}.badge{font-weight:500}.vertical-menu .menu-title{letter-spacing:.08em}
 .pace,.pace-activity,.pace-progress{display:none!important}
 @media print{.vertical-menu,#page-topbar,.footer,.no-print,.page-title-box{display:none!important}.main-content{margin-left:0!important;padding:0!important}.page-content{padding:10px!important}body{background:#fff!important}.card{box-shadow:none!important;border:1px solid #ddd!important;break-inside:avoid}.col-xl-6,.col-xl-5,.col-xl-7{width:100%!important;flex:0 0 100%!important}}
