@@ -44,3 +44,16 @@ document.getElementById('page-topbar').innerHTML = `
 <div class="dropdown-menu dropdown-menu-end"><span class="dropdown-item-text text-muted" id="me-role"></span><a class="dropdown-item" href="profile.html"><i class="mdi mdi-account font-size-16 align-middle me-1"></i> My profile</a><a class="dropdown-item" href="my-work.html"><i class="mdi mdi-check-circle font-size-16 align-middle me-1"></i> My Work</a><a class="dropdown-item" href="auth-lock-screen.html" id="lock-screen"><i class="mdi mdi-lock font-size-16 align-middle me-1"></i> Lock screen</a><div class="dropdown-divider"></div><a class="dropdown-item" id="logout" href="#"><i class="mdi mdi-logout font-size-16 align-middle me-1"></i> Sign out</a></div></div>
 </div></div>
             `;
+
+document.body.setAttribute('data-sidebar-size', 'sm');
+
+document.getElementById('sidebar-menu')?.addEventListener('click', event => {
+    const link = event.target.closest('a[href]');
+    if (!link || link.getAttribute('href') === '#') return;
+
+    if (window.innerWidth <= 991) {
+        document.body.classList.remove('sidebar-enable');
+    } else {
+        document.body.setAttribute('data-sidebar-size', 'sm');
+    }
+});

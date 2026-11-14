@@ -394,4 +394,3 @@ async settings(){if(ME.level!=='MANAGER'){$('settings').innerHTML='<div class="a
 {const _mw=PAGES.mywork;PAGES.mywork=async()=>{await _mw();enhanceMyWork()}}
 boot();
 function forcedPw(){modal('Set your new password',`<p class="text-muted mb-3">Your account is using a temporary password. Choose your own to continue.</p><label class="form-label">New password (8+ characters)</label>${pwf('fp1')}<div class="mb-2"></div><label class="form-label">Repeat new password</label>${pwf('fp2')}<div class="err text-danger small mt-2"></div>`,'Save & continue',async el=>{const a=el.querySelector('#fp1').value,b=el.querySelector('#fp2').value;if(a!==b)throw new Error('The two passwords do not match');await api('/me/password',{body:{password:a}});location.reload()})}
-addEventListener('load',()=>setTimeout(()=>{if(innerWidth>=1200)document.body.setAttribute('data-sidebar-size','lg')},80));
