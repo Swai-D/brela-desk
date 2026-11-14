@@ -12,6 +12,8 @@ const dec=s=>{const [iv,t,e]=s.split('.').map(x=>Buffer.from(x,'base64')),d=cryp
 const LEVELS=['MANAGER','SENIOR','STAFF'], STAGES=['new','docs','ready','submitted','returned','done'];
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:15*1024*1024}});
 const app=express();app.set('trust proxy',1);app.disable('x-powered-by');app.use(express.json({limit:'1mb',verify:(req,res,buf)=>{req.rawBody=buf}}));app.use(cookieParser());
+const rateLimit=require('express-rate-limit');
+if(process.env.NODE_ENV!=='test')app.use('/api',rateLimit({windowMs:60000,max:600,standardHeaders:true,legacyHeaders:false,message:{error:'Too many requests. Slow down a little.'}}));
 const wrap=f=>(req,res)=>f(req,res).catch(e=>{if(!e.status)console.error(e);res.status(e.status||500).json({error:e.status?e.message:'Server error'})});
 const fail=(s,m)=>{const e=new Error(m);e.status=s;throw e};
 const auth=async(req,res,next)=>{try{const t=jwt.verify(req.cookies.t,SECRET),u=await one('SELECT u.id,u.name,u.role,r.level FROM users u JOIN roles r ON r.key=u.role WHERE u.id=$1 AND u.active',[t.id]);if(!u)throw 0;req.user=u;next()}catch{res.status(401).json({error:'Please sign in'})}};
@@ -336,13 +338,12 @@ app.post('/api/whatsapp/digest-now',need('MANAGER'),wrap(async(req,res)=>res.jso
 // ---- static + boot
 // ---- static files, safe across deploys (Railway sits behind a proxy/CDN)
 // HTML is never cached and links to CSS/JS carry the build id (?v=...), so a new deploy can never be paired with old styles or scripts.
-const PUB=path.join(__dirname,'public'),VER=String(process.env.RAILWAY_GIT_COMMIT_SHA||process.env.SOURCE_COMMIT||process.env.GIT_SHA||Date.now().toString(36)).slice(0,12),pageCache=new Map();
+const PUB=path.join(__dirname,'public'),VER=String(process.env.RAILWAY_GIT_COMMIT_SHA||process.env.SOURCE_COMMIT||process.env.GIT_SHA||Date.now().toString(36)).slice(0,12);
 const stamp=h=>h.replace(/((?:href|src)=")(assets\/[^"?]+\.(?:css|js))(")/g,`$1$2?v=${VER}$3`);
 app.get('/version',(req,res)=>res.json({version:VER}));
 app.get(/^\/(?:([\w-]+)\.html)?$/,(req,res,next)=>{
-  const name=(req.params[0]||'index')+'.html';let h=pageCache.get(name);
-  if(!h){const f=path.join(PUB,name);if(!fs.existsSync(f))return next();h=stamp(fs.readFileSync(f,'utf8'));pageCache.set(name,h)}
-  res.set({'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache'}).send(h)});
+  const f=path.join(PUB,(req.params[0]||'index')+'.html');if(!fs.existsSync(f))return next();
+  res.set({'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache'}).send(stamp(fs.readFileSync(f,'utf8')))});
 app.use('/assets',(req,res,next)=>{if(req.query.v&&/\.(css|js)$/.test(req.path))res.set('Cache-Control','public, max-age=31536000, immutable');next()});
 app.use(express.static(PUB,{index:false,cacheControl:false,setHeaders:(res,fp)=>{if(!res.getHeader('Cache-Control'))res.setHeader('Cache-Control',/\.(css|js|html)$/.test(fp)?'no-cache':'public, max-age=604800')}}));
 app.use((req,res)=>res.status(404).type('text/plain').send('Not found'));
