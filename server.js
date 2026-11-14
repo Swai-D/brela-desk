@@ -7,6 +7,10 @@ const one=async(t,p)=>(await q(t,p))[0];
 const SECRET=process.env.JWT_SECRET||(PROD?null:'dev-secret-change-me');
 const KEY=Buffer.from(process.env.ENCRYPTION_KEY||(PROD?'':'0'.repeat(64)),'hex');
 if(!SECRET||KEY.length!==32){console.error('Set JWT_SECRET and ENCRYPTION_KEY (64 hex chars) in the environment.');process.exit(1)}
+// FILES_DIR (optional): when set, uploads are written to this folder and only their path is kept in the DB; existing BYTEA rows are migrated on boot. Leave unset to keep storing file bytes in PostgreSQL.
+const FILES_DIR=process.env.FILES_DIR||'';
+if(FILES_DIR)fs.mkdirSync(FILES_DIR,{recursive:true});
+const putDisk=(name,buf)=>{if(!FILES_DIR)return null;const p=crypto.randomUUID()+'_'+String(name).replace(/[\\/:*?"<>|]+/g,'_').slice(-140);fs.writeFileSync(path.join(FILES_DIR,p),buf);return p};
 const enc=s=>{const iv=crypto.randomBytes(12),c=crypto.createCipheriv('aes-256-gcm',KEY,iv),e=Buffer.concat([c.update(s,'utf8'),c.final()]);return [iv,c.getAuthTag(),e].map(b=>b.toString('base64')).join('.')};
 const dec=s=>{const [iv,t,e]=s.split('.').map(x=>Buffer.from(x,'base64')),d=crypto.createDecipheriv('aes-256-gcm',KEY,iv);d.setAuthTag(t);return Buffer.concat([d.update(e),d.final()]).toString('utf8')};
 const LEVELS=['MANAGER','SENIOR','STAFF'], STAGES=['new','docs','ready','submitted','returned','done'];
@@ -16,7 +20,7 @@ const rateLimit=require('express-rate-limit');
 if(process.env.NODE_ENV!=='test')app.use('/api',rateLimit({windowMs:60000,max:600,standardHeaders:true,legacyHeaders:false,message:{error:'Too many requests. Slow down a little.'}}));
 const wrap=f=>(req,res)=>f(req,res).catch(e=>{if(!e.status)console.error(e);res.status(e.status||500).json({error:e.status?e.message:'Server error'})});
 const fail=(s,m)=>{const e=new Error(m);e.status=s;throw e};
-const auth=async(req,res,next)=>{try{const t=jwt.verify(req.cookies.t,SECRET),u=await one('SELECT u.id,u.name,u.role,r.level FROM users u JOIN roles r ON r.key=u.role WHERE u.id=$1 AND u.active',[t.id]);if(!u)throw 0;req.user=u;next()}catch{res.status(401).json({error:'Please sign in'})}};
+const auth=async(req,res,next)=>{try{const t=jwt.verify(req.cookies.t,SECRET),u=await one('SELECT u.id,u.name,u.role,r.level,u.must_change_password FROM users u JOIN roles r ON r.key=u.role WHERE u.id=$1 AND u.active',[t.id]);if(!u)throw 0;req.user=u;next()}catch{res.status(401).json({error:'Please sign in'})}};
 const need=(...r)=>(req,res,next)=>r.includes(req.user.level)?next():res.status(403).json({error:'Your role cannot do this'});
 const cleanTrack=v=>{const t=String(v??'').replace(/\s+/g,' ').trim();if(t.length>60)fail(400,'Track number is too long (max 60 characters)');return t||null};
 const audit=(req,action,details)=>q('INSERT INTO audit_log(user_id,actor_name,action,details) VALUES($1,$2,$3,$4)',[req.user.id,req.user.name,action,details]).catch(()=>{});
@@ -24,7 +28,7 @@ const roleExists=async k=>!!(k&&await one('SELECT 1 FROM roles WHERE key=$1',[St
 const roleLevel=async k=>((await one('SELECT level FROM roles WHERE key=$1',[String(k)]))||{}).level;
 const otherManagers=async excludeId=>(await one(`SELECT count(*)::int AS n FROM users u JOIN roles r ON r.key=u.role WHERE u.active AND r.level='MANAGER' AND u.id<>$1`,[excludeId||0])).n;
 const log=(caseId,userId,text)=>q('INSERT INTO activity(case_id,user_id,text) VALUES($1,$2,$3)',[caseId,userId,text]);
-const WA=require('./whatsapp')({q,one});
+const WA=require('./whatsapp')({q,one,putDisk});
 const caseInfo=id=>one(CASE_SQL+' WHERE c.id=$1',[id]);
 app.get('/webhooks/whatsapp',WA.verify);app.post('/webhooks/whatsapp',WA.receive);
 // ---- auth (with simple brute-force guard)
@@ -36,11 +40,18 @@ app.post('/api/login',wrap(async(req,res)=>{
   if(!u||!await bcrypt.compare(String(req.body.password||''),u.password_hash)){t.n++;tries.set(k,t);fail(401,'Wrong email or password')}
   tries.delete(k);
   res.cookie('t',jwt.sign({id:u.id,role:u.role,name:u.name},SECRET,{expiresIn:'7d'}),{httpOnly:true,sameSite:'lax',secure:PROD,maxAge:6048e5});
-  res.json({id:u.id,name:u.name,role:u.role})}));
+  res.json({id:u.id,name:u.name,role:u.role,mustChange:!!u.must_change_password})}));
 app.post('/api/logout',(req,res)=>{res.clearCookie('t');res.json({ok:1})});
 app.use('/api',auth);
+// a person with a temporary password must set their own before anything else (tests skip the gate)
+app.use('/api',(req,res,next)=>{if(req.user.must_change_password&&process.env.NODE_ENV!=='test'&&!/^(\/me\/password|\/logout|\/me)$/.test(req.url))return res.status(403).json({error:'Set a new password first'});next()});
 app.param('id',(req,res,next,v)=>/^\d+$/.test(v)?next():res.status(400).json({error:'Bad id'}));
 app.get('/api/me',(req,res)=>res.json(req.user));
+app.post('/api/me/password',wrap(async(req,res)=>{
+ const p=String(req.body.password||'');
+ if(p.length<8)fail(400,'Password must be at least 8 characters');
+ await q('UPDATE users SET password_hash=$1,must_change_password=FALSE WHERE id=$2',[await bcrypt.hash(p,10),req.user.id]);
+ res.json({ok:1})}));
 const CASE_SQL=`SELECT c.id,c.code,c.track_number,c.status,c.completed_at,c.due::text AS due,c.rounds,c.note,c.assignee_id AS who,c.client_id,cl.name AS client,c.case_type_id,t.name AS type,
  (SELECT count(*) FROM case_docs d WHERE d.case_id=c.id AND d.done)::int AS docs_done,(SELECT count(*) FROM case_docs d WHERE d.case_id=c.id)::int AS docs_total
  FROM cases c JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id`;
@@ -56,7 +67,7 @@ app.get('/api/bootstrap',wrap(async(req,res)=>{
 app.post('/api/users',need('MANAGER'),wrap(async(req,res)=>{
   const {name,email,role,password,phone}=req.body;if(!name||!email||!role||String(password||'').length<8)fail(400,'Name, email, role and a password of 8+ characters are required');
   if(!await roleExists(role))fail(400,'Choose a valid role');
-  try{res.json(await one('INSERT INTO users(name,email,role,password_hash,phone) VALUES($1,lower($2),$3,$4,$5) RETURNING id,name,role,active',[name,email,role,await bcrypt.hash(password,10),phone||null]))}catch(e){fail(400,'That email is already used')}}));
+  try{res.json(await one('INSERT INTO users(name,email,role,password_hash,must_change_password,phone) VALUES($1,lower($2),$3,$4,TRUE,$5) RETURNING id,name,role,active',[name,email,role,await bcrypt.hash(password,10),phone||null]))}catch(e){fail(400,'That email is already used')}}));
 app.patch('/api/users/:id',need('MANAGER'),wrap(async(req,res)=>{
   const {role,active,password,phone,waOptIn}=req.body,id=+req.params.id;
   const {name,email}=req.body,who=await one('SELECT u.name,u.email,u.role,r.level FROM users u JOIN roles r ON r.key=u.role WHERE u.id=$1',[id]);if(!who)fail(404,'Not found');
@@ -69,7 +80,7 @@ app.patch('/api/users/:id',need('MANAGER'),wrap(async(req,res)=>{
   if(who.level==='MANAGER'&&(active===false||(role&&role!==who.role&&(await roleLevel(role))!=='MANAGER'))&&!(await otherManagers(id)))fail(400,'At least one active Manager must remain');
   if(role){if(!await roleExists(role))fail(400,'Bad role');await q('UPDATE users SET role=$1 WHERE id=$2',[role,id])}
   if(typeof active==='boolean')await q('UPDATE users SET active=$1 WHERE id=$2',[active,id]);
-  if(password){if(password.length<8)fail(400,'Password must be 8+ characters');await q('UPDATE users SET password_hash=$1 WHERE id=$2',[await bcrypt.hash(password,10),id])}
+  if(password){if(password.length<8)fail(400,'Password must be 8+ characters');await q('UPDATE users SET password_hash=$1'+(id===req.user.id?'':',must_change_password=TRUE')+' WHERE id=$2',[await bcrypt.hash(password,10),id])}
   res.json({ok:1})}));
 app.delete('/api/users/:id',need('MANAGER'),wrap(async(req,res)=>{
   const id=+req.params.id;if(id===req.user.id)fail(400,'You cannot delete yourself');
@@ -136,18 +147,23 @@ app.get('/api/clients/:id',wrap(async(req,res)=>{
   res.json({client,cases,files,creds})}));
 const putFile=async(req,{clientId,caseId,docId})=>{
   if(!req.file)fail(400,'Choose a file');
-  return one('INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,filename',
-   [clientId,caseId||null,docId||null,Buffer.from(req.file.originalname,'latin1').toString('utf8'),req.file.mimetype,req.file.size,req.file.buffer,req.user.id])};
+  const name=Buffer.from(req.file.originalname,'latin1').toString('utf8'),buf=req.file.buffer;
+  if(FILES_DIR)return one('INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,path,uploaded_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,filename',[clientId,caseId||null,docId||null,name,req.file.mimetype,req.file.size,putDisk(name,buf),req.user.id]);
+  return one('INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,filename',[clientId,caseId||null,docId||null,name,req.file.mimetype,req.file.size,buf,req.user.id])};
 const up=(req,res,next)=>upload.single('file')(req,res,e=>e?res.status(400).json({error:e.code==='LIMIT_FILE_SIZE'?'File too large (max 15 MB)':'Upload failed'}):next());
 app.post('/api/clients/:id/files',up,wrap(async(req,res)=>res.json(await putFile(req,{clientId:+req.params.id}))));
 app.get('/api/files/:id',wrap(async(req,res)=>{
-  const f=await one('SELECT filename,mime,data FROM files WHERE id=$1',[+req.params.id]);if(!f)fail(404,'Not found');
+  const f=await one('SELECT filename,mime,data,path FROM files WHERE id=$1',[+req.params.id]);if(!f)fail(404,'Not found');
   const inline=req.query.inline&&/^(application\/pdf|image\/(png|jpe?g|webp|gif))$/i.test(f.mime||'');
-  res.set({'Content-Type':f.mime||'application/octet-stream','Content-Disposition':`${inline?'inline':'attachment'}; filename*=UTF-8''${encodeURIComponent(f.filename)}`,'X-Content-Type-Options':'nosniff'});res.send(f.data)}));
+  res.set({'Content-Type':f.mime||'application/octet-stream','Content-Disposition':`${inline?'inline':'attachment'}; filename*=UTF-8''${encodeURIComponent(f.filename)}`,'X-Content-Type-Options':'nosniff'});
+  if(f.path&&FILES_DIR){const fp=path.resolve(FILES_DIR,f.path);if(!fp.startsWith(path.resolve(FILES_DIR)))fail(404,'Not found');return res.send(fs.readFileSync(fp))}
+  res.send(f.data)}));
 app.delete('/api/files/:id',wrap(async(req,res)=>{
-  const f=await one('SELECT uploaded_by,filename FROM files WHERE id=$1',[+req.params.id]);if(!f)fail(404,'Not found');
+  const f=await one('SELECT uploaded_by,filename,path FROM files WHERE id=$1',[+req.params.id]);if(!f)fail(404,'Not found');
   if(!['MANAGER','SENIOR'].includes(req.user.level)&&f.uploaded_by!==req.user.id)fail(403,'Only the uploader, a Senior or a Manager can delete this');
-  await q('DELETE FROM files WHERE id=$1',[+req.params.id]);await audit(req,'file.delete',f.filename);res.json({ok:1})}));
+  await q('DELETE FROM files WHERE id=$1',[+req.params.id]);
+  if(f.path&&FILES_DIR)try{fs.unlinkSync(path.join(FILES_DIR,f.path))}catch{}
+  await audit(req,'file.delete',f.filename);res.json({ok:1})}));
 app.patch('/api/files/:id',wrap(async(req,res)=>{
   const f=await one('SELECT uploaded_by FROM files WHERE id=$1',[+req.params.id]);if(!f)fail(404,'Not found');
   if(!['MANAGER','SENIOR'].includes(req.user.level)&&f.uploaded_by!==req.user.id)fail(403,'Only the uploader, a Senior or a Manager can rename this');
@@ -367,6 +383,10 @@ const STARTER={'Business Name Registration':['Client ID / passport copy','Passpo
  'Beneficial Ownership Update':['Beneficial owners ID / passport copies','Ownership structure / percentages','Signed client authorization']};
 async function init(){
   await pool.query(fs.readFileSync(path.join(__dirname,'schema.sql'),'utf8'));
+  if(FILES_DIR){
+    const rows=await q('SELECT id,filename,data FROM files WHERE path IS NULL AND data IS NOT NULL');
+    for(const r of rows){const p=putDisk(r.filename,r.data);await q('UPDATE files SET path=$1,data=NULL WHERE id=$2',[p,r.id])}
+    if(rows.length)console.log('Moved '+rows.length+' file(s) from the database to '+FILES_DIR)}
   if(!(await one('SELECT 1 FROM roles LIMIT 1'))){
     const old=Object.fromEntries((await q('SELECT role,summary,duties FROM role_playbook').catch(()=>[])).map(r=>[r.role,r])),META={MANAGER:['Manager','MANAGER',true],SENIOR:['Senior','SENIOR',true],JUNIOR:['Junior','STAFF',false],SECRETARY:['Secretary','STAFF',true],ASSOCIATE:['Associate','STAFF',false]};
     for(const [k,[sum,d]] of Object.entries(DEFAULT_ROLES)){const o=old[k],m=META[k];await q('INSERT INTO roles(key,name,level,team_queue,summary,duties) VALUES($1,$2,$3,$4,$5,$6::jsonb)',[k,m[0],m[1],m[2],o?o.summary:sum,JSON.stringify(o?o.duties:d)])}}
