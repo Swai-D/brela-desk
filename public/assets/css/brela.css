@@ -40,8 +40,12 @@ td.text-end{white-space:nowrap}
 .confirm-box{border-radius:14px;border:0;box-shadow:0 10px 40px rgba(30,40,80,.2)}
 .confirm-ico{width:56px;height:56px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:28px;background:#eef1ff;color:#5b73e8}
 .confirm-box.danger .confirm-ico{background:#fdeaea;color:#f46a6a}
-/* universal search (navbar suggestions + results) */
-.navbar-header>.d-flex:first-child{flex:1 1 auto;min-width:0}
+/* bell notification dropdown */
+.notif-menu .dropdown-item{white-space:normal;font-size:13px;line-height:1.45;padding:9px 14px}
+.notif-menu .dropdown-item small{display:block;font-size:11.5px;color:#8a94a6}
+.notif-menu .notif-unread{background:#eef1ff;font-weight:500}
+.notif-menu .notif-unread:hover,.notif-menu .notif-unread:focus{background:#e2e7fb}
+/* universal search (navbar suggestions + results) */.navbar-header>.d-flex:first-child{flex:1 1 auto;min-width:0}
 .app-search{width:100%;max-width:560px;margin:0 auto}
 .app-search .position-relative{width:100%}
 .app-search .form-control{border-radius:10px}
