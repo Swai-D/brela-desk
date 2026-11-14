@@ -17,6 +17,7 @@ Internal case tracker for the BRELA consulting team: cases move through stages, 
    | `ENCRYPTION_KEY` | 64 hex chars: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
    | `ADMIN_NAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | your first Manager login |
    | `NODE_ENV` | `production` |
+   | `PIXABAY_API_KEY` / `API_NINJAS_API_KEY` | optional keys for the lock-screen daily photo and quotes |
 5. App service → **Settings → Networking → Generate Domain**. Open it and sign in.
 6. **Settings** (Manager only): add your team and tweak case types / document checklists.
 
@@ -39,6 +40,7 @@ The Manager creates, renames, edits and deletes roles in **Settings, Roles & acc
 - **Optional:** set `FILES_DIR` (e.g. `/data/uploads` with a Railway Volume mounted there) and new uploads are written to that folder instead, with only their path in the database — the database stays small. On the next start, any files still stored as database bytes are **migrated to the folder automatically**; downloads always work either way (disk first, database as fallback). Keep the volume attached: the folder must survive restarts just like the database.
 - Every vault reveal is recorded (who, when). Passwords are encrypted with AES-256-GCM before saving. A person created in Settings (or whose password a Manager resets) signs in with that temporary password and **must set their own before the app opens**.
 - Signed-in accounts lock after 15 minutes without user activity. Use **Lock screen** in the account menu to lock immediately; unlocking requires the same account's password. Idle sessions are also enforced by the server.
+- Optional lock-screen content uses the [Pixabay API](https://pixabay.com/api/docs/) and [API Ninjas Quotes API](https://api-ninjas.com/api/quotes). Add `PIXABAY_API_KEY` and `API_NINJAS_API_KEY` to `.env` (or Railway Variables); keep them server-side and out of client code. Each Tanzania-time day, the app selects one matching theme, downloads and caches one Pixabay photo in PostgreSQL, and saves three distinct quotes from that theme for morning (05:00–11:59), afternoon (12:00–16:59), and evening (17:00–04:59). The photo links back to Pixabay for attribution. Check API Ninjas' current plan/license for your intended use.
 - Local run: copy `.env.example` to `.env`, then `npm install && npm run dev` (needs a local Postgres).
 
 ## Who can change what

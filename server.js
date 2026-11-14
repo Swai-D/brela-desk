@@ -15,12 +15,87 @@ const enc=s=>{const iv=crypto.randomBytes(12),c=crypto.createCipheriv('aes-256-g
 const dec=s=>{const [iv,t,e]=s.split('.').map(x=>Buffer.from(x,'base64')),d=crypto.createDecipheriv('aes-256-gcm',KEY,iv);d.setAuthTag(t);return Buffer.concat([d.update(e),d.final()]).toString('utf8')};
 const LEVELS=['MANAGER','SENIOR','STAFF'], STAGES=['new','docs','ready','submitted','returned','done'];
 const IDLE_TIMEOUT_MS=15*60*1000;
+const LOCK_THEMES=[
+ {name:'Leadership',imageCategory:'business',imageQuery:'teamwork leadership office',quoteCategory:'leadership'},
+ {name:'Wisdom',imageCategory:'education',imageQuery:'learning books education',quoteCategory:'wisdom'},
+ {name:'Inspiration',imageCategory:'feelings',imageQuery:'inspiration sunrise motivation',quoteCategory:'inspirational'},
+ {name:'Success',imageCategory:'business',imageQuery:'business success goals',quoteCategory:'success'},
+ {name:'Nature',imageCategory:'nature',imageQuery:'peaceful nature sunrise',quoteCategory:'nature'},
+ {name:'Courage',imageCategory:'people',imageQuery:'confident people courage',quoteCategory:'courage'}
+];
+const LOCK_SLOTS=[{id:'morning',label:'Morning',start:5,end:12},{id:'afternoon',label:'Afternoon',start:12,end:17},{id:'evening',label:'Evening',start:17,end:5}];
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:15*1024*1024}});
 const app=express();app.set('trust proxy',1);app.disable('x-powered-by');app.use(express.json({limit:'1mb',verify:(req,res,buf)=>{req.rawBody=buf}}));app.use(cookieParser());
 const rateLimit=require('express-rate-limit');
 if(process.env.NODE_ENV!=='test')app.use('/api',rateLimit({windowMs:60000,max:600,standardHeaders:true,legacyHeaders:false,message:{error:'Too many requests. Slow down a little.'}}));
 const wrap=f=>(req,res)=>f(req,res).catch(e=>{if(!e.status)console.error(e);res.status(e.status||500).json({error:e.status?e.message:'Server error'})});
 const fail=(s,m)=>{const e=new Error(m);e.status=s;throw e};
+const eastAfricaParts=()=>Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Dar_es_Salaam',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+const eastAfricaDay=()=>{const p=eastAfricaParts();return`${p.year}-${p.month}-${p.day}`};
+const lockSlot=()=>{const hour=+eastAfricaParts().hour;return LOCK_SLOTS.find(s=>s.start<s.end?hour>=s.start&&hour<s.end:hour>=s.start||hour<s.end).id};
+const lockScreenConfigured=()=>!!(process.env.PIXABAY_API_KEY&&process.env.API_NINJAS_API_KEY);
+const lockApiError=(message,cause)=>{const e=new Error(message,{cause});e.status=502;return e};
+async function fetchLockQuote(category,used){
+ const url=new URL('https://api.api-ninjas.com/v2/randomquotes');url.searchParams.set('categories',category);
+ for(let attempt=0;attempt<4;attempt++){
+  let response;
+  try{response=await fetch(url,{headers:{'X-Api-Key':process.env.API_NINJAS_API_KEY},signal:AbortSignal.timeout(10000)})}
+  catch(e){throw lockApiError('The quote service is temporarily unavailable',e)}
+  if(!response.ok){console.error('Quote API request failed:',response.status);throw lockApiError('The quote service is temporarily unavailable')}
+  let records;try{records=await response.json()}catch(e){throw lockApiError('The quote service returned an invalid response',e)}
+  const record=Array.isArray(records)?records.find(x=>typeof x.quote==='string'&&x.quote.trim()&&typeof x.author==='string'&&x.author.trim()&&Array.isArray(x.categories)&&x.categories.includes(category)&&!used.has(x.quote.trim())):null;
+  if(record){const quote={quote:record.quote.trim(),author:record.author.trim(),work:typeof record.work==='string'?record.work.trim():'',categories:record.categories};used.add(quote.quote);return quote}
+ }
+ throw lockApiError(`The quote service could not provide a distinct ${category} quote`);
+}
+async function buildLockScreenContent(){
+ if(!lockScreenConfigured()){const e=new Error('Add PIXABAY_API_KEY and API_NINJAS_API_KEY to enable daily lock-screen content');e.status=503;throw e}
+ const theme=LOCK_THEMES[crypto.randomInt(LOCK_THEMES.length)],pix=new URL('https://pixabay.com/api/');
+ pix.searchParams.set('key',process.env.PIXABAY_API_KEY);pix.searchParams.set('q',theme.imageQuery);pix.searchParams.set('category',theme.imageCategory);pix.searchParams.set('image_type','photo');pix.searchParams.set('orientation','horizontal');pix.searchParams.set('safesearch','true');pix.searchParams.set('per_page','30');
+ let response;
+ try{response=await fetch(pix,{signal:AbortSignal.timeout(10000)})}catch(e){throw lockApiError('The image service is temporarily unavailable',e)}
+ if(!response.ok){console.error('Pixabay API request failed:',response.status);throw lockApiError('The image service is temporarily unavailable')}
+ let search;try{search=await response.json()}catch(e){throw lockApiError('The image service returned an invalid response',e)}
+ const hits=Array.isArray(search.hits)?search.hits.filter(x=>x.largeImageURL&&x.pageURL&&x.user):[];
+ if(!hits.length)throw lockApiError(`The image service returned no ${theme.imageCategory} images`);
+ const hit=hits[crypto.randomInt(hits.length)];let imageUrl;
+ try{imageUrl=new URL(hit.largeImageURL);if(imageUrl.protocol!=='https:'||!['pixabay.com','cdn.pixabay.com'].includes(imageUrl.hostname))throw new Error('Unexpected image host')}
+ catch(e){throw lockApiError('The image service returned an invalid image URL',e)}
+ try{response=await fetch(imageUrl,{signal:AbortSignal.timeout(15000)})}catch(e){throw lockApiError('Unable to download the selected image',e)}
+ if(!response.ok)throw lockApiError('Unable to download the selected image');
+ const mime=(response.headers.get('content-type')||'').split(';')[0].toLowerCase();
+ if(!['image/jpeg','image/png','image/webp'].includes(mime))throw lockApiError('The image service returned an unsupported image format');
+ const declaredSize=Number(response.headers.get('content-length'));if(Number.isFinite(declaredSize)&&declaredSize>10*1024*1024)throw lockApiError('The selected image exceeds the 10 MB limit');
+ let imageData;try{imageData=Buffer.from(await response.arrayBuffer())}catch(e){throw lockApiError('Unable to download the selected image',e)}
+ if(!imageData.length||imageData.length>10*1024*1024)throw lockApiError('The selected image is empty or exceeds the 10 MB limit');
+ let pageUrl;try{pageUrl=new URL(hit.pageURL);if(pageUrl.protocol!=='https:'||pageUrl.hostname!=='pixabay.com')throw new Error('Unexpected attribution URL')}
+ catch(e){throw lockApiError('The image service returned an invalid attribution URL',e)}
+ const used=new Set(),quotes=[];
+ for(const slot of LOCK_SLOTS)quotes.push({slot:slot.id,label:slot.label,...await fetchLockQuote(theme.quoteCategory,used)});
+ return{theme:theme.name,imageCategory:theme.imageCategory,quoteCategory:theme.quoteCategory,imageData,imageMime:mime,imageCredit:String(hit.user).slice(0,120),imagePageUrl:pageUrl.href,quotes};
+}
+async function getLockScreenContent(){
+ const day=eastAfricaDay(),db=await pool.connect();
+ try{
+  await db.query('BEGIN');await db.query("SELECT pg_advisory_xact_lock(hashtext('brela-lock-screen-content'))");
+  let result=await db.query('SELECT day::text,theme,image_category,quote_category,image_credit,image_page_url,quotes FROM lock_screen_content WHERE day=$1',[day]);
+  if(!result.rowCount){
+   const content=await buildLockScreenContent();
+   result=await db.query(`INSERT INTO lock_screen_content(day,theme,image_category,quote_category,image_data,image_mime,image_credit,image_page_url,quotes)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb) RETURNING day::text,theme,image_category,quote_category,image_credit,image_page_url,quotes`,
+   [day,content.theme,content.imageCategory,content.quoteCategory,content.imageData,content.imageMime,content.imageCredit,content.imagePageUrl,JSON.stringify(content.quotes)]);
+   await db.query('DELETE FROM lock_screen_content WHERE day<>$1',[day]);
+  }
+  await db.query('COMMIT');
+  const row=result.rows[0];return{day:row.day,theme:row.theme,imageCategory:row.image_category,quoteCategory:row.quote_category,imageCredit:row.image_credit,imagePageUrl:row.image_page_url,imageUrl:'/api/lock-screen/image?day='+encodeURIComponent(row.day),quotes:row.quotes,activeSlot:lockSlot()}
+ }catch(e){await db.query('ROLLBACK').catch(()=>{});throw e}finally{db.release()}
+}
+async function serveLockScreenImage(req,res){
+ const day=String(req.query.day||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return res.status(400).json({error:'Invalid image date'});
+ const row=await one('SELECT image_data,image_mime FROM lock_screen_content WHERE day=$1',[day]);
+ if(!row)return res.status(404).json({error:'Daily lock-screen image not found'});
+ res.set({'Content-Type':row.image_mime,'Cache-Control':'public,max-age=86400','X-Content-Type-Options':'nosniff'}).send(row.image_data);
+}
 const auth=async(req,res,next)=>{try{const t=jwt.verify(req.cookies.t,SECRET),u=await one('SELECT u.id,u.name,u.email,u.phone,u.role,r.level,u.must_change_password,s.id AS session_id,s.last_activity FROM users u JOIN roles r ON r.key=u.role LEFT JOIN auth_sessions s ON s.user_id=u.id AND s.id=$2 WHERE u.id=$1 AND u.active',[t.id,t.jti]);if(!u)return res.status(401).json({error:'Please sign in',code:'SESSION_EXPIRED'});if(!u.session_id||Date.now()-new Date(u.last_activity).getTime()>=IDLE_TIMEOUT_MS){if(u.session_id)await q('DELETE FROM auth_sessions WHERE id=$1',[u.session_id]);return res.status(401).json({error:'Session expired due to inactivity',code:'SESSION_EXPIRED'})}req.user={id:u.id,name:u.name,email:u.email,phone:u.phone,role:u.role,level:u.level,must_change_password:u.must_change_password};req.sessionId=u.session_id;next()}catch(e){if(e.name==='JsonWebTokenError'||e.name==='TokenExpiredError'||e.name==='NotBeforeError')return res.status(401).json({error:'Please sign in',code:'SESSION_EXPIRED'});console.error('Authentication middleware failed:',e);res.status(500).json({error:'Authentication service unavailable'})}};
 const need=(...r)=>(req,res,next)=>r.includes(req.user.level)?next():res.status(403).json({error:'Your role cannot do this'});
 const cleanTrack=v=>{const t=String(v??'').replace(/\s+/g,' ').trim();if(t.length>60)fail(400,'Track number is too long (max 60 characters)');return t||null};
@@ -44,6 +119,8 @@ app.post('/api/login',wrap(async(req,res)=>{
   const sessionId=crypto.randomUUID();await q('INSERT INTO auth_sessions(id,user_id) VALUES($1,$2)',[sessionId,u.id]);
   res.cookie('t',jwt.sign({id:u.id,role:u.role,name:u.name},SECRET,{jwtid:sessionId,expiresIn:'7d'}),{httpOnly:true,sameSite:'lax',secure:PROD,maxAge:6048e5});
   res.json({id:u.id,name:u.name,role:u.role,mustChange:!!u.must_change_password})}));
+app.get('/api/lock-screen/content',wrap(async(req,res)=>res.json(await getLockScreenContent())));
+app.get('/api/lock-screen/image',wrap(serveLockScreenImage));
 app.use('/api',auth);
 app.post('/api/logout',wrap(async(req,res)=>{await q('DELETE FROM auth_sessions WHERE id=$1',[req.sessionId]);res.clearCookie('t');res.json({ok:1})}));
 // a person with a temporary password must set their own before anything else (tests skip the gate)
@@ -418,6 +495,7 @@ const STARTER={'Business Name Registration':['Client ID / passport copy','Passpo
  'Beneficial Ownership Update':['Beneficial owners ID / passport copies','Ownership structure / percentages','Signed client authorization']};
 async function init(){
   await pool.query(fs.readFileSync(path.join(__dirname,'schema.sql'),'utf8'));
+  await q('DELETE FROM lock_screen_content WHERE day<$1',[eastAfricaDay()]);
   // retention: system logs are trimmed on boot (case history/activity is kept in full)
   const RET=Math.max(30,+process.env.RETENTION_DAYS||730),cut=new Date(Date.now()-RET*864e5);
   for(const t of ['audit_log','wa_log','wa_messages','notifs']){const r=await pool.query(`DELETE FROM ${t} WHERE created_at<$1`,[cut]);if(r.rowCount)console.log(`Trimmed ${r.rowCount} old row(s) from ${t}`)}
@@ -435,5 +513,10 @@ async function init(){
     console.log(`First Manager created: ${email}${process.env.ADMIN_PASSWORD?'':' / temporary password: '+pw}`)}
   if(!(await one('SELECT 1 FROM stage_playbook LIMIT 1')))for(const [st,[o,steps,dw]] of Object.entries(DEFAULT_STAGES))await q('INSERT INTO stage_playbook(stage,owner_roles,steps,done_when) VALUES($1,$2::jsonb,$3::jsonb,$4)',[st,JSON.stringify(o),JSON.stringify(steps),dw]);
   if(!(await one('SELECT 1 FROM case_types LIMIT 1')))for(const [n,d] of Object.entries(STARTER)){const t=await one('INSERT INTO case_types(name) VALUES($1) RETURNING id',[n]);await saveDocs(t.id,d)}
-  WA.startScheduler();app.listen(process.env.PORT||3000,()=>console.log('BRELA Desk running on port '+(process.env.PORT||3000)))}
+  WA.startScheduler();
+  if(lockScreenConfigured()&&process.env.NODE_ENV!=='test'){
+    const refresh=()=>getLockScreenContent().catch(e=>console.error('lock-screen content refresh failed:',e.message));
+    refresh();setInterval(refresh,30*60e3).unref();
+  }
+  app.listen(process.env.PORT||3000,()=>console.log('BRELA Desk running on port '+(process.env.PORT||3000)))}
 init().catch(e=>{console.error(e);process.exit(1)});

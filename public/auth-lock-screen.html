@@ -10,7 +10,8 @@
 <link href="assets/css/brela.css" rel="stylesheet">
 <style>
 body{min-height:100vh}.lock-panel{min-height:100vh;background:var(--bs-body-bg)}.lock-avatar{width:80px;height:80px;font-size:26px}
-@media(max-width:767.98px){.auth-bg{display:none!important}.lock-panel{min-height:100vh}}
+.auth-bg{min-height:100vh;justify-content:center;background-image:url(assets/images/auth-bg.jpg)}.lock-quote-content{z-index:1;width:100%;min-width:0;max-width:760px;flex:0 1 760px;margin:auto;color:#fff;text-align:center}.lock-quote-content h4{font-weight:600}.lock-quote-text{font-size:clamp(1.35rem,2.4vw,2.1rem);line-height:1.45;font-weight:500;text-shadow:0 2px 8px rgba(0,0,0,.35)}.lock-quote-author{font-size:1.05rem}.lock-photo-credit a{color:#fff;text-decoration:underline}
+@media(max-width:767.98px){.auth-bg{display:flex!important;position:fixed!important;inset:0;z-index:0;min-height:100vh;width:100vw}.lock-panel{position:relative;z-index:1;min-height:100vh;background:transparent;align-items:center}.lock-panel>.w-100{max-width:480px;margin:auto;padding:2rem;background:rgba(255,255,255,.94);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.2)}}
 </style>
 </head>
 <body>
@@ -41,9 +42,16 @@ body{min-height:100vh}.lock-panel{min-height:100vh;background:var(--bs-body-bg)}
    </main>
   </div>
   <div class="col-md-7 col-lg-8">
-   <div class="auth-bg pt-md-5 p-4 d-flex align-items-end position-relative">
+   <div class="auth-bg p-4 d-flex position-relative" id="lock-background">
     <div class="bg-overlay"></div>
-    <div class="position-relative text-white p-3"><h4>Welcome back</h4><p class="mb-0">Your work is safe. Sign in to continue.</p></div>
+    <section class="lock-quote-content p-3" id="lock-quote-panel" aria-live="polite" hidden>
+     <p id="lock-theme" class="text-uppercase small fw-semibold letter-spacing-1 mb-2"></p>
+     <h4>Welcome back</h4>
+     <blockquote id="lock-quote" class="lock-quote-text my-4"></blockquote>
+     <p id="lock-author" class="lock-quote-author mb-4"></p>
+     <small id="lock-photo-credit" class="lock-photo-credit"></small>
+    </section>
+    <p id="lock-quote-error" class="position-relative text-white text-center mt-auto mb-4" role="status" hidden></p>
    </div>
   </div>
  </div>
@@ -60,6 +68,29 @@ else{
 }
 document.getElementById('year').textContent=new Date().getFullYear();
 document.getElementById('other-user').addEventListener('click',()=>sessionStorage.removeItem(LOCK_KEY));
+function currentQuoteSlot(){
+ const hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Dar_es_Salaam',hour:'2-digit',hourCycle:'h23'}).format(new Date()));
+ return hour>=5&&hour<12?'morning':hour>=12&&hour<17?'afternoon':'evening';
+}
+async function loadLockScreenContent(){
+ const panel=document.getElementById('lock-quote-panel'),warning=document.getElementById('lock-quote-error'),background=document.getElementById('lock-background');
+ try{
+  const response=await fetch('/api/lock-screen/content',{credentials:'same-origin'}),data=await response.json();
+  if(!response.ok)throw new Error(data.error||'Daily quotes and image are unavailable.');
+  background.style.backgroundImage=`url("${data.imageUrl}")`;
+  document.getElementById('lock-theme').textContent=`${data.theme} · ${data.imageCategory}`;
+  const showCurrentQuote=()=>{
+   const slot=currentQuoteSlot();
+   const quote=data.quotes.find(item=>item.slot===slot);if(!quote)return;
+   document.getElementById('lock-quote').textContent=`“${quote.quote}”`;
+   document.getElementById('lock-author').textContent=`— ${quote.author}`;
+  };
+  const credit=document.getElementById('lock-photo-credit'),link=document.createElement('a');
+  link.href=data.imagePageUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent=`Photo by ${data.imageCredit} on Pixabay`;credit.replaceChildren(link);
+  panel.hidden=false;showCurrentQuote();setInterval(showCurrentQuote,60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)showCurrentQuote()});
+ }catch(e){warning.textContent=`${e.message} The lock screen background will use the default image.`;warning.hidden=false;console.error('Unable to load daily lock-screen content:',e)}
+}
+if(lockedUser)loadLockScreenContent();
 document.getElementById('unlock-form').addEventListener('submit',async event=>{
  event.preventDefault();error.textContent='';button.disabled=true;
  try{

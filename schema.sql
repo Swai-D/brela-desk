@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS notifs(id SERIAL PRIMARY KEY, user_id INT NOT NULL RE
 CREATE INDEX IF NOT EXISTS idx_notifs_user ON notifs(user_id);
 CREATE TABLE IF NOT EXISTS auth_sessions(id UUID PRIMARY KEY, user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, last_activity TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS idx_auth_sessions_activity ON auth_sessions(last_activity);
+CREATE TABLE IF NOT EXISTS lock_screen_content(day DATE PRIMARY KEY, theme TEXT NOT NULL, image_category TEXT NOT NULL, quote_category TEXT NOT NULL, image_data BYTEA NOT NULL, image_mime TEXT NOT NULL, image_credit TEXT NOT NULL, image_page_url TEXT NOT NULL, quotes JSONB NOT NULL CHECK(jsonb_array_length(quotes)=3), created_at TIMESTAMPTZ NOT NULL DEFAULT now());
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS track_number TEXT;
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS track_number TEXT;
 CREATE INDEX IF NOT EXISTS idx_cases_track ON cases(track_number) WHERE track_number IS NOT NULL;
