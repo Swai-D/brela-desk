@@ -17,6 +17,7 @@ Internal case tracker for the BRELA consulting team: cases move through stages, 
    | `ENCRYPTION_KEY` | 64 hex chars: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
    | `ADMIN_NAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | your first Manager login |
    | `NODE_ENV` | `production` |
+   | `PIXABAY_API_KEY` / `API_NINJAS_API_KEY` | optional keys for the lock-screen daily photo and quotes |
 5. App service → **Settings → Networking → Generate Domain**. Open it and sign in.
 6. **Settings** (Manager only): add your team and tweak case types / document checklists.
 
@@ -38,13 +39,16 @@ The Manager creates, renames, edits and deletes roles in **Settings, Roles & acc
 - Uploaded files (max 15 MB each) are stored **inside PostgreSQL by default**, so one Railway database backup covers everything. Enable backups on the Postgres service.
 - **Optional:** set `FILES_DIR` (e.g. `/data/uploads` with a Railway Volume mounted there) and new uploads are written to that folder instead, with only their path in the database — the database stays small. On the next start, any files still stored as database bytes are **migrated to the folder automatically**; downloads always work either way (disk first, database as fallback). Keep the volume attached: the folder must survive restarts just like the database.
 - Every vault reveal is recorded (who, when). Passwords are encrypted with AES-256-GCM before saving. A person created in Settings (or whose password a Manager resets) signs in with that temporary password and **must set their own before the app opens**.
+- Signed-in accounts lock after 15 minutes without user activity. Use **Lock screen** in the account menu to lock immediately; unlocking requires the same account's password. Idle sessions are also enforced by the server.
+- The profile's weekly gauge shows cases marked done in the last 7 days divided by distinct cases assigned to the signed-in user in that period. Assignment events are tracked when cases are created or reassigned; for existing cases, the original creation date is used where older assignment history is unavailable.
+- Optional lock-screen content uses the [Pixabay API](https://pixabay.com/api/docs/) and [API Ninjas Quotes API](https://api-ninjas.com/api/quotes). Add `PIXABAY_API_KEY` and `API_NINJAS_API_KEY` to `.env` (or Railway Variables); keep them server-side and out of client code. Each Tanzania-time day, the app saves three distinct quotes with matching themes for morning (05:00–11:59), afternoon (12:00–16:59), and evening (17:00–04:59), and downloads a matching photo in each period (three photos per day). It keeps only the active photo in PostgreSQL: at each period change, it replaces the previous photo rather than adding another cache entry. The server checks for period changes every minute, and the lock screen refreshes automatically. Old-day cache rows are deleted. The photo links back to Pixabay for attribution. Check API Ninjas' current plan/license for your intended use.
 - Local run: copy `.env.example` to `.env`, then `npm install && npm run dev` (needs a local Postgres).
 
 ## Who can change what
 | Item | Create | Edit | Delete |
 |---|---|---|---|
 | Roles | Manager | Manager: name, access level, text, team queue | Manager, only if nobody has the role (and not the last Manager-level role) |
-| Team members | Manager | Manager: name, email, role, phone, password, active | Manager, only if the person has no work history (otherwise deactivate) |
+| Team members | Manager | Self: name, phone, profile picture (max 3 MB), password; Manager: email, role, password reset, active | Manager, only if the person has no work history (otherwise deactivate) |
 | Case types | Manager | Manager: name, checklist, notes, hide/show | Manager, only if no case uses it (otherwise hide) |
 | Clients | everyone | rename: Senior/Manager; phone and email: everyone | Manager, only if the client has no cases |
 | Cases | everyone | assignee and due date: Senior/Manager; client and case type: Manager | Manager, after typing the case code |

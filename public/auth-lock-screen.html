@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lock Screen | BRELA Desk</title>
+<link href="assets/css/bootstrap.min.css" rel="stylesheet">
+<link href="assets/css/icons.min.css" rel="stylesheet">
+<link href="assets/css/app.min.css" rel="stylesheet">
+<link href="assets/css/brela.css" rel="stylesheet">
+<style>
+body{min-height:100vh}.lock-panel{min-height:100vh;background:var(--bs-body-bg)}.lock-avatar{width:80px;height:80px;font-size:26px}
+.auth-bg{min-height:100vh;justify-content:center;background-image:url(assets/images/auth-bg.jpg)}.lock-quote-content{z-index:1;width:100%;min-width:0;max-width:760px;flex:0 1 760px;margin:auto;color:#fff;text-align:center}.lock-quote-content h4{font-weight:600}.lock-quote-text{font-size:clamp(1.35rem,2.4vw,2.1rem);line-height:1.45;font-weight:500;text-shadow:0 2px 8px rgba(0,0,0,.35)}.lock-quote-author{font-size:1.05rem}.lock-photo-credit a{color:#fff;text-decoration:underline}
+@media(max-width:767.98px){.auth-bg{display:flex!important;position:fixed!important;inset:0;z-index:0;min-height:100vh;width:100vw}.lock-panel{position:relative;z-index:1;min-height:100vh;background:transparent;align-items:center}.lock-panel>.w-100{max-width:480px;margin:auto;padding:2rem;background:rgba(255,255,255,.94);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.2)}}
+</style>
+</head>
+<body>
+<div class="container-fluid p-0">
+ <div class="row g-0 min-vh-100">
+  <div class="col-md-5 col-lg-4">
+   <main class="lock-panel d-flex p-4 p-sm-5">
+    <div class="w-100 d-flex flex-column">
+     <div class="mb-5 text-center"><a href="index.html" class="d-block auth-logo"><img src="assets/images/logo-sm.svg" alt="" height="30"><span class="logo-txt ms-2">BRELA Desk</span></a></div>
+     <section class="auth-content my-auto mx-auto" style="width:100%;max-width:380px">
+      <div class="text-center"><h5 class="mb-0">Lock Screen</h5><p class="text-muted mt-2">Enter your password to unlock your account.</p></div>
+      <div class="user-thumb text-center mb-4 mt-4 pt-2">
+       <div id="lock-avatar" class="lock-avatar rounded-circle img-thumbnail d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary fw-semibold"></div>
+       <h5 id="lock-name" class="font-size-15 mt-3 mb-1"></h5><small id="lock-email" class="text-muted"></small>
+      </div>
+      <form id="unlock-form" class="mt-4" novalidate>
+       <div class="form-floating form-floating-custom mb-3">
+        <input type="password" class="form-control" id="input-password" placeholder="Enter password" autocomplete="current-password" required>
+        <label for="input-password">Password</label><div class="form-floating-icon"><i class="mdi mdi-lock-outline"></i></div>
+       </div>
+       <div id="unlock-error" class="text-danger small mb-3" role="alert"></div>
+       <button class="btn btn-primary w-100" id="unlock-button" type="submit">Unlock</button>
+      </form>
+      <div class="mt-5 text-center"><p class="text-muted mb-0">Not you? <a href="login.html" id="other-user" class="text-primary fw-semibold">Sign in as another user</a></p></div>
+     </section>
+     <footer class="mt-4 mt-md-5 text-center"><p class="mb-0 text-muted">© <span id="year"></span> BRELA Desk</p></footer>
+    </div>
+   </main>
+  </div>
+  <div class="col-md-7 col-lg-8">
+   <div class="auth-bg p-4 d-flex position-relative" id="lock-background">
+    <div class="bg-overlay"></div>
+    <section class="lock-quote-content p-3" id="lock-quote-panel" aria-live="polite" hidden>
+     <p id="lock-theme" class="text-uppercase small fw-semibold letter-spacing-1 mb-2"></p>
+     <h4>Welcome back</h4>
+     <blockquote id="lock-quote" class="lock-quote-text my-4"></blockquote>
+     <p id="lock-author" class="lock-quote-author mb-4"></p>
+     <small id="lock-photo-credit" class="lock-photo-credit"></small>
+    </section>
+    <p id="lock-quote-error" class="position-relative text-white text-center mt-auto mb-4" role="status" hidden></p>
+   </div>
+  </div>
+ </div>
+</div>
+<script>
+const LOCK_KEY='brela.lock.user',saved=sessionStorage.getItem(LOCK_KEY),error=document.getElementById('unlock-error'),password=document.getElementById('input-password'),button=document.getElementById('unlock-button');
+let lockedUser;
+try{lockedUser=saved&&JSON.parse(saved)}catch{}
+if(!lockedUser||!lockedUser.id||!lockedUser.email){sessionStorage.removeItem(LOCK_KEY);location.replace('login.html')}
+else{
+ document.getElementById('lock-name').textContent=lockedUser.name||'BRELA Desk user';
+ document.getElementById('lock-email').textContent=lockedUser.email;
+ document.getElementById('lock-avatar').textContent=String(lockedUser.name||'').trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'BD';
+}
+document.getElementById('year').textContent=new Date().getFullYear();
+document.getElementById('other-user').addEventListener('click',()=>sessionStorage.removeItem(LOCK_KEY));
+function currentQuoteSlot(){
+ const hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Dar_es_Salaam',hour:'2-digit',hourCycle:'h23'}).format(new Date()));
+ return hour>=5&&hour<12?'morning':hour>=12&&hour<17?'afternoon':'evening';
+}
+async function loadLockScreenContent(){
+ const panel=document.getElementById('lock-quote-panel'),warning=document.getElementById('lock-quote-error'),background=document.getElementById('lock-background');
+ let content;
+ const refresh=async()=>{
+  const response=await fetch('/api/lock-screen/content',{credentials:'same-origin'}),data=await response.json();
+  if(!response.ok)throw new Error(data.error||'Daily quotes and image are unavailable.');
+  if(background.dataset.imageUrl!==data.imageUrl){background.style.backgroundImage=`url("${data.imageUrl}")`;background.dataset.imageUrl=data.imageUrl}
+  document.getElementById('lock-theme').textContent=`${data.theme} · ${data.imageCategory}`;
+  content=data;
+  const credit=document.getElementById('lock-photo-credit'),link=document.createElement('a');
+  link.href=data.imagePageUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent=`Photo by ${data.imageCredit} on Pixabay`;credit.replaceChildren(link);
+  panel.hidden=false;showCurrentQuote();
+ };
+ const showCurrentQuote=()=>{
+  if(!content)return;
+  const quote=content.quotes.find(item=>item.slot===currentQuoteSlot());if(!quote)return;
+  document.getElementById('lock-quote').textContent=`“${quote.quote}”`;
+  document.getElementById('lock-author').textContent=`— ${quote.author}`;
+ };
+ try{
+  await refresh();
+  setInterval(()=>refresh().catch(e=>console.error('Unable to refresh daily lock-screen content:',e)),60*1000);
+  setInterval(showCurrentQuote,60*1000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh().catch(e=>console.error('Unable to refresh daily lock-screen content:',e))});
+ }catch(e){warning.textContent=`${e.message} The lock screen background will use the default image.`;warning.hidden=false;console.error('Unable to load daily lock-screen content:',e)}
+}
+if(lockedUser)loadLockScreenContent();
+document.getElementById('unlock-form').addEventListener('submit',async event=>{
+ event.preventDefault();error.textContent='';button.disabled=true;
+ try{
+  const response=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({email:lockedUser.email,password:password.value})});
+  const result=await response.json();
+  if(!response.ok)throw new Error(result.error||'Unable to unlock this account.');
+  if(String(result.id)!==String(lockedUser.id)){
+   await fetch('/api/logout',{method:'POST',credentials:'same-origin'});
+   throw new Error('That password belongs to a different account. Sign in as another user instead.');
+  }
+  sessionStorage.removeItem(LOCK_KEY);location.replace('index.html');
+ }catch(e){error.textContent=e.message;password.value='';password.focus()}
+ finally{button.disabled=false}
+});
+</script>
+</body>
+</html>

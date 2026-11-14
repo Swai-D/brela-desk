@@ -14,13 +14,106 @@ const putDisk=(name,buf)=>{if(!FILES_DIR)return null;const p=crypto.randomUUID()
 const enc=s=>{const iv=crypto.randomBytes(12),c=crypto.createCipheriv('aes-256-gcm',KEY,iv),e=Buffer.concat([c.update(s,'utf8'),c.final()]);return [iv,c.getAuthTag(),e].map(b=>b.toString('base64')).join('.')};
 const dec=s=>{const [iv,t,e]=s.split('.').map(x=>Buffer.from(x,'base64')),d=crypto.createDecipheriv('aes-256-gcm',KEY,iv);d.setAuthTag(t);return Buffer.concat([d.update(e),d.final()]).toString('utf8')};
 const LEVELS=['MANAGER','SENIOR','STAFF'], STAGES=['new','docs','ready','submitted','returned','done'];
+const IDLE_TIMEOUT_MS=15*60*1000;
+const LOCK_THEMES=[
+ {name:'Leadership',imageCategory:'business',imageQuery:'teamwork leadership office',quoteCategory:'leadership'},
+ {name:'Wisdom',imageCategory:'education',imageQuery:'learning books education',quoteCategory:'wisdom'},
+ {name:'Inspiration',imageCategory:'feelings',imageQuery:'inspiration sunrise motivation',quoteCategory:'inspirational'},
+ {name:'Success',imageCategory:'business',imageQuery:'business success goals',quoteCategory:'success'},
+ {name:'Nature',imageCategory:'nature',imageQuery:'peaceful nature sunrise',quoteCategory:'nature'},
+ {name:'Courage',imageCategory:'people',imageQuery:'confident people courage',quoteCategory:'courage'}
+];
+const LOCK_SLOTS=[{id:'morning',label:'Morning',start:5,end:12},{id:'afternoon',label:'Afternoon',start:12,end:17},{id:'evening',label:'Evening',start:17,end:5}];
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:15*1024*1024}});
 const app=express();app.set('trust proxy',1);app.disable('x-powered-by');app.use(express.json({limit:'1mb',verify:(req,res,buf)=>{req.rawBody=buf}}));app.use(cookieParser());
 const rateLimit=require('express-rate-limit');
 if(process.env.NODE_ENV!=='test')app.use('/api',rateLimit({windowMs:60000,max:600,standardHeaders:true,legacyHeaders:false,message:{error:'Too many requests. Slow down a little.'}}));
 const wrap=f=>(req,res)=>f(req,res).catch(e=>{if(!e.status)console.error(e);res.status(e.status||500).json({error:e.status?e.message:'Server error'})});
 const fail=(s,m)=>{const e=new Error(m);e.status=s;throw e};
-const auth=async(req,res,next)=>{try{const t=jwt.verify(req.cookies.t,SECRET),u=await one('SELECT u.id,u.name,u.role,r.level,u.must_change_password FROM users u JOIN roles r ON r.key=u.role WHERE u.id=$1 AND u.active',[t.id]);if(!u)throw 0;req.user=u;next()}catch{res.status(401).json({error:'Please sign in'})}};
+const eastAfricaParts=()=>Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Dar_es_Salaam',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+const eastAfricaDay=()=>{const p=eastAfricaParts();return`${p.year}-${p.month}-${p.day}`};
+const lockSlot=()=>{const hour=+eastAfricaParts().hour;return LOCK_SLOTS.find(s=>s.start<s.end?hour>=s.start&&hour<s.end:hour>=s.start||hour<s.end).id};
+const lockScreenConfigured=()=>!!(process.env.PIXABAY_API_KEY&&process.env.API_NINJAS_API_KEY);
+const lockApiError=(message,cause)=>{const e=new Error(message,{cause});e.status=502;return e};
+async function fetchLockQuote(category,used){
+ const url=new URL('https://api.api-ninjas.com/v2/randomquotes');url.searchParams.set('categories',category);
+ for(let attempt=0;attempt<4;attempt++){
+  let response;
+  try{response=await fetch(url,{headers:{'X-Api-Key':process.env.API_NINJAS_API_KEY},signal:AbortSignal.timeout(10000)})}
+  catch(e){throw lockApiError('The quote service is temporarily unavailable',e)}
+  if(!response.ok){console.error('Quote API request failed:',response.status);throw lockApiError('The quote service is temporarily unavailable')}
+  let records;try{records=await response.json()}catch(e){throw lockApiError('The quote service returned an invalid response',e)}
+  const record=Array.isArray(records)?records.find(x=>typeof x.quote==='string'&&x.quote.trim()&&typeof x.author==='string'&&x.author.trim()&&Array.isArray(x.categories)&&x.categories.includes(category)&&!used.has(x.quote.trim())):null;
+  if(record){const quote={quote:record.quote.trim(),author:record.author.trim(),work:typeof record.work==='string'?record.work.trim():'',categories:record.categories};used.add(quote.quote);return quote}
+ }
+ throw lockApiError(`The quote service could not provide a distinct ${category} quote`);
+}
+async function fetchLockImage(theme){
+ const pix=new URL('https://pixabay.com/api/');
+ pix.searchParams.set('key',process.env.PIXABAY_API_KEY);pix.searchParams.set('q',theme.imageQuery);pix.searchParams.set('category',theme.imageCategory);pix.searchParams.set('image_type','photo');pix.searchParams.set('orientation','horizontal');pix.searchParams.set('safesearch','true');pix.searchParams.set('per_page','30');
+ let response;
+ try{response=await fetch(pix,{signal:AbortSignal.timeout(10000)})}catch(e){throw lockApiError('The image service is temporarily unavailable',e)}
+ if(!response.ok){console.error('Pixabay API request failed:',response.status);throw lockApiError('The image service is temporarily unavailable')}
+ let search;try{search=await response.json()}catch(e){throw lockApiError('The image service returned an invalid response',e)}
+ const hits=Array.isArray(search.hits)?search.hits.filter(x=>x.largeImageURL&&x.pageURL&&x.user):[];
+ if(!hits.length)throw lockApiError(`The image service returned no ${theme.imageCategory} images`);
+ const hit=hits[crypto.randomInt(hits.length)];let imageUrl;
+ try{imageUrl=new URL(hit.largeImageURL);if(imageUrl.protocol!=='https:'||!['pixabay.com','cdn.pixabay.com'].includes(imageUrl.hostname))throw new Error('Unexpected image host')}
+ catch(e){throw lockApiError('The image service returned an invalid image URL',e)}
+ try{response=await fetch(imageUrl,{signal:AbortSignal.timeout(15000)})}catch(e){throw lockApiError('Unable to download the selected image',e)}
+ if(!response.ok)throw lockApiError('Unable to download the selected image');
+ const mime=(response.headers.get('content-type')||'').split(';')[0].toLowerCase();
+ if(!['image/jpeg','image/png','image/webp'].includes(mime))throw lockApiError('The image service returned an unsupported image format');
+ const declaredSize=Number(response.headers.get('content-length'));if(Number.isFinite(declaredSize)&&declaredSize>10*1024*1024)throw lockApiError('The selected image exceeds the 10 MB limit');
+ let imageData;try{imageData=Buffer.from(await response.arrayBuffer())}catch(e){throw lockApiError('Unable to download the selected image',e)}
+ if(!imageData.length||imageData.length>10*1024*1024)throw lockApiError('The selected image is empty or exceeds the 10 MB limit');
+ let pageUrl;try{pageUrl=new URL(hit.pageURL);if(pageUrl.protocol!=='https:'||pageUrl.hostname!=='pixabay.com')throw new Error('Unexpected attribution URL')}
+ catch(e){throw lockApiError('The image service returned an invalid attribution URL',e)}
+ return{imageData,imageMime:mime,imageCredit:String(hit.user).slice(0,120),imagePageUrl:pageUrl.href};
+}
+async function buildLockScreenQuotes(){
+ const used=new Set(),themes=LOCK_THEMES.slice(),quotes=[];
+ for(const slot of LOCK_SLOTS){
+  const theme=themes.splice(crypto.randomInt(themes.length),1)[0];
+  quotes.push({slot:slot.id,label:slot.label,theme:theme.name,imageCategory:theme.imageCategory,imageQuery:theme.imageQuery,quoteCategory:theme.quoteCategory,...await fetchLockQuote(theme.quoteCategory,used)});
+ }
+ return quotes;
+}
+async function getLockScreenContent(){
+ if(!lockScreenConfigured()){const e=new Error('Add PIXABAY_API_KEY and API_NINJAS_API_KEY to enable daily lock-screen content');e.status=503;throw e}
+ const day=eastAfricaDay(),slot=lockSlot(),db=await pool.connect();
+ try{
+  await db.query('BEGIN');await db.query("SELECT pg_advisory_xact_lock(hashtext('brela-lock-screen-content'))");
+  let result=await db.query('SELECT day::text,image_slot,theme,image_category,quote_category,image_credit,image_page_url,quotes FROM lock_screen_content WHERE day=$1',[day]),row=result.rows[0];
+  const migratedQuotes=row&&Array.isArray(row.quotes)&&row.quotes.every(q=>q&&q.theme&&q.imageCategory&&q.imageQuery&&q.quoteCategory);
+  if(!migratedQuotes){
+   const quotes=await buildLockScreenQuotes(),quote=quotes.find(q=>q.slot===slot),image=await fetchLockImage(quote);
+   result=await db.query(`INSERT INTO lock_screen_content(day,image_slot,theme,image_category,quote_category,image_data,image_mime,image_credit,image_page_url,quotes)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb)
+    ON CONFLICT(day) DO UPDATE SET image_slot=EXCLUDED.image_slot,theme=EXCLUDED.theme,image_category=EXCLUDED.image_category,quote_category=EXCLUDED.quote_category,image_data=EXCLUDED.image_data,image_mime=EXCLUDED.image_mime,image_credit=EXCLUDED.image_credit,image_page_url=EXCLUDED.image_page_url,quotes=EXCLUDED.quotes,created_at=now()
+    RETURNING day::text,image_slot,theme,image_category,quote_category,image_credit,image_page_url,quotes`,
+   [day,slot,quote.theme,quote.imageCategory,quote.quoteCategory,image.imageData,image.imageMime,image.imageCredit,image.imagePageUrl,JSON.stringify(quotes)]);
+   row=result.rows[0];
+  }else if(row.image_slot!==slot){
+   const quote=row.quotes.find(q=>q.slot===slot);if(!quote)throw lockApiError(`No quote is configured for the ${slot} period`);
+   const image=await fetchLockImage(quote);
+   result=await db.query(`UPDATE lock_screen_content SET image_slot=$2,theme=$3,image_category=$4,quote_category=$5,image_data=$6,image_mime=$7,image_credit=$8,image_page_url=$9,created_at=now()
+    WHERE day=$1 RETURNING day::text,image_slot,theme,image_category,quote_category,image_credit,image_page_url,quotes`,
+   [day,slot,quote.theme,quote.imageCategory,quote.quoteCategory,image.imageData,image.imageMime,image.imageCredit,image.imagePageUrl]);
+   row=result.rows[0];
+  }
+  await db.query('DELETE FROM lock_screen_content WHERE day<>$1',[day]);
+  await db.query('COMMIT');
+  return{day:row.day,theme:row.theme,imageCategory:row.image_category,quoteCategory:row.quote_category,imageSlot:row.image_slot,imageCredit:row.image_credit,imagePageUrl:row.image_page_url,imageUrl:'/api/lock-screen/image?day='+encodeURIComponent(row.day)+'&slot='+encodeURIComponent(row.image_slot),quotes:row.quotes,activeSlot:slot}
+ }catch(e){await db.query('ROLLBACK').catch(()=>{});throw e}finally{db.release()}
+}
+async function serveLockScreenImage(req,res){
+ const day=String(req.query.day||''),slot=String(req.query.slot||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!LOCK_SLOTS.some(s=>s.id===slot))return res.status(400).json({error:'Invalid image date or period'});
+ const row=await one('SELECT image_data,image_mime FROM lock_screen_content WHERE day=$1 AND image_slot=$2',[day,slot]);
+ if(!row)return res.status(404).json({error:'Daily lock-screen image not found'});
+ res.set({'Content-Type':row.image_mime,'Cache-Control':'public,max-age=86400,immutable','X-Content-Type-Options':'nosniff'}).send(row.image_data);
+}
+const auth=async(req,res,next)=>{try{const t=jwt.verify(req.cookies.t,SECRET),u=await one('SELECT u.id,u.name,u.email,u.phone,u.role,r.level,u.must_change_password,s.id AS session_id,s.last_activity FROM users u JOIN roles r ON r.key=u.role LEFT JOIN auth_sessions s ON s.user_id=u.id AND s.id=$2 WHERE u.id=$1 AND u.active',[t.id,t.jti]);if(!u)return res.status(401).json({error:'Please sign in',code:'SESSION_EXPIRED'});if(!u.session_id||Date.now()-new Date(u.last_activity).getTime()>=IDLE_TIMEOUT_MS){if(u.session_id)await q('DELETE FROM auth_sessions WHERE id=$1',[u.session_id]);return res.status(401).json({error:'Session expired due to inactivity',code:'SESSION_EXPIRED'})}req.user={id:u.id,name:u.name,email:u.email,phone:u.phone,role:u.role,level:u.level,must_change_password:u.must_change_password};req.sessionId=u.session_id;next()}catch(e){if(e.name==='JsonWebTokenError'||e.name==='TokenExpiredError'||e.name==='NotBeforeError')return res.status(401).json({error:'Please sign in',code:'SESSION_EXPIRED'});console.error('Authentication middleware failed:',e);res.status(500).json({error:'Authentication service unavailable'})}};
 const need=(...r)=>(req,res,next)=>r.includes(req.user.level)?next():res.status(403).json({error:'Your role cannot do this'});
 const cleanTrack=v=>{const t=String(v??'').replace(/\s+/g,' ').trim();if(t.length>60)fail(400,'Track number is too long (max 60 characters)');return t||null};
 const audit=(req,action,details)=>q('INSERT INTO audit_log(user_id,actor_name,action,details) VALUES($1,$2,$3,$4)',[req.user.id,req.user.name,action,details]).catch(()=>{});
@@ -39,18 +132,43 @@ app.post('/api/login',wrap(async(req,res)=>{
   const u=await one('SELECT * FROM users WHERE lower(email)=lower($1) AND active',[String(req.body.email||'')]);
   if(!u||!await bcrypt.compare(String(req.body.password||''),u.password_hash)){t.n++;tries.set(k,t);fail(401,'Wrong email or password')}
   tries.delete(k);
-  res.cookie('t',jwt.sign({id:u.id,role:u.role,name:u.name},SECRET,{expiresIn:'7d'}),{httpOnly:true,sameSite:'lax',secure:PROD,maxAge:6048e5});
+  await q('DELETE FROM auth_sessions WHERE last_activity<now()-interval \'30 days\'');
+  const sessionId=crypto.randomUUID();await q('INSERT INTO auth_sessions(id,user_id) VALUES($1,$2)',[sessionId,u.id]);
+  res.cookie('t',jwt.sign({id:u.id,role:u.role,name:u.name},SECRET,{jwtid:sessionId,expiresIn:'7d'}),{httpOnly:true,sameSite:'lax',secure:PROD,maxAge:6048e5});
   res.json({id:u.id,name:u.name,role:u.role,mustChange:!!u.must_change_password})}));
-app.post('/api/logout',(req,res)=>{res.clearCookie('t');res.json({ok:1})});
+app.get('/api/lock-screen/content',wrap(async(req,res)=>res.json(await getLockScreenContent())));
+app.get('/api/lock-screen/image',wrap(serveLockScreenImage));
 app.use('/api',auth);
+app.post('/api/logout',wrap(async(req,res)=>{await q('DELETE FROM auth_sessions WHERE id=$1',[req.sessionId]);res.clearCookie('t');res.json({ok:1})}));
 // a person with a temporary password must set their own before anything else (tests skip the gate)
-app.use('/api',(req,res,next)=>{if(req.user.must_change_password&&process.env.NODE_ENV!=='test'&&!/^(\/me\/password|\/logout|\/me)$/.test(req.url))return res.status(403).json({error:'Set a new password first'});next()});
+app.use('/api',(req,res,next)=>{if(req.user.must_change_password&&process.env.NODE_ENV!=='test'&&!/^(\/me\/password|\/logout|\/me|\/session\/activity|\/session\/lock)$/.test(req.url))return res.status(403).json({error:'Set a new password first'});next()});
 app.param('id',(req,res,next,v)=>/^\d+$/.test(v)?next():res.status(400).json({error:'Bad id'}));
 app.get('/api/me',(req,res)=>res.json(req.user));
+app.post('/api/session/activity',wrap(async(req,res)=>{await q('UPDATE auth_sessions SET last_activity=now() WHERE id=$1',[req.sessionId]);res.json({ok:1})}));
+app.post('/api/session/lock',wrap(async(req,res)=>{await q('DELETE FROM auth_sessions WHERE id=$1',[req.sessionId]);res.clearCookie('t');res.json({ok:1})}));
+app.patch('/api/me/profile',wrap(async(req,res)=>{
+  const name=String(req.body.name||'').trim(),phone=String(req.body.phone||'').trim()||null;
+  if(!name)fail(400,'Name required');
+  await q('UPDATE users SET name=$1,phone=$2 WHERE id=$3',[name,phone,req.user.id]);
+  res.json({ok:1,name,phone})}));
+// profile picture: 3 MB max, image only; saving a new one replaces the old bytes in the same row (nothing accumulates)
+const avUpload=multer({storage:multer.memoryStorage(),limits:{fileSize:3*1024*1024}});
+app.post('/api/me/avatar',avUpload.single('file'),wrap(async(req,res)=>{
+  if(!req.file)fail(400,'Choose a picture');
+  if(!/^image\//.test(req.file.mimetype))fail(400,'Only image files (JPG, PNG, WebP)');
+  await q('UPDATE users SET avatar=$1,avatar_mime=$2,avatar_at=now() WHERE id=$3',[req.file.buffer,req.file.mimetype,req.user.id]);
+  res.json({ok:1,avatar:new Date().toISOString()})}));
+app.get('/api/users/:id/avatar',wrap(async(req,res)=>{
+  const u=await one('SELECT avatar,avatar_mime,avatar_at FROM users WHERE id=$1',[+req.params.id]);
+  if(!u||!u.avatar)fail(404,'Not found');
+  res.set({'Content-Type':u.avatar_mime||'image/jpeg','Cache-Control':'private,max-age=3600'});
+  res.send(u.avatar)}));
 app.post('/api/me/password',wrap(async(req,res)=>{
- const p=String(req.body.password||'');
+ const p=String(req.body.password||''),current=String(req.body.currentPassword||'');
  if(p.length<8)fail(400,'Password must be at least 8 characters');
+ if(!req.user.must_change_password){const u=await one('SELECT password_hash FROM users WHERE id=$1',[req.user.id]);if(!u||!await bcrypt.compare(current,u.password_hash))fail(400,'Current password is incorrect')}
  await q('UPDATE users SET password_hash=$1,must_change_password=FALSE WHERE id=$2',[await bcrypt.hash(p,10),req.user.id]);
+ await audit(req,'user.password','Changed own password');
  res.json({ok:1})}));
 app.get('/api/notifs',wrap(async(req,res)=>{
  const items=await q('SELECT n.id,n.case_id,n.body,n.read,n.created_at FROM notifs n WHERE n.user_id=$1 ORDER BY n.id DESC LIMIT 20',[req.user.id]);
@@ -58,17 +176,28 @@ app.get('/api/notifs',wrap(async(req,res)=>{
  res.json({items,unread:u.n})}));
 app.post('/api/notifs/read',wrap(async(req,res)=>{
  await q('UPDATE notifs SET read=TRUE WHERE user_id=$1 AND NOT read',[req.user.id]);res.json({ok:1})}));
-const CASE_SQL=`SELECT c.id,c.code,c.track_number,c.status,c.completed_at,c.due::text AS due,c.rounds,c.note,c.assignee_id AS who,c.client_id,cl.name AS client,c.case_type_id,t.name AS type,
+const CASE_SQL=`SELECT c.id,c.code,c.track_number,c.status,c.completed_at,c.due::text AS due,c.rounds,c.note,c.assignee_id AS who,c.client_id,cl.name AS client,c.case_type_id,t.name AS type,c.created_at::date::text AS created,c.submitted_at::date::text AS submitted,
  (SELECT count(*) FROM case_docs d WHERE d.case_id=c.id AND d.done)::int AS docs_done,(SELECT count(*) FROM case_docs d WHERE d.case_id=c.id)::int AS docs_total
  FROM cases c JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id`;
 app.get('/api/bootstrap',wrap(async(req,res)=>{
-  const [users,types,docs,clients,cases,recent,inbox,guide,notifs,roles]=await Promise.all([
-   q('SELECT id,name,role,active'+(req.user.level==='MANAGER'?',email,phone,wa_opt_in':'')+' FROM users ORDER BY id'),q('SELECT id,name,active,sop FROM case_types ORDER BY name'),
+  const [users,types,docs,clients,cases,recent,inbox,guide,notifs,roles,performers]=await Promise.all([
+   q('SELECT id,name,role,active'+(req.user.level==='MANAGER'?',email,phone,wa_opt_in':'')+',avatar_at::text AS avatar FROM users ORDER BY id'),q('SELECT id,name,active,sop FROM case_types ORDER BY name'),
    q('SELECT case_type_id,name FROM case_type_docs ORDER BY position,id'),q('SELECT id,name,phone,email,track_number FROM clients ORDER BY name'),
    q(CASE_SQL+' ORDER BY c.id DESC'),
-   q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id]),one('SELECT count(*)::int AS n FROM notifs WHERE user_id=$1 AND NOT read',[req.user.id]),q(`SELECT key,name,level,team_queue FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`)]);
+   q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id]),one('SELECT count(*)::int AS n FROM notifs WHERE user_id=$1 AND NOT read',[req.user.id]),q(`SELECT key,name,level,team_queue FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`),q(`SELECT user_id,count(*)::int AS completed FROM activity WHERE created_at>=now()-interval '7 days' AND text LIKE 'moved % → done' GROUP BY user_id ORDER BY completed DESC,user_id`)]);
+  const weeklyWork=await one(`SELECT count(DISTINCT a.case_id)::int AS assigned,
+    count(DISTINCT a.case_id) FILTER (WHERE EXISTS (
+      SELECT 1 FROM activity done_event
+      WHERE done_event.case_id=a.case_id
+      AND done_event.created_at>=now()-interval '7 days'
+      AND done_event.created_at>=a.assigned_at
+      AND done_event.text LIKE 'moved % → done'
+    ))::int AS completed
+    FROM case_assignments a
+    WHERE a.user_id=$1 AND a.assigned_at>=now()-interval '7 days'`,[req.user.id]);
+  const weeklyPerformance={assigned:weeklyWork.assigned,completed:weeklyWork.completed,rate:weeklyWork.assigned?Math.round(weeklyWork.completed/weeklyWork.assigned*1000)/10:0};
   types.forEach(t=>t.docs=docs.filter(d=>d.case_type_id===t.id).map(d=>d.name));
-  res.json({me:{...req.user,seenGuide:!!(guide&&guide.seen_guide)},roles,users,types,clients,cases,recent,inboxCount:inbox.n,notifs:notifs.n})}));
+  res.json({me:{...req.user,seenGuide:!!(guide&&guide.seen_guide)},roles,users,types,clients,cases,recent,inboxCount:inbox.n,notifs:notifs.n,performers,weeklyPerformance})}));
 // ---- team
 app.post('/api/users',need('MANAGER'),wrap(async(req,res)=>{
   const {name,email,role,password,phone}=req.body;if(!name||!email||!role||String(password||'').length<8)fail(400,'Name, email, role and a password of 8+ characters are required');
@@ -197,6 +326,7 @@ app.post('/api/cases',wrap(async(req,res)=>{
   let cid=+clientId;if(!cid){const n=String(clientName||'').trim();if(!n)fail(400,'Client required');cid=(await one('INSERT INTO clients(name) VALUES($1) ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id',[n])).id}
   const t=await one('SELECT id,name FROM case_types WHERE id=$1 AND active',[+caseTypeId]);if(!t)fail(400,'Pick a case type');
   const c=await one(`INSERT INTO cases(code,client_id,case_type_id,assignee_id,due,created_by) VALUES('BR-'||nextval('case_code_seq'),$1,$2,$3,$4,$5) RETURNING id,code`,[cid,t.id,+assigneeId||req.user.id,due||null,req.user.id]);
+  await q('INSERT INTO case_assignments(case_id,user_id) VALUES($1,$2)',[c.id,+assigneeId||req.user.id]);
   await q('INSERT INTO case_docs(case_id,name) SELECT $1,name FROM case_type_docs WHERE case_type_id=$2 ORDER BY position,id',[c.id,t.id]);
   await log(c.id,req.user.id,`created this case (${t.name})`);
   const ci=await caseInfo(c.id);if(ci.who&&ci.who!==req.user.id)WA.notify([ci.who],'brela_case_assigned',[ci.code,ci.client,ci.type,ci.due||'not set']);
@@ -231,7 +361,7 @@ app.patch('/api/cases/:id',need('MANAGER','SENIOR'),wrap(async(req,res)=>{
   const {assigneeId,due,clientId,caseTypeId}=req.body,id=+req.params.id,old=await caseInfo(id);if(!old)fail(404,'Case not found');
   if((clientId||caseTypeId)&&req.user.level!=='MANAGER')fail(403,'Only a Manager can change the client or case type');
   const ch=[];
-  if(assigneeId&&+assigneeId!==old.who){await q('UPDATE cases SET assignee_id=$1 WHERE id=$2',[+assigneeId,id]);ch.push('assignee');if(+assigneeId!==req.user.id)WA.notify([+assigneeId],'brela_case_assigned',[old.code,old.client,old.type,due||old.due||'not set'])}
+  if(assigneeId&&+assigneeId!==old.who){await q('UPDATE cases SET assignee_id=$1 WHERE id=$2',[+assigneeId,id]);await q('INSERT INTO case_assignments(case_id,user_id) VALUES($1,$2)',[id,+assigneeId]);ch.push('assignee');if(+assigneeId!==req.user.id)WA.notify([+assigneeId],'brela_case_assigned',[old.code,old.client,old.type,due||old.due||'not set'])}
   if(due!==undefined&&(due||null)!==(old.due||null)){await q('UPDATE cases SET due=$1 WHERE id=$2',[due||null,id]);ch.push('due date')}
   if(clientId&&+clientId!==old.client_id){if(!await one('SELECT 1 FROM clients WHERE id=$1',[+clientId]))fail(400,'Client not found');await q('UPDATE cases SET client_id=$1 WHERE id=$2',[+clientId,id]);ch.push('client');await audit(req,'case.update',`${old.code}: client changed from ${old.client}`)}
   if(caseTypeId&&+caseTypeId!==old.case_type_id){if(!await one('SELECT 1 FROM case_types WHERE id=$1',[+caseTypeId]))fail(400,'Case type not found');await q('UPDATE cases SET case_type_id=$1 WHERE id=$2',[+caseTypeId,id]);ch.push('case type');await audit(req,'case.update',`${old.code}: case type changed from ${old.type}`)}
@@ -394,6 +524,7 @@ const STARTER={'Business Name Registration':['Client ID / passport copy','Passpo
  'Beneficial Ownership Update':['Beneficial owners ID / passport copies','Ownership structure / percentages','Signed client authorization']};
 async function init(){
   await pool.query(fs.readFileSync(path.join(__dirname,'schema.sql'),'utf8'));
+  await q('DELETE FROM lock_screen_content WHERE day<$1',[eastAfricaDay()]);
   // retention: system logs are trimmed on boot (case history/activity is kept in full)
   const RET=Math.max(30,+process.env.RETENTION_DAYS||730),cut=new Date(Date.now()-RET*864e5);
   for(const t of ['audit_log','wa_log','wa_messages','notifs']){const r=await pool.query(`DELETE FROM ${t} WHERE created_at<$1`,[cut]);if(r.rowCount)console.log(`Trimmed ${r.rowCount} old row(s) from ${t}`)}
@@ -411,5 +542,10 @@ async function init(){
     console.log(`First Manager created: ${email}${process.env.ADMIN_PASSWORD?'':' / temporary password: '+pw}`)}
   if(!(await one('SELECT 1 FROM stage_playbook LIMIT 1')))for(const [st,[o,steps,dw]] of Object.entries(DEFAULT_STAGES))await q('INSERT INTO stage_playbook(stage,owner_roles,steps,done_when) VALUES($1,$2::jsonb,$3::jsonb,$4)',[st,JSON.stringify(o),JSON.stringify(steps),dw]);
   if(!(await one('SELECT 1 FROM case_types LIMIT 1')))for(const [n,d] of Object.entries(STARTER)){const t=await one('INSERT INTO case_types(name) VALUES($1) RETURNING id',[n]);await saveDocs(t.id,d)}
-  WA.startScheduler();app.listen(process.env.PORT||3000,()=>console.log('BRELA Desk running on port '+(process.env.PORT||3000)))}
+  WA.startScheduler();
+  if(lockScreenConfigured()&&process.env.NODE_ENV!=='test'){
+    const refresh=()=>getLockScreenContent().catch(e=>console.error('lock-screen content refresh failed:',e.message));
+    refresh();setInterval(refresh,60*1000).unref();
+  }
+  app.listen(process.env.PORT||3000,()=>console.log('BRELA Desk running on port '+(process.env.PORT||3000)))}
 init().catch(e=>{console.error(e);process.exit(1)});
