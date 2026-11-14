@@ -35,8 +35,9 @@ A **role** is a job in your team (Manager, Senior, Junior, Secretary, Associate,
 
 The Manager creates, renames, edits and deletes roles in **Settings, Roles & access** (name, access level, responsibilities for the Playbook, and whether the role sees the *team queue* in My Work). Safeguards: a role cannot be deleted while people have it, and there must always be at least one active Manager (the app refuses to remove, demote or deactivate the last one). Permissions are checked on every request, so changing a person's role or a role's access level, or deactivating someone, takes effect immediately, without signing out and in.
 ## Notes
-- Uploaded files are stored inside PostgreSQL (max 15 MB each), so one Railway database backup covers everything. Enable backups on the Postgres service.
-- Every vault reveal is recorded (who, when). Passwords are encrypted with AES-256-GCM before saving.
+- Uploaded files (max 15 MB each) are stored **inside PostgreSQL by default**, so one Railway database backup covers everything. Enable backups on the Postgres service.
+- **Optional:** set `FILES_DIR` (e.g. `/data/uploads` with a Railway Volume mounted there) and new uploads are written to that folder instead, with only their path in the database — the database stays small. On the next start, any files still stored as database bytes are **migrated to the folder automatically**; downloads always work either way (disk first, database as fallback). Keep the volume attached: the folder must survive restarts just like the database.
+- Every vault reveal is recorded (who, when). Passwords are encrypted with AES-256-GCM before saving. A person created in Settings (or whose password a Manager resets) signs in with that temporary password and **must set their own before the app opens**.
 - Local run: copy `.env.example` to `.env`, then `npm install && npm run dev` (needs a local Postgres).
 
 ## Who can change what

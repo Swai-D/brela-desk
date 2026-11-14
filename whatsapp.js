@@ -1,6 +1,6 @@
 // WhatsApp Business Cloud API: team alerts (templates) + inbound client documents (webhook -> Inbox)
 const crypto=require('crypto');
-module.exports=({q,one})=>{
+module.exports=({q,one,putDisk})=>{
  const E=process.env,V=E.WA_API_VERSION||'v23.0',BASE=E.WA_GRAPH_BASE||'https://graph.facebook.com',CC=E.DEFAULT_COUNTRY_CODE||'255',LANG=E.WA_TEMPLATE_LANG||'en',MAX=15*1024*1024;
  const configured=()=>!!(E.WHATSAPP_TOKEN&&E.WHATSAPP_PHONE_NUMBER_ID);
  const norm=p=>{let d=String(p||'').replace(/\D/g,'');if(!d)return null;if(d.startsWith('00'))d=d.slice(2);else if(d.startsWith('0'))d=CC+d.slice(1);return d};
@@ -50,7 +50,8 @@ module.exports=({q,one})=>{
     const mime=info.mime_type||media.mime_type||'application/octet-stream',stamp=new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
     const fname=media.filename||`whatsapp-${m.type}-${stamp}.${EXT[mime]||'bin'}`;
     const cl=(await q('SELECT id,name,phone FROM clients WHERE phone IS NOT NULL')).find(c=>norm(c.phone)===from);
-    const f=await one(`INSERT INTO files(client_id,filename,mime,size,data,source,sender_phone,sender_name,note,inbox) VALUES($1,$2,$3,$4,$5,'whatsapp',$6,$7,$8,TRUE) RETURNING id`,[cl?cl.id:null,fname,mime,buf.length,buf,from,name,media.caption||null]);
+    const disk=putDisk?putDisk(fname,buf):null;
+    const f=await one(`INSERT INTO files(client_id,filename,mime,size,path,data,source,sender_phone,sender_name,note,inbox) VALUES($1,$2,$3,$4,$5,$6,'whatsapp',$7,$8,$9,TRUE) RETURNING id`,[cl?cl.id:null,fname,mime,buf.length,disk,disk?null:buf,from,name,media.caption||null]);
     const who=cl?cl.name:(name||'+'+from),ids=await managers();
     if(cl)(await q(`SELECT DISTINCT assignee_id FROM cases WHERE client_id=$1 AND status<>'done' AND assignee_id IS NOT NULL`,[cl.id])).forEach(r=>ids.push(r.assignee_id));
     notify(ids,'brela_client_doc',[who,fname]);
