@@ -38,3 +38,10 @@ CREATE TABLE IF NOT EXISTS roles(key TEXT PRIMARY KEY, name TEXT NOT NULL, level
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS track_number TEXT;
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS track_number TEXT;
 CREATE INDEX IF NOT EXISTS idx_cases_track ON cases(track_number) WHERE track_number IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_cases_client ON cases(client_id);
+CREATE INDEX IF NOT EXISTS idx_cases_assignee ON cases(assignee_id);
+CREATE INDEX IF NOT EXISTS idx_comments_case ON comments(case_id);
+CREATE INDEX IF NOT EXISTS idx_activity_case ON activity(case_id);
+CREATE INDEX IF NOT EXISTS idx_files_client ON files(client_id);
+CREATE INDEX IF NOT EXISTS idx_credentials_client ON credentials(client_id);
+CREATE INDEX IF NOT EXISTS idx_credential_access_cred ON credential_access(credential_id);
