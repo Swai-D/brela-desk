@@ -459,26 +459,44 @@ app.post('/api/me/seen-guide',wrap(async(req,res)=>{await q('UPDATE users SET se
 // ---- monthly report (Manager). Months are counted in East Africa Time.
 const LOC=c=>`(${c} AT TIME ZONE 'Africa/Dar_es_Salaam')::date`,INR=c=>`${LOC(c)} >= $1::date AND ${LOC(c)} < ($1::date + interval '1 month')`;
 const monthCounts=async s=>({received:(await one(`SELECT count(*)::int n FROM cases WHERE ${INR('created_at')}`,[s])).n,completed:(await one(`SELECT count(*)::int n FROM cases WHERE ${INR('completed_at')}`,[s])).n,
-  returns:(await one(`SELECT count(*)::int n FROM activity WHERE text LIKE 'marked as returned%' AND ${INR('created_at')}`,[s])).n});
+  submitted:(await one(`SELECT count(*)::int n FROM cases WHERE ${INR('submitted_at')}`,[s])).n,returns:(await one(`SELECT count(*)::int n FROM activity WHERE text LIKE 'marked as returned%' AND ${INR('created_at')}`,[s])).n});
 app.get('/api/reports/monthly',need('MANAGER'),wrap(async(req,res)=>{
   let m=String(req.query.month||'');if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(m))m=new Date(Date.now()+3*3600e3).toISOString().slice(0,7);
   const s=m+'-01',prevS=(await one(`SELECT to_char($1::date - interval '1 month','YYYY-MM-DD') d`,[s])).d;
   const base=`SELECT c.id,c.code,c.track_number,c.rounds,c.assignee_id AS who,cl.name AS client,t.name AS type,cl.id AS client_id`;
   const from=` FROM cases c JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id`;
-  const [recv,done,rets,open,users,sub,prev]=await Promise.all([
+  const [recv,done,rets,open,users,sub,prev,performance]=await Promise.all([
    q(base+from+` WHERE ${INR('c.created_at')}`,[s]),
    q(base+`,c.created_at::date::text AS created,${LOC('c.completed_at')}::text AS completed,extract(epoch FROM (c.completed_at-c.created_at))/86400 AS days`+from+` WHERE ${INR('c.completed_at')} ORDER BY c.completed_at`,[s]),
    q(`SELECT a.created_at,c.code,c.assignee_id AS who,cl.name AS client,t.name AS type,a.text FROM activity a JOIN cases c ON c.id=a.case_id JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id WHERE a.text LIKE 'marked as returned%' AND ${INR('a.created_at')} ORDER BY a.created_at`,[s]),
    q(`SELECT c.assignee_id AS who,c.due<(now() AT TIME ZONE 'Africa/Dar_es_Salaam')::date AS late FROM cases c WHERE c.status<>'done'`),
    q('SELECT id,name,role,active FROM users ORDER BY id'),
-   one(`SELECT count(*)::int n FROM cases WHERE ${INR('submitted_at')}`,[s]),monthCounts(prevS)]);
+   one(`SELECT count(*)::int n FROM cases WHERE ${INR('submitted_at')}`,[s]),monthCounts(prevS),
+   q(`SELECT u.id,u.name,u.role,count(DISTINCT a.case_id)::int AS assigned,
+      count(DISTINCT a.case_id) FILTER (WHERE EXISTS (
+        SELECT 1 FROM activity done_event
+        WHERE done_event.case_id=a.case_id
+        AND done_event.text LIKE 'moved % → done'
+        AND ${INR('done_event.created_at')}
+        AND done_event.created_at>=a.assigned_at
+        AND NOT EXISTS (
+          SELECT 1 FROM case_assignments later
+          WHERE later.case_id=a.case_id
+          AND (later.assigned_at>a.assigned_at OR (later.assigned_at=a.assigned_at AND later.id>a.id))
+          AND later.assigned_at<=done_event.created_at
+        )
+      ))::int AS completed
+      FROM users u
+      LEFT JOIN case_assignments a ON a.user_id=u.id AND ${INR('a.assigned_at')}
+      WHERE u.active OR a.id IS NOT NULL
+      GROUP BY u.id ORDER BY u.id`,[s,s])]);
   const cnt=(arr,f)=>arr.filter(f).length,avg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length*10)/10:null;
   const days=done.map(d=>+d.days),reason=t=>t.replace(/^marked as returned by BRELA \(round \d+\):\s*/,'');
   const byType=[...new Set([...recv,...done,...rets].map(r=>r.type))].sort().map(t=>({type:t,received:cnt(recv,r=>r.type===t),completed:cnt(done,r=>r.type===t),returns:cnt(rets,r=>r.type===t),avgDays:avg(done.filter(r=>r.type===t).map(r=>+r.days))}));
   const byPerson=users.filter(u=>u.active||recv.some(r=>r.who===u.id)||done.some(r=>r.who===u.id)).map(u=>({name:u.name,role:u.role,received:cnt(recv,r=>r.who===u.id),completed:cnt(done,r=>r.who===u.id),returns:cnt(rets,r=>r.who===u.id),openNow:cnt(open,r=>r.who===u.id),overdueNow:cnt(open,r=>r.who===u.id&&r.late)}));
   const byClient=[...new Set([...recv,...done].map(r=>r.client))].map(c=>({client:c,received:cnt(recv,r=>r.client===c),completed:cnt(done,r=>r.client===c)})).sort((a,b)=>b.received+b.completed-a.received-a.completed).slice(0,10);
   res.json({month:m,summary:{received:recv.length,completed:done.length,submitted:sub.n,returns:rets.length,avgDays:avg(days),firstTimeRate:done.length?Math.round(cnt(done,d=>d.rounds===0)/done.length*100):null,openNow:open.length,overdueNow:cnt(open,o=>o.late)},
-   prev,byType,byPerson,byClient,completed:done.map(d=>({code:d.code,track:d.track_number,client:d.client,type:d.type,who:d.who,created:d.created,completed:d.completed,days:Math.round(+d.days*10)/10,rounds:d.rounds})),
+   prev,byType,byPerson,teamPerformance:performance.map(p=>({id:p.id,name:p.name,role:p.role,assigned:p.assigned,completed:p.completed,rate:p.assigned?Math.round(p.completed/p.assigned*1000)/10:0})),byClient,completed:done.map(d=>({code:d.code,track:d.track_number,client:d.client,type:d.type,who:d.who,created:d.created,completed:d.completed,days:Math.round(+d.days*10)/10,rounds:d.rounds})),
    returnsList:rets.map(r=>({at:r.created_at,code:r.code,client:r.client,type:r.type,who:r.who,reason:reason(r.text)}))})}));
 // ---- WhatsApp inbox + admin
 app.get('/api/inbox',wrap(async(req,res)=>res.json(await q(`SELECT f.id,f.filename,f.size,f.mime,f.created_at,f.sender_phone,f.sender_name,f.note,f.client_id,cl.name AS client FROM files f LEFT JOIN clients cl ON cl.id=f.client_id WHERE f.inbox ORDER BY f.id DESC`))));
