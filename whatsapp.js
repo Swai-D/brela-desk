@@ -68,5 +68,17 @@ module.exports=({q,one,putDisk})=>{
   const by={};rows.forEach(r=>(by[r.assignee_id]=by[r.assignee_id]||[]).push(`${r.code} ${r.client} (${r.status==='returned'?'returned by BRELA':r.due<day?'overdue':r.due===day?'due today':'due tomorrow'})`));
   Object.entries(by).forEach(([id,l])=>notify([+id],'brela_daily_digest',[l.slice(0,6).join('; ')+(l.length>6?` +${l.length-6} more`:'')]));
   return Object.keys(by).length}
- const startScheduler=()=>{if(configured())setInterval(()=>runDigest().catch(e=>console.error('digest',e.message)),15*60e3)};
- return{configured,norm,TEMPLATES,notify,managers,seniors,sendTemplate,verify,receive,runDigest,startScheduler,webhookReady:()=>!!(E.WHATSAPP_APP_SECRET&&E.WHATSAPP_VERIFY_TOKEN)}};
+ // ---- overdue escalation: after 3+ days overdue the case is escalated to Managers (in-app bell), once per week until resolved
+ async function escalate(){
+  const day=eat().toISOString().slice(0,10);
+  if(!(await one(`INSERT INTO kv(key,value) VALUES('escalate_last',$1) ON CONFLICT(key) DO UPDATE SET value=$1 WHERE kv.value<>$1 RETURNING value`,[day])))return 0;
+  await q(`UPDATE cases SET escalated_at=NULL WHERE escalated_at IS NOT NULL AND (status='done' OR due>=to_date($1,'YYYY-MM-DD'))`,[day]);
+  const rows=await q(`SELECT c.id,c.assignee_id,c.code,cl.name AS client,(to_date($1,'YYYY-MM-DD')-c.due) AS late FROM cases c JOIN clients cl ON cl.id=c.client_id WHERE c.status<>'done' AND c.due IS NOT NULL AND to_date($1,'YYYY-MM-DD')-c.due>3 AND (c.escalated_at IS NULL OR c.escalated_at<to_date($1,'YYYY-MM-DD')-7)`,[day]);
+  for(const r of rows){
+   await q('UPDATE cases SET escalated_at=now() WHERE id=$1',[r.id]);
+   const ids=[...new Set([...(await managers()),r.assignee_id].filter(Boolean))];
+   if(ids.length)await q('INSERT INTO notifs(user_id,case_id,body) SELECT x,$1,$2 FROM unnest($3::int[]) x',[r.id,`${r.code} (${r.client}) is ${r.late} days overdue — escalated`,ids])}
+  if(rows.length)console.log('Escalated '+rows.length+' overdue case(s)');
+  return rows.length}
+ const startScheduler=()=>{if(configured())setInterval(()=>{escalate().catch(e=>console.error('escalate',e.message));runDigest().catch(e=>console.error('digest',e.message))},15*60e3)};
+ return{configured,norm,TEMPLATES,notify,managers,seniors,sendTemplate,verify,receive,runDigest,escalate,startScheduler,webhookReady:()=>!!(E.WHATSAPP_APP_SECRET&&E.WHATSAPP_VERIFY_TOKEN)}};

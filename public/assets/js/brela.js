@@ -131,7 +131,13 @@ function roleModal(key,done){const r=key?(PB.roles.find(x=>x.role===key)||{}):{}
 async function boot(){
  try{S=await api('/bootstrap');PB=await api('/playbook')}catch(e){if(e.message==='Set a new password first')return forcedPw();return}ME=S.me;syncRoles();
  $('me-name').textContent=ME.name;$('me-role').textContent=RN(ME.role);
- const n=S.cases.filter(c=>c.who===ME.id&&(c.status==='returned'||late(c))).length,b=$('bell-count');b.textContent=n;b.style.display=n?'':'none';
+ const caseN=S.cases.filter(c=>c.who===ME.id&&(c.status==='returned'||late(c))).length,badge=()=>{const t=caseN+(S.notifs||0),b=$('bell-count');if(b){b.textContent=t;b.style.display=t?'':'none'}},nc=$('notif-count');if(nc&&S.notifs)nc.textContent=S.notifs;
+ badge();
+ const drawNotifs=items=>{const l=$('notif-list');if(!l)return;l.innerHTML=items.length?items.map(x=>`<a class="dropdown-item${x.read?'':' notif-unread'}" href="case-detail.html?id=${x.case_id}"><div>${esc(x.body)}</div><small class="text-muted">${ago(x.created_at)}</small></a>`).join(''):'<div class="px-3 py-2 text-muted small">No notifications yet.</div>'};
+ const bb=$('bellBtn');if(bb)bb.addEventListener('shown.bs.dropdown',async()=>{
+  try{const r=await api('/notifs');drawNotifs(r.items);if(nc)nc.textContent=r.unread||''}catch{}
+  api('/notifs/read',{method:'POST',body:{}}).catch(()=>{});S.notifs=0;badge()});
+ const nr=$('notif-read');if(nr)nr.onclick=()=>{S.notifs=0;badge();if(nc)nc.textContent=''};
  const ic=$('inbox-count');if(ic&&S.inboxCount){ic.textContent=S.inboxCount;ic.style.display=''}
  document.querySelectorAll('.mgr-only').forEach(e=>e.style.display=ME.level==='MANAGER'?'':'none');
  $('logout').onclick=async e=>{e.preventDefault();await api('/logout',{method:'POST',body:{}}).catch(()=>{});location.href='login.html'};

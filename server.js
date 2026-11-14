@@ -52,17 +52,23 @@ app.post('/api/me/password',wrap(async(req,res)=>{
  if(p.length<8)fail(400,'Password must be at least 8 characters');
  await q('UPDATE users SET password_hash=$1,must_change_password=FALSE WHERE id=$2',[await bcrypt.hash(p,10),req.user.id]);
  res.json({ok:1})}));
+app.get('/api/notifs',wrap(async(req,res)=>{
+ const items=await q('SELECT n.id,n.case_id,n.body,n.read,n.created_at FROM notifs n WHERE n.user_id=$1 ORDER BY n.id DESC LIMIT 20',[req.user.id]);
+ const u=await one('SELECT count(*)::int AS n FROM notifs WHERE user_id=$1 AND NOT read',[req.user.id]);
+ res.json({items,unread:u.n})}));
+app.post('/api/notifs/read',wrap(async(req,res)=>{
+ await q('UPDATE notifs SET read=TRUE WHERE user_id=$1 AND NOT read',[req.user.id]);res.json({ok:1})}));
 const CASE_SQL=`SELECT c.id,c.code,c.track_number,c.status,c.completed_at,c.due::text AS due,c.rounds,c.note,c.assignee_id AS who,c.client_id,cl.name AS client,c.case_type_id,t.name AS type,
  (SELECT count(*) FROM case_docs d WHERE d.case_id=c.id AND d.done)::int AS docs_done,(SELECT count(*) FROM case_docs d WHERE d.case_id=c.id)::int AS docs_total
  FROM cases c JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id`;
 app.get('/api/bootstrap',wrap(async(req,res)=>{
-  const [users,types,docs,clients,cases,recent,inbox,guide,roles]=await Promise.all([
+  const [users,types,docs,clients,cases,recent,inbox,guide,notifs,roles]=await Promise.all([
    q('SELECT id,name,role,active'+(req.user.level==='MANAGER'?',email,phone,wa_opt_in':'')+' FROM users ORDER BY id'),q('SELECT id,name,active,sop FROM case_types ORDER BY name'),
    q('SELECT case_type_id,name FROM case_type_docs ORDER BY position,id'),q('SELECT id,name,phone,email,track_number FROM clients ORDER BY name'),
    q(CASE_SQL+' ORDER BY c.id DESC'),
-   q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id]),q(`SELECT key,name,level,team_queue FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`)]);
+   q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id]),one('SELECT count(*)::int AS n FROM notifs WHERE user_id=$1 AND NOT read',[req.user.id]),q(`SELECT key,name,level,team_queue FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`)]);
   types.forEach(t=>t.docs=docs.filter(d=>d.case_type_id===t.id).map(d=>d.name));
-  res.json({me:{...req.user,seenGuide:!!(guide&&guide.seen_guide)},roles,users,types,clients,cases,recent,inboxCount:inbox.n})}));
+  res.json({me:{...req.user,seenGuide:!!(guide&&guide.seen_guide)},roles,users,types,clients,cases,recent,inboxCount:inbox.n,notifs:notifs.n})}));
 // ---- team
 app.post('/api/users',need('MANAGER'),wrap(async(req,res)=>{
   const {name,email,role,password,phone}=req.body;if(!name||!email||!role||String(password||'').length<8)fail(400,'Name, email, role and a password of 8+ characters are required');
@@ -246,7 +252,12 @@ app.post('/api/case-docs/:id/files',up,wrap(async(req,res)=>{
   await q('UPDATE case_docs SET done=TRUE WHERE id=$1',[d.id]);await log(d.case_id,req.user.id,`uploaded "${f.filename}" for ${d.name}`);res.json(f)}));
 app.post('/api/cases/:id/comments',wrap(async(req,res)=>{
   const b=String(req.body.body||'').trim();if(!b)fail(400,'Write something');
-  await q('INSERT INTO comments(case_id,user_id,body) VALUES($1,$2,$3)',[+req.params.id,req.user.id,b]);res.json({ok:1})}));
+  await q('INSERT INTO comments(case_id,user_id,body) VALUES($1,$2,$3)',[+req.params.id,req.user.id,b]);
+  const cse=await one('SELECT code,assignee_id,created_by FROM cases WHERE id=$1',[+req.params.id]);
+  if(cse){const prev=(await q('SELECT DISTINCT user_id FROM comments WHERE case_id=$1 AND user_id IS NOT NULL',[+req.params.id])).map(x=>x.user_id);
+   const to=[...new Set([cse.assignee_id,cse.created_by,...prev])].filter(x=>x&&x!==req.user.id);
+   if(to.length)await q('INSERT INTO notifs(user_id,case_id,body) SELECT x,$1,$2 FROM unnest($3::int[]) x',[+req.params.id,`${req.user.name} commented on ${cse.code}: ${b.slice(0,80)}`,to])}
+  res.json({ok:1})}));
 app.patch('/api/comments/:id',wrap(async(req,res)=>{
   const m=await one('SELECT user_id FROM comments WHERE id=$1',[+req.params.id]);if(!m)fail(404,'Not found');if(m.user_id!==req.user.id)fail(403,'You can edit only your own comments');
   const b=String(req.body.body||'').trim();if(!b)fail(400,'Write something');await q('UPDATE comments SET body=$1,edited_at=now() WHERE id=$2',[b,+req.params.id]);res.json({ok:1})}));
@@ -383,6 +394,10 @@ const STARTER={'Business Name Registration':['Client ID / passport copy','Passpo
  'Beneficial Ownership Update':['Beneficial owners ID / passport copies','Ownership structure / percentages','Signed client authorization']};
 async function init(){
   await pool.query(fs.readFileSync(path.join(__dirname,'schema.sql'),'utf8'));
+  // retention: system logs are trimmed on boot (case history/activity is kept in full)
+  const RET=Math.max(30,+process.env.RETENTION_DAYS||730),cut=new Date(Date.now()-RET*864e5);
+  for(const t of ['audit_log','wa_log','wa_messages','notifs']){const r=await pool.query(`DELETE FROM ${t} WHERE created_at<$1`,[cut]);if(r.rowCount)console.log(`Trimmed ${r.rowCount} old row(s) from ${t}`)}
+  try{await WA.escalate()}catch(e){console.error('escalate',e.message)}
   if(FILES_DIR){
     const rows=await q('SELECT id,filename,data FROM files WHERE path IS NULL AND data IS NOT NULL');
     for(const r of rows){const p=putDisk(r.filename,r.data);await q('UPDATE files SET path=$1,data=NULL WHERE id=$2',[p,r.id])}
