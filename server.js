@@ -399,6 +399,11 @@ app.get('/api/audit',need('MANAGER'),wrap(async(req,res)=>{
   const n0=parseInt(req.query.size),size=n0>0?Math.min(100,n0):20,total=(await one('SELECT count(*)::int AS n FROM audit_log')).n,pages=Math.max(1,Math.ceil(total/size)),page=Math.min(pages,Math.max(1,parseInt(req.query.page)||1));
   const items=await q('SELECT created_at,actor_name,action,details FROM audit_log ORDER BY id DESC LIMIT $1 OFFSET $2',[size,(page-1)*size]);
   res.json({items,total,page,pages,size})}));
+// Paginated dashboard activity (newest first)
+app.get('/api/activity',wrap(async(req,res)=>{
+  const n0=parseInt(req.query.size),size=n0>0?Math.min(50,n0):5,total=(await one('SELECT count(*)::int AS n FROM activity')).n,pages=Math.max(1,Math.ceil(total/size)),page=Math.min(pages,Math.max(1,parseInt(req.query.page)||1));
+  const items=await q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT $1 OFFSET $2',[size,(page-1)*size]);
+  res.json({items,total,page,pages,size})}));
 app.post('/api/cases/:id/move',wrap(async(req,res)=>{
   const id=+req.params.id,to=req.body.to,reason=String(req.body.reason||'').trim(),c=await one('SELECT * FROM cases WHERE id=$1',[id]);
   if(!c)fail(404,'Case not found');if(!STAGES.includes(to))fail(400,'Bad stage');if(to===c.status)return res.json({ok:1});

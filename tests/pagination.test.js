@@ -4,7 +4,7 @@ let ck='';const PORT=process.env.PORT||3000,B=`http://localhost:${PORT}/api`;
 const call=async(m,u,b)=>{const r=await fetch(B+u,{method:m,headers:{...(b?{'Content-Type':'application/json'}:{}),cookie:ck},body:b?JSON.stringify(b):undefined});const s=r.headers.get('set-cookie');if(s)ck=s.split(';')[0];return{s:r.status,j:await r.json().catch(()=>({}))}};
 const ok=(n,c,x)=>{if(!c)fails++;console.log(c?'PASS':'FAIL',n,c?'':JSON.stringify(x))};
 (async()=>{
- ok('list requires sign-in',(await call('GET','/clients')).s===401);
+ ok('list requires sign-in',(await call('GET','/clients')).s===401&&(await call('GET','/activity')).s===401);
  await call('POST','/login',{email:'boss@test.co',password:AP});
  let r=(await call('GET','/clients')).j;ok('no clients yet: total 0, one empty page',r.total===0&&r.pages===1&&r.page===1&&r.items.length===0,r);
  const ids={};
@@ -37,4 +37,8 @@ const ok=(n,c,x)=>{if(!c)fails++;console.log(c?'PASS':'FAIL',n,c?'':JSON.stringi
  // deleting keeps the numbers right
  await call('DELETE','/clients/'+ids['Client 23']);r=(await call('GET','/clients?page=3')).j;ok('after a delete, totals and pages follow',r.total===24&&r.items.length===4);
  ok('the full list used by pickers is still available',(await call('GET','/bootstrap')).j.clients.length===24);
+ for(let i=0;i<6;i++)await call('POST','/cases',{clientId:ids['Client 02'],caseTypeId:types[0].id});
+ const activity1=(await call('GET','/activity')).j,activity2=(await call('GET','/activity?page=2')).j,activityKeys=p=>p.items.map(a=>a.code+'|'+a.text);
+ ok('dashboard activity defaults to five newest items and reports pagination metadata',activity1.size===5&&activity1.items.length===5&&activity1.page===1&&activity1.pages===Math.ceil(activity1.total/5)&&activity1.total>=10,activity1);
+ ok('dashboard activity pages do not overlap and out-of-range requests clamp to the last page',activity2.items.length===5&&!activityKeys(activity1).some(k=>activityKeys(activity2).includes(k))&&(await call('GET','/activity?page=99')).j.page===activity1.pages,activity2);
 })().then(()=>{console.log(fails?'\n'+fails+' FAILED':'\nall passed');process.exit(fails?1:0)}).catch(e=>{console.error(e);process.exit(1)});
