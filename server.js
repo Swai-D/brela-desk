@@ -48,9 +48,8 @@ async function fetchLockQuote(category,used){
  }
  throw lockApiError(`The quote service could not provide a distinct ${category} quote`);
 }
-async function buildLockScreenContent(){
- if(!lockScreenConfigured()){const e=new Error('Add PIXABAY_API_KEY and API_NINJAS_API_KEY to enable daily lock-screen content');e.status=503;throw e}
- const theme=LOCK_THEMES[crypto.randomInt(LOCK_THEMES.length)],pix=new URL('https://pixabay.com/api/');
+async function fetchLockImage(theme){
+ const pix=new URL('https://pixabay.com/api/');
  pix.searchParams.set('key',process.env.PIXABAY_API_KEY);pix.searchParams.set('q',theme.imageQuery);pix.searchParams.set('category',theme.imageCategory);pix.searchParams.set('image_type','photo');pix.searchParams.set('orientation','horizontal');pix.searchParams.set('safesearch','true');pix.searchParams.set('per_page','30');
  let response;
  try{response=await fetch(pix,{signal:AbortSignal.timeout(10000)})}catch(e){throw lockApiError('The image service is temporarily unavailable',e)}
@@ -70,31 +69,49 @@ async function buildLockScreenContent(){
  if(!imageData.length||imageData.length>10*1024*1024)throw lockApiError('The selected image is empty or exceeds the 10 MB limit');
  let pageUrl;try{pageUrl=new URL(hit.pageURL);if(pageUrl.protocol!=='https:'||pageUrl.hostname!=='pixabay.com')throw new Error('Unexpected attribution URL')}
  catch(e){throw lockApiError('The image service returned an invalid attribution URL',e)}
- const used=new Set(),quotes=[];
- for(const slot of LOCK_SLOTS)quotes.push({slot:slot.id,label:slot.label,...await fetchLockQuote(theme.quoteCategory,used)});
- return{theme:theme.name,imageCategory:theme.imageCategory,quoteCategory:theme.quoteCategory,imageData,imageMime:mime,imageCredit:String(hit.user).slice(0,120),imagePageUrl:pageUrl.href,quotes};
+ return{imageData,imageMime:mime,imageCredit:String(hit.user).slice(0,120),imagePageUrl:pageUrl.href};
+}
+async function buildLockScreenQuotes(){
+ const used=new Set(),themes=LOCK_THEMES.slice(),quotes=[];
+ for(const slot of LOCK_SLOTS){
+  const theme=themes.splice(crypto.randomInt(themes.length),1)[0];
+  quotes.push({slot:slot.id,label:slot.label,theme:theme.name,imageCategory:theme.imageCategory,imageQuery:theme.imageQuery,quoteCategory:theme.quoteCategory,...await fetchLockQuote(theme.quoteCategory,used)});
+ }
+ return quotes;
 }
 async function getLockScreenContent(){
- const day=eastAfricaDay(),db=await pool.connect();
+ if(!lockScreenConfigured()){const e=new Error('Add PIXABAY_API_KEY and API_NINJAS_API_KEY to enable daily lock-screen content');e.status=503;throw e}
+ const day=eastAfricaDay(),slot=lockSlot(),db=await pool.connect();
  try{
   await db.query('BEGIN');await db.query("SELECT pg_advisory_xact_lock(hashtext('brela-lock-screen-content'))");
-  let result=await db.query('SELECT day::text,theme,image_category,quote_category,image_credit,image_page_url,quotes FROM lock_screen_content WHERE day=$1',[day]);
-  if(!result.rowCount){
-   const content=await buildLockScreenContent();
-   result=await db.query(`INSERT INTO lock_screen_content(day,theme,image_category,quote_category,image_data,image_mime,image_credit,image_page_url,quotes)
-    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb) RETURNING day::text,theme,image_category,quote_category,image_credit,image_page_url,quotes`,
-   [day,content.theme,content.imageCategory,content.quoteCategory,content.imageData,content.imageMime,content.imageCredit,content.imagePageUrl,JSON.stringify(content.quotes)]);
-   await db.query('DELETE FROM lock_screen_content WHERE day<>$1',[day]);
+  let result=await db.query('SELECT day::text,image_slot,theme,image_category,quote_category,image_credit,image_page_url,quotes FROM lock_screen_content WHERE day=$1',[day]),row=result.rows[0];
+  const migratedQuotes=row&&Array.isArray(row.quotes)&&row.quotes.every(q=>q&&q.theme&&q.imageCategory&&q.imageQuery&&q.quoteCategory);
+  if(!migratedQuotes){
+   const quotes=await buildLockScreenQuotes(),quote=quotes.find(q=>q.slot===slot),image=await fetchLockImage(quote);
+   result=await db.query(`INSERT INTO lock_screen_content(day,image_slot,theme,image_category,quote_category,image_data,image_mime,image_credit,image_page_url,quotes)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb)
+    ON CONFLICT(day) DO UPDATE SET image_slot=EXCLUDED.image_slot,theme=EXCLUDED.theme,image_category=EXCLUDED.image_category,quote_category=EXCLUDED.quote_category,image_data=EXCLUDED.image_data,image_mime=EXCLUDED.image_mime,image_credit=EXCLUDED.image_credit,image_page_url=EXCLUDED.image_page_url,quotes=EXCLUDED.quotes,created_at=now()
+    RETURNING day::text,image_slot,theme,image_category,quote_category,image_credit,image_page_url,quotes`,
+   [day,slot,quote.theme,quote.imageCategory,quote.quoteCategory,image.imageData,image.imageMime,image.imageCredit,image.imagePageUrl,JSON.stringify(quotes)]);
+   row=result.rows[0];
+  }else if(row.image_slot!==slot){
+   const quote=row.quotes.find(q=>q.slot===slot);if(!quote)throw lockApiError(`No quote is configured for the ${slot} period`);
+   const image=await fetchLockImage(quote);
+   result=await db.query(`UPDATE lock_screen_content SET image_slot=$2,theme=$3,image_category=$4,quote_category=$5,image_data=$6,image_mime=$7,image_credit=$8,image_page_url=$9,created_at=now()
+    WHERE day=$1 RETURNING day::text,image_slot,theme,image_category,quote_category,image_credit,image_page_url,quotes`,
+   [day,slot,quote.theme,quote.imageCategory,quote.quoteCategory,image.imageData,image.imageMime,image.imageCredit,image.imagePageUrl]);
+   row=result.rows[0];
   }
+  await db.query('DELETE FROM lock_screen_content WHERE day<>$1',[day]);
   await db.query('COMMIT');
-  const row=result.rows[0];return{day:row.day,theme:row.theme,imageCategory:row.image_category,quoteCategory:row.quote_category,imageCredit:row.image_credit,imagePageUrl:row.image_page_url,imageUrl:'/api/lock-screen/image?day='+encodeURIComponent(row.day),quotes:row.quotes,activeSlot:lockSlot()}
+  return{day:row.day,theme:row.theme,imageCategory:row.image_category,quoteCategory:row.quote_category,imageSlot:row.image_slot,imageCredit:row.image_credit,imagePageUrl:row.image_page_url,imageUrl:'/api/lock-screen/image?day='+encodeURIComponent(row.day)+'&slot='+encodeURIComponent(row.image_slot),quotes:row.quotes,activeSlot:slot}
  }catch(e){await db.query('ROLLBACK').catch(()=>{});throw e}finally{db.release()}
 }
 async function serveLockScreenImage(req,res){
- const day=String(req.query.day||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return res.status(400).json({error:'Invalid image date'});
- const row=await one('SELECT image_data,image_mime FROM lock_screen_content WHERE day=$1',[day]);
+ const day=String(req.query.day||''),slot=String(req.query.slot||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!LOCK_SLOTS.some(s=>s.id===slot))return res.status(400).json({error:'Invalid image date or period'});
+ const row=await one('SELECT image_data,image_mime FROM lock_screen_content WHERE day=$1 AND image_slot=$2',[day,slot]);
  if(!row)return res.status(404).json({error:'Daily lock-screen image not found'});
- res.set({'Content-Type':row.image_mime,'Cache-Control':'public,max-age=86400','X-Content-Type-Options':'nosniff'}).send(row.image_data);
+ res.set({'Content-Type':row.image_mime,'Cache-Control':'public,max-age=86400,immutable','X-Content-Type-Options':'nosniff'}).send(row.image_data);
 }
 const auth=async(req,res,next)=>{try{const t=jwt.verify(req.cookies.t,SECRET),u=await one('SELECT u.id,u.name,u.email,u.phone,u.role,r.level,u.must_change_password,s.id AS session_id,s.last_activity FROM users u JOIN roles r ON r.key=u.role LEFT JOIN auth_sessions s ON s.user_id=u.id AND s.id=$2 WHERE u.id=$1 AND u.active',[t.id,t.jti]);if(!u)return res.status(401).json({error:'Please sign in',code:'SESSION_EXPIRED'});if(!u.session_id||Date.now()-new Date(u.last_activity).getTime()>=IDLE_TIMEOUT_MS){if(u.session_id)await q('DELETE FROM auth_sessions WHERE id=$1',[u.session_id]);return res.status(401).json({error:'Session expired due to inactivity',code:'SESSION_EXPIRED'})}req.user={id:u.id,name:u.name,email:u.email,phone:u.phone,role:u.role,level:u.level,must_change_password:u.must_change_password};req.sessionId=u.session_id;next()}catch(e){if(e.name==='JsonWebTokenError'||e.name==='TokenExpiredError'||e.name==='NotBeforeError')return res.status(401).json({error:'Please sign in',code:'SESSION_EXPIRED'});console.error('Authentication middleware failed:',e);res.status(500).json({error:'Authentication service unavailable'})}};
 const need=(...r)=>(req,res,next)=>r.includes(req.user.level)?next():res.status(403).json({error:'Your role cannot do this'});
@@ -168,8 +185,19 @@ app.get('/api/bootstrap',wrap(async(req,res)=>{
    q('SELECT case_type_id,name FROM case_type_docs ORDER BY position,id'),q('SELECT id,name,phone,email,track_number FROM clients ORDER BY name'),
    q(CASE_SQL+' ORDER BY c.id DESC'),
    q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id]),one('SELECT count(*)::int AS n FROM notifs WHERE user_id=$1 AND NOT read',[req.user.id]),q(`SELECT key,name,level,team_queue FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`),q(`SELECT user_id,count(*)::int AS completed FROM activity WHERE created_at>=now()-interval '7 days' AND text LIKE 'moved % → done' GROUP BY user_id ORDER BY completed DESC,user_id`)]);
+  const weeklyWork=await one(`SELECT count(DISTINCT a.case_id)::int AS assigned,
+    count(DISTINCT a.case_id) FILTER (WHERE EXISTS (
+      SELECT 1 FROM activity done_event
+      WHERE done_event.case_id=a.case_id
+      AND done_event.created_at>=now()-interval '7 days'
+      AND done_event.created_at>=a.assigned_at
+      AND done_event.text LIKE 'moved % → done'
+    ))::int AS completed
+    FROM case_assignments a
+    WHERE a.user_id=$1 AND a.assigned_at>=now()-interval '7 days'`,[req.user.id]);
+  const weeklyPerformance={assigned:weeklyWork.assigned,completed:weeklyWork.completed,rate:weeklyWork.assigned?Math.round(weeklyWork.completed/weeklyWork.assigned*1000)/10:0};
   types.forEach(t=>t.docs=docs.filter(d=>d.case_type_id===t.id).map(d=>d.name));
-  res.json({me:{...req.user,seenGuide:!!(guide&&guide.seen_guide)},roles,users,types,clients,cases,recent,inboxCount:inbox.n,notifs:notifs.n,performers})}));
+  res.json({me:{...req.user,seenGuide:!!(guide&&guide.seen_guide)},roles,users,types,clients,cases,recent,inboxCount:inbox.n,notifs:notifs.n,performers,weeklyPerformance})}));
 // ---- team
 app.post('/api/users',need('MANAGER'),wrap(async(req,res)=>{
   const {name,email,role,password,phone}=req.body;if(!name||!email||!role||String(password||'').length<8)fail(400,'Name, email, role and a password of 8+ characters are required');
@@ -298,6 +326,7 @@ app.post('/api/cases',wrap(async(req,res)=>{
   let cid=+clientId;if(!cid){const n=String(clientName||'').trim();if(!n)fail(400,'Client required');cid=(await one('INSERT INTO clients(name) VALUES($1) ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id',[n])).id}
   const t=await one('SELECT id,name FROM case_types WHERE id=$1 AND active',[+caseTypeId]);if(!t)fail(400,'Pick a case type');
   const c=await one(`INSERT INTO cases(code,client_id,case_type_id,assignee_id,due,created_by) VALUES('BR-'||nextval('case_code_seq'),$1,$2,$3,$4,$5) RETURNING id,code`,[cid,t.id,+assigneeId||req.user.id,due||null,req.user.id]);
+  await q('INSERT INTO case_assignments(case_id,user_id) VALUES($1,$2)',[c.id,+assigneeId||req.user.id]);
   await q('INSERT INTO case_docs(case_id,name) SELECT $1,name FROM case_type_docs WHERE case_type_id=$2 ORDER BY position,id',[c.id,t.id]);
   await log(c.id,req.user.id,`created this case (${t.name})`);
   const ci=await caseInfo(c.id);if(ci.who&&ci.who!==req.user.id)WA.notify([ci.who],'brela_case_assigned',[ci.code,ci.client,ci.type,ci.due||'not set']);
@@ -332,7 +361,7 @@ app.patch('/api/cases/:id',need('MANAGER','SENIOR'),wrap(async(req,res)=>{
   const {assigneeId,due,clientId,caseTypeId}=req.body,id=+req.params.id,old=await caseInfo(id);if(!old)fail(404,'Case not found');
   if((clientId||caseTypeId)&&req.user.level!=='MANAGER')fail(403,'Only a Manager can change the client or case type');
   const ch=[];
-  if(assigneeId&&+assigneeId!==old.who){await q('UPDATE cases SET assignee_id=$1 WHERE id=$2',[+assigneeId,id]);ch.push('assignee');if(+assigneeId!==req.user.id)WA.notify([+assigneeId],'brela_case_assigned',[old.code,old.client,old.type,due||old.due||'not set'])}
+  if(assigneeId&&+assigneeId!==old.who){await q('UPDATE cases SET assignee_id=$1 WHERE id=$2',[+assigneeId,id]);await q('INSERT INTO case_assignments(case_id,user_id) VALUES($1,$2)',[id,+assigneeId]);ch.push('assignee');if(+assigneeId!==req.user.id)WA.notify([+assigneeId],'brela_case_assigned',[old.code,old.client,old.type,due||old.due||'not set'])}
   if(due!==undefined&&(due||null)!==(old.due||null)){await q('UPDATE cases SET due=$1 WHERE id=$2',[due||null,id]);ch.push('due date')}
   if(clientId&&+clientId!==old.client_id){if(!await one('SELECT 1 FROM clients WHERE id=$1',[+clientId]))fail(400,'Client not found');await q('UPDATE cases SET client_id=$1 WHERE id=$2',[+clientId,id]);ch.push('client');await audit(req,'case.update',`${old.code}: client changed from ${old.client}`)}
   if(caseTypeId&&+caseTypeId!==old.case_type_id){if(!await one('SELECT 1 FROM case_types WHERE id=$1',[+caseTypeId]))fail(400,'Case type not found');await q('UPDATE cases SET case_type_id=$1 WHERE id=$2',[+caseTypeId,id]);ch.push('case type');await audit(req,'case.update',`${old.code}: case type changed from ${old.type}`)}
@@ -516,7 +545,7 @@ async function init(){
   WA.startScheduler();
   if(lockScreenConfigured()&&process.env.NODE_ENV!=='test'){
     const refresh=()=>getLockScreenContent().catch(e=>console.error('lock-screen content refresh failed:',e.message));
-    refresh();setInterval(refresh,30*60e3).unref();
+    refresh();setInterval(refresh,60*1000).unref();
   }
   app.listen(process.env.PORT||3000,()=>console.log('BRELA Desk running on port '+(process.env.PORT||3000)))}
 init().catch(e=>{console.error(e);process.exit(1)});

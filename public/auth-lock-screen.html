@@ -74,20 +74,28 @@ function currentQuoteSlot(){
 }
 async function loadLockScreenContent(){
  const panel=document.getElementById('lock-quote-panel'),warning=document.getElementById('lock-quote-error'),background=document.getElementById('lock-background');
- try{
+ let content;
+ const refresh=async()=>{
   const response=await fetch('/api/lock-screen/content',{credentials:'same-origin'}),data=await response.json();
   if(!response.ok)throw new Error(data.error||'Daily quotes and image are unavailable.');
-  background.style.backgroundImage=`url("${data.imageUrl}")`;
+  if(background.dataset.imageUrl!==data.imageUrl){background.style.backgroundImage=`url("${data.imageUrl}")`;background.dataset.imageUrl=data.imageUrl}
   document.getElementById('lock-theme').textContent=`${data.theme} · ${data.imageCategory}`;
-  const showCurrentQuote=()=>{
-   const slot=currentQuoteSlot();
-   const quote=data.quotes.find(item=>item.slot===slot);if(!quote)return;
-   document.getElementById('lock-quote').textContent=`“${quote.quote}”`;
-   document.getElementById('lock-author').textContent=`— ${quote.author}`;
-  };
+  content=data;
   const credit=document.getElementById('lock-photo-credit'),link=document.createElement('a');
   link.href=data.imagePageUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent=`Photo by ${data.imageCredit} on Pixabay`;credit.replaceChildren(link);
-  panel.hidden=false;showCurrentQuote();setInterval(showCurrentQuote,60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)showCurrentQuote()});
+  panel.hidden=false;showCurrentQuote();
+ };
+ const showCurrentQuote=()=>{
+  if(!content)return;
+  const quote=content.quotes.find(item=>item.slot===currentQuoteSlot());if(!quote)return;
+  document.getElementById('lock-quote').textContent=`“${quote.quote}”`;
+  document.getElementById('lock-author').textContent=`— ${quote.author}`;
+ };
+ try{
+  await refresh();
+  setInterval(()=>refresh().catch(e=>console.error('Unable to refresh daily lock-screen content:',e)),60*1000);
+  setInterval(showCurrentQuote,60*1000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh().catch(e=>console.error('Unable to refresh daily lock-screen content:',e))});
  }catch(e){warning.textContent=`${e.message} The lock screen background will use the default image.`;warning.hidden=false;console.error('Unable to load daily lock-screen content:',e)}
 }
 if(lockedUser)loadLockScreenContent();

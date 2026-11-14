@@ -4,6 +4,11 @@ CREATE TABLE IF NOT EXISTS case_type_docs(id SERIAL PRIMARY KEY, case_type_id IN
 CREATE TABLE IF NOT EXISTS clients(id SERIAL PRIMARY KEY, name TEXT UNIQUE NOT NULL, phone TEXT, email TEXT, created_at TIMESTAMPTZ DEFAULT now());
 CREATE SEQUENCE IF NOT EXISTS case_code_seq START 1001;
 CREATE TABLE IF NOT EXISTS cases(id SERIAL PRIMARY KEY, code TEXT UNIQUE NOT NULL, client_id INT NOT NULL REFERENCES clients(id), case_type_id INT NOT NULL REFERENCES case_types(id), status TEXT NOT NULL DEFAULT 'new', assignee_id INT REFERENCES users(id), due DATE, rounds INT NOT NULL DEFAULT 0, note TEXT, created_by INT REFERENCES users(id), created_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE IF NOT EXISTS case_assignments(id SERIAL PRIMARY KEY, case_id INT NOT NULL REFERENCES cases(id) ON DELETE CASCADE, user_id INT NOT NULL REFERENCES users(id), assigned_at TIMESTAMPTZ NOT NULL DEFAULT now());
+INSERT INTO case_assignments(case_id,user_id,assigned_at)
+SELECT c.id,c.assignee_id,c.created_at FROM cases c
+WHERE c.assignee_id IS NOT NULL
+AND NOT EXISTS (SELECT 1 FROM case_assignments a WHERE a.case_id=c.id AND a.user_id=c.assignee_id);
 CREATE TABLE IF NOT EXISTS case_docs(id SERIAL PRIMARY KEY, case_id INT NOT NULL REFERENCES cases(id) ON DELETE CASCADE, name TEXT NOT NULL, done BOOLEAN NOT NULL DEFAULT FALSE);
 CREATE TABLE IF NOT EXISTS files(id SERIAL PRIMARY KEY, client_id INT REFERENCES clients(id) ON DELETE CASCADE, case_id INT REFERENCES cases(id) ON DELETE CASCADE, case_doc_id INT REFERENCES case_docs(id) ON DELETE CASCADE, filename TEXT NOT NULL, mime TEXT, size INT NOT NULL, data BYTEA NOT NULL, uploaded_by INT REFERENCES users(id), created_at TIMESTAMPTZ DEFAULT now());
 CREATE TABLE IF NOT EXISTS comments(id SERIAL PRIMARY KEY, case_id INT NOT NULL REFERENCES cases(id) ON DELETE CASCADE, user_id INT REFERENCES users(id), body TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT now());
@@ -46,12 +51,14 @@ CREATE TABLE IF NOT EXISTS notifs(id SERIAL PRIMARY KEY, user_id INT NOT NULL RE
 CREATE INDEX IF NOT EXISTS idx_notifs_user ON notifs(user_id);
 CREATE TABLE IF NOT EXISTS auth_sessions(id UUID PRIMARY KEY, user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, last_activity TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS idx_auth_sessions_activity ON auth_sessions(last_activity);
-CREATE TABLE IF NOT EXISTS lock_screen_content(day DATE PRIMARY KEY, theme TEXT NOT NULL, image_category TEXT NOT NULL, quote_category TEXT NOT NULL, image_data BYTEA NOT NULL, image_mime TEXT NOT NULL, image_credit TEXT NOT NULL, image_page_url TEXT NOT NULL, quotes JSONB NOT NULL CHECK(jsonb_array_length(quotes)=3), created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS lock_screen_content(day DATE PRIMARY KEY, image_slot TEXT NOT NULL DEFAULT 'morning', theme TEXT NOT NULL, image_category TEXT NOT NULL, quote_category TEXT NOT NULL, image_data BYTEA NOT NULL, image_mime TEXT NOT NULL, image_credit TEXT NOT NULL, image_page_url TEXT NOT NULL, quotes JSONB NOT NULL CHECK(jsonb_array_length(quotes)=3), created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+ALTER TABLE lock_screen_content ADD COLUMN IF NOT EXISTS image_slot TEXT NOT NULL DEFAULT 'morning';
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS track_number TEXT;
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS track_number TEXT;
 CREATE INDEX IF NOT EXISTS idx_cases_track ON cases(track_number) WHERE track_number IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_cases_client ON cases(client_id);
 CREATE INDEX IF NOT EXISTS idx_cases_assignee ON cases(assignee_id);
+CREATE INDEX IF NOT EXISTS idx_case_assignments_user_date ON case_assignments(user_id,assigned_at);
 CREATE INDEX IF NOT EXISTS idx_comments_case ON comments(case_id);
 CREATE INDEX IF NOT EXISTS idx_activity_case ON activity(case_id);
 CREATE INDEX IF NOT EXISTS idx_files_client ON files(client_id);
