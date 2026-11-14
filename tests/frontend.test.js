@@ -14,4 +14,14 @@ ok('no key handler can cancel typing (use a <form> submit or a block-bodied hand
 const js=fs.readFileSync(path.join(pub,'assets/js/brela.js'),'utf8');
 ok('the case comment box is a real form (Enter sends, typing is never intercepted)',/id="cmForm"/.test(js)&&/addEventListener\('submit'/.test(js));
 ok('the login page is a real form',/<form[^>]*id="login"/.test(fs.readFileSync(path.join(pub,'login.html'),'utf8')));
+ok('the profile page includes account, team and recent case cards',/data-page="profile"/.test(fs.readFileSync(path.join(pub,'profile.html'),'utf8'))&&/async profile\(\)/.test(js)&&/class="profile-user"/.test(js)&&/Role &amp; access/.test(js)&&/Team Members/.test(js)&&/Weekly performers/.test(js)&&/Recent projects/.test(js)&&/id="avatarForm"/.test(js)&&/id="profileForm"/.test(js));
+ok('the profile supports an authenticated password update',/id="passwordForm"/.test(js)&&/currentPassword/.test(js)&&/confirmPassword/.test(js)&&/await api\('\/me\/password'/.test(js));
+const lockPage=fs.readFileSync(path.join(pub,'auth-lock-screen.html'),'utf8'),topbar=fs.readFileSync(path.join(pub,'assets/js/topbar.js'),'utf8');
+ok('the lock screen uses the template background and reauthenticates the same user',/auth-bg/.test(lockPage)&&/brela\.lock\.user/.test(lockPage)&&/\/api\/login/.test(lockPage)&&/auth-lock-screen\.html/.test(js));
+ok('the navbar offers manual locking and inactivity is checked client-side',/id="lock-screen"/.test(topbar)&&/15\*60\*1000/.test(js)&&/session\/activity/.test(js)&&/session\/lock/.test(js));
+ok('the navbar profile avatar and name follow the template spacing',/header-profile-user[^>]*id="me-av"[\s\S]*?<span class="d-none d-xl-inline-block ms-2 fw-medium" id="me-name"/.test(fs.readFileSync(path.join(pub,'assets/js/topbar.js'),'utf8')));
+const profileJs=js.slice(js.indexOf('async profile()'),js.indexOf('async dashboard()'));
+ok('the profile picture uploader is inside personal information and the green case-board link replaces the header uploader',/Personal information[\s\S]*?id="avatarForm"/.test(profileJs)&&/btn btn-success" href="cases-board\.html"[\s\S]*?Back To Case Board/.test(profileJs));
+const profileHeader=profileJs.slice(profileJs.indexOf('id="profile-avatar"'),profileJs.indexOf('Personal information'));
+ok('the profile header shows the full name and one role line only',/>\$\{esc\(ME\.name\)\}<\/h5>/.test(profileHeader)&&/>\$\{esc\(RN\(ME\.role\)\)\}<\/p>/.test(profileHeader)&&!/LV_N\[role\?\.level\]/.test(profileHeader));
 process.exit(fails?(console.log('\n'+fails+' FAILED'),1):(console.log('\nall passed'),0));

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lock Screen | BRELA Desk</title>
+<link href="assets/css/bootstrap.min.css" rel="stylesheet">
+<link href="assets/css/icons.min.css" rel="stylesheet">
+<link href="assets/css/app.min.css" rel="stylesheet">
+<link href="assets/css/brela.css" rel="stylesheet">
+<style>
+body{min-height:100vh}.lock-panel{min-height:100vh;background:var(--bs-body-bg)}.lock-avatar{width:80px;height:80px;font-size:26px}
+@media(max-width:767.98px){.auth-bg{display:none!important}.lock-panel{min-height:100vh}}
+</style>
+</head>
+<body>
+<div class="container-fluid p-0">
+ <div class="row g-0 min-vh-100">
+  <div class="col-md-5 col-lg-4">
+   <main class="lock-panel d-flex p-4 p-sm-5">
+    <div class="w-100 d-flex flex-column">
+     <div class="mb-5 text-center"><a href="index.html" class="d-block auth-logo"><img src="assets/images/logo-sm.svg" alt="" height="30"><span class="logo-txt ms-2">BRELA Desk</span></a></div>
+     <section class="auth-content my-auto mx-auto" style="width:100%;max-width:380px">
+      <div class="text-center"><h5 class="mb-0">Lock Screen</h5><p class="text-muted mt-2">Enter your password to unlock your account.</p></div>
+      <div class="user-thumb text-center mb-4 mt-4 pt-2">
+       <div id="lock-avatar" class="lock-avatar rounded-circle img-thumbnail d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary fw-semibold"></div>
+       <h5 id="lock-name" class="font-size-15 mt-3 mb-1"></h5><small id="lock-email" class="text-muted"></small>
+      </div>
+      <form id="unlock-form" class="mt-4" novalidate>
+       <div class="form-floating form-floating-custom mb-3">
+        <input type="password" class="form-control" id="input-password" placeholder="Enter password" autocomplete="current-password" required>
+        <label for="input-password">Password</label><div class="form-floating-icon"><i class="mdi mdi-lock-outline"></i></div>
+       </div>
+       <div id="unlock-error" class="text-danger small mb-3" role="alert"></div>
+       <button class="btn btn-primary w-100" id="unlock-button" type="submit">Unlock</button>
+      </form>
+      <div class="mt-5 text-center"><p class="text-muted mb-0">Not you? <a href="login.html" id="other-user" class="text-primary fw-semibold">Sign in as another user</a></p></div>
+     </section>
+     <footer class="mt-4 mt-md-5 text-center"><p class="mb-0 text-muted">© <span id="year"></span> BRELA Desk</p></footer>
+    </div>
+   </main>
+  </div>
+  <div class="col-md-7 col-lg-8">
+   <div class="auth-bg pt-md-5 p-4 d-flex align-items-end position-relative">
+    <div class="bg-overlay"></div>
+    <div class="position-relative text-white p-3"><h4>Welcome back</h4><p class="mb-0">Your work is safe. Sign in to continue.</p></div>
+   </div>
+  </div>
+ </div>
+</div>
+<script>
+const LOCK_KEY='brela.lock.user',saved=sessionStorage.getItem(LOCK_KEY),error=document.getElementById('unlock-error'),password=document.getElementById('input-password'),button=document.getElementById('unlock-button');
+let lockedUser;
+try{lockedUser=saved&&JSON.parse(saved)}catch{}
+if(!lockedUser||!lockedUser.id||!lockedUser.email){sessionStorage.removeItem(LOCK_KEY);location.replace('login.html')}
+else{
+ document.getElementById('lock-name').textContent=lockedUser.name||'BRELA Desk user';
+ document.getElementById('lock-email').textContent=lockedUser.email;
+ document.getElementById('lock-avatar').textContent=String(lockedUser.name||'').trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'BD';
+}
+document.getElementById('year').textContent=new Date().getFullYear();
+document.getElementById('other-user').addEventListener('click',()=>sessionStorage.removeItem(LOCK_KEY));
+document.getElementById('unlock-form').addEventListener('submit',async event=>{
+ event.preventDefault();error.textContent='';button.disabled=true;
+ try{
+  const response=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({email:lockedUser.email,password:password.value})});
+  const result=await response.json();
+  if(!response.ok)throw new Error(result.error||'Unable to unlock this account.');
+  if(String(result.id)!==String(lockedUser.id)){
+   await fetch('/api/logout',{method:'POST',credentials:'same-origin'});
+   throw new Error('That password belongs to a different account. Sign in as another user instead.');
+  }
+  sessionStorage.removeItem(LOCK_KEY);location.replace('index.html');
+ }catch(e){error.textContent=e.message;password.value='';password.focus()}
+ finally{button.disabled=false}
+});
+</script>
+</body>
+</html>

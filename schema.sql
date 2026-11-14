@@ -31,6 +31,9 @@ UPDATE cases c SET completed_at=(SELECT max(a.created_at) FROM activity a WHERE 
 UPDATE cases c SET submitted_at=(SELECT min(a.created_at) FROM activity a WHERE a.case_id=c.id AND a.text LIKE '%→ submitted') WHERE c.submitted_at IS NULL AND c.status IN ('submitted','returned','done');
 ALTER TABLE users ADD COLUMN IF NOT EXISTS seen_guide BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar BYTEA;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_mime TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_at TIMESTAMPTZ;
 ALTER TABLE case_types ADD COLUMN IF NOT EXISTS sop TEXT;
 CREATE TABLE IF NOT EXISTS role_playbook(role TEXT PRIMARY KEY, summary TEXT NOT NULL DEFAULT '', duties JSONB NOT NULL DEFAULT '[]');
 CREATE TABLE IF NOT EXISTS stage_playbook(stage TEXT PRIMARY KEY, owner_roles JSONB NOT NULL DEFAULT '[]', steps JSONB NOT NULL DEFAULT '[]', done_when TEXT NOT NULL DEFAULT '');
@@ -41,6 +44,8 @@ CREATE TABLE IF NOT EXISTS audit_log(id SERIAL PRIMARY KEY, user_id INT, actor_n
 CREATE TABLE IF NOT EXISTS roles(key TEXT PRIMARY KEY, name TEXT NOT NULL, level TEXT NOT NULL DEFAULT 'STAFF', team_queue BOOLEAN NOT NULL DEFAULT FALSE, summary TEXT NOT NULL DEFAULT '', duties JSONB NOT NULL DEFAULT '[]');
 CREATE TABLE IF NOT EXISTS notifs(id SERIAL PRIMARY KEY, user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, case_id INT REFERENCES cases(id) ON DELETE CASCADE, body TEXT NOT NULL, read BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT now());
 CREATE INDEX IF NOT EXISTS idx_notifs_user ON notifs(user_id);
+CREATE TABLE IF NOT EXISTS auth_sessions(id UUID PRIMARY KEY, user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, last_activity TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_activity ON auth_sessions(last_activity);
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS track_number TEXT;
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS track_number TEXT;
 CREATE INDEX IF NOT EXISTS idx_cases_track ON cases(track_number) WHERE track_number IS NOT NULL;

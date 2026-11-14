@@ -14,13 +14,14 @@ const putDisk=(name,buf)=>{if(!FILES_DIR)return null;const p=crypto.randomUUID()
 const enc=s=>{const iv=crypto.randomBytes(12),c=crypto.createCipheriv('aes-256-gcm',KEY,iv),e=Buffer.concat([c.update(s,'utf8'),c.final()]);return [iv,c.getAuthTag(),e].map(b=>b.toString('base64')).join('.')};
 const dec=s=>{const [iv,t,e]=s.split('.').map(x=>Buffer.from(x,'base64')),d=crypto.createDecipheriv('aes-256-gcm',KEY,iv);d.setAuthTag(t);return Buffer.concat([d.update(e),d.final()]).toString('utf8')};
 const LEVELS=['MANAGER','SENIOR','STAFF'], STAGES=['new','docs','ready','submitted','returned','done'];
+const IDLE_TIMEOUT_MS=15*60*1000;
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:15*1024*1024}});
 const app=express();app.set('trust proxy',1);app.disable('x-powered-by');app.use(express.json({limit:'1mb',verify:(req,res,buf)=>{req.rawBody=buf}}));app.use(cookieParser());
 const rateLimit=require('express-rate-limit');
 if(process.env.NODE_ENV!=='test')app.use('/api',rateLimit({windowMs:60000,max:600,standardHeaders:true,legacyHeaders:false,message:{error:'Too many requests. Slow down a little.'}}));
 const wrap=f=>(req,res)=>f(req,res).catch(e=>{if(!e.status)console.error(e);res.status(e.status||500).json({error:e.status?e.message:'Server error'})});
 const fail=(s,m)=>{const e=new Error(m);e.status=s;throw e};
-const auth=async(req,res,next)=>{try{const t=jwt.verify(req.cookies.t,SECRET),u=await one('SELECT u.id,u.name,u.role,r.level,u.must_change_password FROM users u JOIN roles r ON r.key=u.role WHERE u.id=$1 AND u.active',[t.id]);if(!u)throw 0;req.user=u;next()}catch{res.status(401).json({error:'Please sign in'})}};
+const auth=async(req,res,next)=>{try{const t=jwt.verify(req.cookies.t,SECRET),u=await one('SELECT u.id,u.name,u.email,u.phone,u.role,r.level,u.must_change_password,s.id AS session_id,s.last_activity FROM users u JOIN roles r ON r.key=u.role LEFT JOIN auth_sessions s ON s.user_id=u.id AND s.id=$2 WHERE u.id=$1 AND u.active',[t.id,t.jti]);if(!u)return res.status(401).json({error:'Please sign in',code:'SESSION_EXPIRED'});if(!u.session_id||Date.now()-new Date(u.last_activity).getTime()>=IDLE_TIMEOUT_MS){if(u.session_id)await q('DELETE FROM auth_sessions WHERE id=$1',[u.session_id]);return res.status(401).json({error:'Session expired due to inactivity',code:'SESSION_EXPIRED'})}req.user={id:u.id,name:u.name,email:u.email,phone:u.phone,role:u.role,level:u.level,must_change_password:u.must_change_password};req.sessionId=u.session_id;next()}catch(e){if(e.name==='JsonWebTokenError'||e.name==='TokenExpiredError'||e.name==='NotBeforeError')return res.status(401).json({error:'Please sign in',code:'SESSION_EXPIRED'});console.error('Authentication middleware failed:',e);res.status(500).json({error:'Authentication service unavailable'})}};
 const need=(...r)=>(req,res,next)=>r.includes(req.user.level)?next():res.status(403).json({error:'Your role cannot do this'});
 const cleanTrack=v=>{const t=String(v??'').replace(/\s+/g,' ').trim();if(t.length>60)fail(400,'Track number is too long (max 60 characters)');return t||null};
 const audit=(req,action,details)=>q('INSERT INTO audit_log(user_id,actor_name,action,details) VALUES($1,$2,$3,$4)',[req.user.id,req.user.name,action,details]).catch(()=>{});
@@ -39,18 +40,41 @@ app.post('/api/login',wrap(async(req,res)=>{
   const u=await one('SELECT * FROM users WHERE lower(email)=lower($1) AND active',[String(req.body.email||'')]);
   if(!u||!await bcrypt.compare(String(req.body.password||''),u.password_hash)){t.n++;tries.set(k,t);fail(401,'Wrong email or password')}
   tries.delete(k);
-  res.cookie('t',jwt.sign({id:u.id,role:u.role,name:u.name},SECRET,{expiresIn:'7d'}),{httpOnly:true,sameSite:'lax',secure:PROD,maxAge:6048e5});
+  await q('DELETE FROM auth_sessions WHERE last_activity<now()-interval \'30 days\'');
+  const sessionId=crypto.randomUUID();await q('INSERT INTO auth_sessions(id,user_id) VALUES($1,$2)',[sessionId,u.id]);
+  res.cookie('t',jwt.sign({id:u.id,role:u.role,name:u.name},SECRET,{jwtid:sessionId,expiresIn:'7d'}),{httpOnly:true,sameSite:'lax',secure:PROD,maxAge:6048e5});
   res.json({id:u.id,name:u.name,role:u.role,mustChange:!!u.must_change_password})}));
-app.post('/api/logout',(req,res)=>{res.clearCookie('t');res.json({ok:1})});
 app.use('/api',auth);
+app.post('/api/logout',wrap(async(req,res)=>{await q('DELETE FROM auth_sessions WHERE id=$1',[req.sessionId]);res.clearCookie('t');res.json({ok:1})}));
 // a person with a temporary password must set their own before anything else (tests skip the gate)
-app.use('/api',(req,res,next)=>{if(req.user.must_change_password&&process.env.NODE_ENV!=='test'&&!/^(\/me\/password|\/logout|\/me)$/.test(req.url))return res.status(403).json({error:'Set a new password first'});next()});
+app.use('/api',(req,res,next)=>{if(req.user.must_change_password&&process.env.NODE_ENV!=='test'&&!/^(\/me\/password|\/logout|\/me|\/session\/activity|\/session\/lock)$/.test(req.url))return res.status(403).json({error:'Set a new password first'});next()});
 app.param('id',(req,res,next,v)=>/^\d+$/.test(v)?next():res.status(400).json({error:'Bad id'}));
 app.get('/api/me',(req,res)=>res.json(req.user));
+app.post('/api/session/activity',wrap(async(req,res)=>{await q('UPDATE auth_sessions SET last_activity=now() WHERE id=$1',[req.sessionId]);res.json({ok:1})}));
+app.post('/api/session/lock',wrap(async(req,res)=>{await q('DELETE FROM auth_sessions WHERE id=$1',[req.sessionId]);res.clearCookie('t');res.json({ok:1})}));
+app.patch('/api/me/profile',wrap(async(req,res)=>{
+  const name=String(req.body.name||'').trim(),phone=String(req.body.phone||'').trim()||null;
+  if(!name)fail(400,'Name required');
+  await q('UPDATE users SET name=$1,phone=$2 WHERE id=$3',[name,phone,req.user.id]);
+  res.json({ok:1,name,phone})}));
+// profile picture: 3 MB max, image only; saving a new one replaces the old bytes in the same row (nothing accumulates)
+const avUpload=multer({storage:multer.memoryStorage(),limits:{fileSize:3*1024*1024}});
+app.post('/api/me/avatar',avUpload.single('file'),wrap(async(req,res)=>{
+  if(!req.file)fail(400,'Choose a picture');
+  if(!/^image\//.test(req.file.mimetype))fail(400,'Only image files (JPG, PNG, WebP)');
+  await q('UPDATE users SET avatar=$1,avatar_mime=$2,avatar_at=now() WHERE id=$3',[req.file.buffer,req.file.mimetype,req.user.id]);
+  res.json({ok:1,avatar:new Date().toISOString()})}));
+app.get('/api/users/:id/avatar',wrap(async(req,res)=>{
+  const u=await one('SELECT avatar,avatar_mime,avatar_at FROM users WHERE id=$1',[+req.params.id]);
+  if(!u||!u.avatar)fail(404,'Not found');
+  res.set({'Content-Type':u.avatar_mime||'image/jpeg','Cache-Control':'private,max-age=3600'});
+  res.send(u.avatar)}));
 app.post('/api/me/password',wrap(async(req,res)=>{
- const p=String(req.body.password||'');
+ const p=String(req.body.password||''),current=String(req.body.currentPassword||'');
  if(p.length<8)fail(400,'Password must be at least 8 characters');
+ if(!req.user.must_change_password){const u=await one('SELECT password_hash FROM users WHERE id=$1',[req.user.id]);if(!u||!await bcrypt.compare(current,u.password_hash))fail(400,'Current password is incorrect')}
  await q('UPDATE users SET password_hash=$1,must_change_password=FALSE WHERE id=$2',[await bcrypt.hash(p,10),req.user.id]);
+ await audit(req,'user.password','Changed own password');
  res.json({ok:1})}));
 app.get('/api/notifs',wrap(async(req,res)=>{
  const items=await q('SELECT n.id,n.case_id,n.body,n.read,n.created_at FROM notifs n WHERE n.user_id=$1 ORDER BY n.id DESC LIMIT 20',[req.user.id]);
@@ -58,17 +82,17 @@ app.get('/api/notifs',wrap(async(req,res)=>{
  res.json({items,unread:u.n})}));
 app.post('/api/notifs/read',wrap(async(req,res)=>{
  await q('UPDATE notifs SET read=TRUE WHERE user_id=$1 AND NOT read',[req.user.id]);res.json({ok:1})}));
-const CASE_SQL=`SELECT c.id,c.code,c.track_number,c.status,c.completed_at,c.due::text AS due,c.rounds,c.note,c.assignee_id AS who,c.client_id,cl.name AS client,c.case_type_id,t.name AS type,
+const CASE_SQL=`SELECT c.id,c.code,c.track_number,c.status,c.completed_at,c.due::text AS due,c.rounds,c.note,c.assignee_id AS who,c.client_id,cl.name AS client,c.case_type_id,t.name AS type,c.created_at::date::text AS created,c.submitted_at::date::text AS submitted,
  (SELECT count(*) FROM case_docs d WHERE d.case_id=c.id AND d.done)::int AS docs_done,(SELECT count(*) FROM case_docs d WHERE d.case_id=c.id)::int AS docs_total
  FROM cases c JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id`;
 app.get('/api/bootstrap',wrap(async(req,res)=>{
-  const [users,types,docs,clients,cases,recent,inbox,guide,notifs,roles]=await Promise.all([
-   q('SELECT id,name,role,active'+(req.user.level==='MANAGER'?',email,phone,wa_opt_in':'')+' FROM users ORDER BY id'),q('SELECT id,name,active,sop FROM case_types ORDER BY name'),
+  const [users,types,docs,clients,cases,recent,inbox,guide,notifs,roles,performers]=await Promise.all([
+   q('SELECT id,name,role,active'+(req.user.level==='MANAGER'?',email,phone,wa_opt_in':'')+',avatar_at::text AS avatar FROM users ORDER BY id'),q('SELECT id,name,active,sop FROM case_types ORDER BY name'),
    q('SELECT case_type_id,name FROM case_type_docs ORDER BY position,id'),q('SELECT id,name,phone,email,track_number FROM clients ORDER BY name'),
    q(CASE_SQL+' ORDER BY c.id DESC'),
-   q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id]),one('SELECT count(*)::int AS n FROM notifs WHERE user_id=$1 AND NOT read',[req.user.id]),q(`SELECT key,name,level,team_queue FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`)]);
+   q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id]),one('SELECT count(*)::int AS n FROM notifs WHERE user_id=$1 AND NOT read',[req.user.id]),q(`SELECT key,name,level,team_queue FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`),q(`SELECT user_id,count(*)::int AS completed FROM activity WHERE created_at>=now()-interval '7 days' AND text LIKE 'moved % → done' GROUP BY user_id ORDER BY completed DESC,user_id`)]);
   types.forEach(t=>t.docs=docs.filter(d=>d.case_type_id===t.id).map(d=>d.name));
-  res.json({me:{...req.user,seenGuide:!!(guide&&guide.seen_guide)},roles,users,types,clients,cases,recent,inboxCount:inbox.n,notifs:notifs.n})}));
+  res.json({me:{...req.user,seenGuide:!!(guide&&guide.seen_guide)},roles,users,types,clients,cases,recent,inboxCount:inbox.n,notifs:notifs.n,performers})}));
 // ---- team
 app.post('/api/users',need('MANAGER'),wrap(async(req,res)=>{
   const {name,email,role,password,phone}=req.body;if(!name||!email||!role||String(password||'').length<8)fail(400,'Name, email, role and a password of 8+ characters are required');

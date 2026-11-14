@@ -1,6 +1,6 @@
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const api=async(url,o={})=>{const fd=o.body instanceof FormData,r=await fetch('/api'+url,{method:o.method||(o.body?'POST':'GET'),credentials:'same-origin',headers:o.body&&!fd?{'Content-Type':'application/json'}:{},body:o.body&&!fd?JSON.stringify(o.body):o.body});
- if(r.status===401){location.href='login.html';throw new Error('Please sign in')}const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Something went wrong');return j};
+ if(r.status===401){location.href=sessionStorage.getItem('brela.lock.user')?'auth-lock-screen.html':'login.html';throw new Error('Please sign in')}const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Something went wrong');return j};
 const STATUSES=[{k:'new',n:'New',c:'secondary'},{k:'docs',n:'Gathering Docs',c:'info'},{k:'ready',n:'Ready to Submit',c:'warning'},{k:'submitted',n:'Submitted to BRELA',c:'primary'},{k:'returned',n:'Returned (Correction)',c:'danger'},{k:'done',n:'Completed',c:'success'}];
 let ROLES=[],RL=[];const RN=r=>((RL.find(x=>x.key===r)||{}).name)||(String(r).charAt(0)+String(r).slice(1).toLowerCase()),syncRoles=()=>{RL=S.roles||[];ROLES=RL.map(r=>r.key)};
 const LV_N={MANAGER:'Manager',SENIOR:'Senior',STAFF:'Staff'},LV_C={MANAGER:'danger',SENIOR:'primary',STAFF:'secondary'};
@@ -8,7 +8,9 @@ const st=k=>STATUSES.find(s=>s.k===k),today=()=>new Date().toISOString().slice(0
 const ago=t=>{const m=Math.round((Date.now()-new Date(t))/6e4);return m<1?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' d ago'};
 const sz=n=>n>1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
 let S,ME;const U=id=>S.users.find(u=>u.id===id)||{name:'—',role:''};
-const av=id=>{const n=U(id).name;return `<span class="avatar-xs d-inline-flex align-middle" title="${esc(n)}"><span class="avatar-title rounded-circle bg-primary-subtle text-primary font-size-11">${esc(n.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase())}</span></span>`};
+const initials=name=>String(name||'').trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
+const setMeAvatar=()=>{const el=$('me-av'),u=S.users.find(x=>x.id===ME.id);if(!el)return;el.innerHTML=u&&u.avatar?`<img class="rounded-circle" src="/api/users/${ME.id}/avatar?v=${encodeURIComponent(u.avatar)}" alt="" style="width:100%;height:100%;object-fit:cover">`:esc(initials(ME.name)||'☺')};
+const av=id=>{const u=U(id),n=u.name;return `<span class="avatar-xs d-inline-flex align-middle" title="${esc(n)}">${u.avatar?`<img class="rounded-circle" src="/api/users/${id}/avatar?v=${encodeURIComponent(u.avatar)}" alt="" style="width:100%;height:100%;object-fit:cover">`:`<span class="avatar-title rounded-circle bg-primary-subtle text-primary font-size-11">${esc(n.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase())}</span>`}</span>`};
 const badge=k=>`<span class="badge rounded-pill bg-${st(k).c}-subtle text-${st(k).c} font-size-12">${st(k).n}</span>`;
 const late=c=>c.status!=='done'&&c.due&&c.due<today();
 const dueTxt=c=>c.due?`<span class="${late(c)?'text-danger fw-semibold':'text-muted'}">${c.due}${late(c)?' (late)':''}</span>`:'<span class="text-muted">No date</span>';
@@ -129,8 +131,9 @@ function roleModal(key,done){const r=key?(PB.roles.find(x=>x.role===key)||{}):{}
  async el=>{const body={name:val(el,'#ro-n'),level:val(el,'#ro-l'),team_queue:el.querySelector('#ro-q').checked,summary:val(el,'#ro-s'),duties:el.querySelector('#ro-d').value.split('\n')};
   await api(key?'/roles/'+key:'/roles',{method:key?'PUT':'POST',body});await done()})}
 async function boot(){
- try{S=await api('/bootstrap');PB=await api('/playbook')}catch(e){if(e.message==='Set a new password first')return forcedPw();return}ME=S.me;syncRoles();
- $('me-name').textContent=ME.name;$('me-role').textContent=RN(ME.role);
+ try{S=await api('/bootstrap');PB=await api('/playbook')}catch(e){if(e.message==='Set a new password first'){ME=await api('/me');startIdleSession();return forcedPw()}return}ME=S.me;syncRoles();
+ startIdleSession();
+ $('me-name').textContent=ME.name;$('me-role').textContent=RN(ME.role);setMeAvatar();
  const caseN=S.cases.filter(c=>c.who===ME.id&&(c.status==='returned'||late(c))).length,badge=()=>{const t=caseN+(S.notifs||0),b=$('bell-count');if(b){b.textContent=t;b.style.display=t?'':'none'}},nc=$('notif-count');if(nc&&S.notifs)nc.textContent=S.notifs;
  badge();
  const drawNotifs=items=>{const l=$('notif-list');if(!l)return;l.innerHTML=items.length?items.map(x=>`<a class="dropdown-item${x.read?'':' notif-unread'}" href="case-detail.html?id=${x.case_id}"><div>${esc(x.body)}</div><small class="text-muted">${ago(x.created_at)}</small></a>`).join(''):'<div class="px-3 py-2 text-muted small">No notifications yet.</div>'};
@@ -140,13 +143,65 @@ async function boot(){
  const nr=$('notif-read');if(nr)nr.onclick=()=>{S.notifs=0;badge();if(nc)nc.textContent=''};
  const ic=$('inbox-count');if(ic&&S.inboxCount){ic.textContent=S.inboxCount;ic.style.display=''}
  document.querySelectorAll('.mgr-only').forEach(e=>e.style.display=ME.level==='MANAGER'?'':'none');
- $('logout').onclick=async e=>{e.preventDefault();await api('/logout',{method:'POST',body:{}}).catch(()=>{});location.href='login.html'};
+ $('logout').onclick=async e=>{e.preventDefault();await api('/logout',{method:'POST',body:{}}).catch(()=>{});sessionStorage.removeItem('brela.lock.user');location.href='login.html'};
  const nb=$('newCaseBtn');if(nb)nb.onclick=()=>newCase();
  await PAGES[document.getElementById('page').dataset.page]();
  initSearch();
  if(!ME.seenGuide)welcome();
  if(window.feather)feather.replace()}
+function saveLockUser(){if(ME)sessionStorage.setItem('brela.lock.user',JSON.stringify({id:ME.id,name:ME.name,email:ME.email,avatar:S?.users.find(u=>u.id===ME.id)?.avatar||null}))}
+function startIdleSession(){
+ const timeout=15*60*1000,heartbeat=15*1000,events=['pointerdown','pointermove','keydown','scroll','touchstart','wheel'];let last=Date.now(),lastSent=0,timer;
+ saveLockUser();
+ const lock=async(manual=false)=>{saveLockUser();try{const r=await fetch('/api/session/lock',{method:'POST',credentials:'same-origin',keepalive:true});if(r.ok||r.status===401||!manual){location.href='auth-lock-screen.html';return}const result=await r.json().catch(()=>({}));toast(result.error||'Unable to lock your session. Please try again.','error')}catch(e){if(manual)toast('Unable to reach the server. Your session was not locked.','error');else{console.error('Could not lock idle session:',e);location.href='auth-lock-screen.html'}}};
+ const reset=()=>{clearTimeout(timer);timer=setTimeout(lock,timeout)};
+ const activity=()=>{last=Date.now();reset();if(last-lastSent>=heartbeat){lastSent=last;fetch('/api/session/activity',{method:'POST',credentials:'same-origin',keepalive:true}).then(async r=>{if(r.status===401)lock();else if(!r.ok)console.error('Session activity heartbeat failed:',r.status)}).catch(e=>console.error('Session activity heartbeat failed:',e))}};
+ events.forEach(name=>document.addEventListener(name,activity,{passive:true}));
+ const lockButton=$('lock-screen');if(lockButton)lockButton.addEventListener('click',e=>{e.preventDefault();lock(true)});
+ reset();
+}
 const PAGES={
+async profile(){
+ const u=S.users.find(x=>x.id===ME.id)||ME,root=$('profile'),role=S.roles.find(x=>x.key===ME.role),avatarUrl=()=>u.avatar?`/api/users/${ME.id}/avatar?v=${encodeURIComponent(u.avatar)}`:'';
+ const avatarMarkup=src=>src?`<img src="${src}" alt="" class="img-fluid rounded-circle d-block img-thumbnail" style="width:100%;height:100%;object-fit:cover">`:`<span class="avatar-title rounded-circle bg-primary-subtle text-primary font-size-24">${esc(initials(ME.name)||'☺')}</span>`;
+ const members=S.users.filter(x=>x.active),performers=(S.performers||[]).map(x=>({...x,user:S.users.find(u=>u.id===x.user_id)})).filter(x=>x.user?.active).sort((a,b)=>b.completed-a.completed).slice(0,3),projects=S.cases.slice().sort((a,b)=>String(b.created||'').localeCompare(String(a.created||''))||b.id-a.id).slice(0,3);
+ root.innerHTML=`<div class="row"><div class="col-xl-12"><div class="profile-user" role="img" aria-label="Profile cover"></div></div></div>
+ <div class="row"><div class="col-12 profile-content">
+  <div class="row align-items-end"><div class="col-sm"><div class="d-flex align-items-end mt-3 mt-sm-0"><div class="flex-shrink-0"><div class="avatar-xxl me-3" id="profile-avatar">${avatarMarkup(avatarUrl())}</div></div><div class="flex-grow-1 pb-2"><h5 class="font-size-16 mb-1">${esc(ME.name)}</h5><p class="text-muted font-size-13 mb-0">${esc(RN(ME.role))}</p></div></div></div>
+   <div class="col-sm-auto"><div class="d-flex align-items-start justify-content-end gap-2 mb-2"><a class="btn btn-success" href="cases-board.html"><i class="bx bx-arrow-back me-1"></i>Back To Case Board</a></div></div>
+  </div>
+  <div class="row mt-4"><div class="col-xl-8"><div class="card"><div class="card-header"><h5 class="card-title mb-1">Personal information</h5><small class="text-muted">Keep your contact details up to date for the team.</small></div><div class="card-body"><form id="profileForm">
+   <div class="mb-3"><label class="form-label" for="profileName">Name</label><input id="profileName" class="form-control" value="${esc(ME.name)}" required maxlength="120" autocomplete="name"></div>
+   <div class="mb-3"><label class="form-label" for="profileEmail">Login email</label><input id="profileEmail" class="form-control" value="${esc(ME.email||'')}" disabled><div class="form-text">Ask a Manager to change the email used to sign in.</div></div>
+   <div class="mb-3"><label class="form-label" for="profilePhone">Phone</label><input id="profilePhone" class="form-control" value="${esc(ME.phone||'')}" autocomplete="tel"><div class="form-text">This number can be used for team WhatsApp alerts.</div></div>
+   <button class="btn btn-primary" type="submit">Save changes</button>
+  </form><hr class="my-4"><form id="avatarForm"><label class="form-label" for="avatarFile">Profile picture</label><div class="d-flex flex-column flex-sm-row gap-2"><input id="avatarFile" class="form-control" type="file" accept="image/*" aria-describedby="avatarHelp"><button id="avatarSave" class="btn btn-light text-nowrap" type="submit" disabled>Upload picture</button></div><div id="avatarHelp" class="form-text">Choose an image up to 3 MB.</div></form></div></div></div>
+  <div class="col-xl-4"><div class="card"><div class="card-header"><h5 class="card-title mb-0">Role &amp; access</h5></div><div class="card-body">
+   <div class="mb-3"><small class="text-muted d-block">Team role</small><span class="fw-medium">${esc(RN(ME.role))}</span></div>
+   <div class="mb-3"><small class="text-muted d-block">Access level</small><span class="badge bg-primary-subtle text-primary">${esc(LV_N[role?.level]||role?.level||'Staff')}</span></div>
+   <p class="text-muted small">Your access level controls which actions you can take in BRELA Desk. Role responsibilities and case guidance are in the Playbook.</p>
+   <a class="btn btn-light btn-sm" href="playbook.html"><i class="bx bx-book-open me-1"></i>View Playbook</a>
+   <hr><small class="text-muted">Email and role changes are managed by a Manager in Settings.</small>
+  </div></div></div></div>
+  <div class="row"><div class="col-xl-8">
+   <div class="card"><div class="card-header"><h5 class="card-title mb-0">Change password</h5></div><div class="card-body"><form id="passwordForm">
+    <div class="mb-3"><label class="form-label" for="currentPassword">Current password</label><input id="currentPassword" class="form-control" type="password" autocomplete="current-password" required></div>
+    <div class="mb-3"><label class="form-label" for="newPassword">New password</label><input id="newPassword" class="form-control" type="password" autocomplete="new-password" minlength="8" required><div class="form-text">Use at least 8 characters.</div></div>
+    <div class="mb-3"><label class="form-label" for="confirmPassword">Confirm new password</label><input id="confirmPassword" class="form-control" type="password" autocomplete="new-password" minlength="8" required></div>
+    <button class="btn btn-primary" type="submit">Update password</button>
+   </form></div></div>
+   <div class="card"><div class="card-header d-flex justify-content-between align-items-center"><h5 class="card-title mb-0">Recent projects</h5><small class="text-muted">Latest cases</small></div><div class="card-body p-0">${projects.length?projects.map(c=>`<a href="case-detail.html?id=${c.id}" class="d-flex align-items-center justify-content-between gap-3 p-3 border-bottom text-reset"><div class="min-w-0"><b>${esc(c.client)}</b><div class="text-muted small">${esc(c.code)} · ${esc(c.type)}</div></div><div class="text-end flex-shrink-0">${badge(c.status)}<div class="text-muted small mt-1">${c.due?`Due ${esc(c.due)}`:'No due date'}</div></div></a>`).join(''):'<p class="text-muted p-3 mb-0">No cases yet.</p>'}</div></div>
+  </div><div class="col-xl-4">
+   <div class="card"><div class="card-header d-flex justify-content-between align-items-center"><h5 class="card-title mb-0">Weekly performers</h5><small class="text-muted">Last 7 days</small></div><div class="card-body">${performers.length?performers.map((x,i)=>`<div class="d-flex align-items-center ${i?'mt-3':''}">${av(x.user_id)}<div class="ms-2 flex-grow-1"><div class="d-flex justify-content-between gap-2"><b>${esc(x.user.name)}</b><span class="badge bg-success-subtle text-success">${x.completed}</span></div><small class="text-muted">${esc(RN(x.user.role))} · cases completed</small></div></div>`).join(''):'<p class="text-muted small mb-0">No cases completed in the last 7 days.</p>'}</div></div>
+   <div class="card"><div class="card-header d-flex justify-content-between align-items-center"><h5 class="card-title mb-0">Team Members</h5><span class="badge bg-primary-subtle text-primary">${members.length}</span></div><div class="card-body p-0" style="max-height:360px;overflow:auto">${members.length?members.map(x=>`<div class="d-flex align-items-center p-3 border-bottom">${av(x.id)}<div class="ms-2 min-w-0"><b class="d-block text-truncate">${esc(x.name)}</b><small class="text-muted">${esc(RN(x.role))}</small></div></div>`).join(''):'<p class="text-muted p-3 mb-0">No active team members.</p>'}</div></div>
+  </div></div>
+ </div></div>`;
+ const file=$('avatarFile'),saveAvatar=$('avatarSave'),preview=$('profile-avatar'),showAvatar=src=>{preview.innerHTML=avatarMarkup(src)};let previewUrl='';
+ file.onchange=()=>{const f=file.files[0];saveAvatar.disabled=!f;if(!f){if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl='';showAvatar(avatarUrl());return}if(f.size>3*1024*1024||!f.type.startsWith('image/')){file.value='';saveAvatar.disabled=true;if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl='';showAvatar(avatarUrl());toast('Choose an image smaller than 3 MB','error');return}if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=URL.createObjectURL(f);showAvatar(previewUrl)};
+ $('avatarForm').onsubmit=async e=>{e.preventDefault();const f=file.files[0];if(!f)return;const data=new FormData();data.append('file',f);try{const r=await api('/me/avatar',{method:'POST',body:data});u.avatar=r.avatar;if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl='';showAvatar(avatarUrl());setMeAvatar();file.value='';saveAvatar.disabled=true;toast('Profile picture updated','success')}catch(x){toast(x.message,'error')}};
+ $('profileForm').onsubmit=async e=>{e.preventDefault();try{const r=await api('/me/profile',{method:'PATCH',body:{name:val(e.currentTarget,'#profileName'),phone:val(e.currentTarget,'#profilePhone')}});ME.name=r.name;ME.phone=r.phone;u.name=r.name;$('me-name').textContent=r.name;setMeAvatar();toast('Profile updated','success')}catch(x){toast(x.message,'error')}};
+ $('passwordForm').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,currentPassword=val(form,'#currentPassword'),password=val(form,'#newPassword'),confirmPassword=val(form,'#confirmPassword');if(password!==confirmPassword){toast('The new passwords do not match','error');return}try{await api('/me/password',{body:{currentPassword,password}});form.reset();toast('Password updated','success')}catch(x){toast(x.message,'error')}};
+},
 async dashboard(){const open=S.cases.filter(c=>c.status!=='done'),cards=[['Open cases',open.length,'briefcase','primary'],['Submitted to BRELA',S.cases.filter(c=>c.status==='submitted').length,'send','info'],['Returned',S.cases.filter(c=>c.status==='returned').length,'rotate-ccw','danger'],['Overdue',open.filter(late).length,'alert-circle','warning'],['Completed',S.cases.filter(c=>c.status==='done').length,'check-circle','success']];
  $('stats').innerHTML=opts(cards,c=>`<div class="col-sm-6 col-xl"><div class="card"><div class="card-body"><div class="d-flex align-items-center"><div class="flex-grow-1"><p class="text-muted mb-1">${c[0]}</p><h4 class="mb-0">${c[1]}</h4></div><div class="avatar-sm"><span class="avatar-title bg-${c[3]}-subtle text-${c[3]} rounded font-size-20"><i data-feather="${c[2]}"></i></span></div></div></div></div></div>`);
  const att=open.filter(c=>c.status==='returned'||late(c));
