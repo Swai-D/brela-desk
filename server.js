@@ -489,7 +489,7 @@ app.get('/api/reports/monthly',need('MANAGER'),wrap(async(req,res)=>{
       FROM users u
       LEFT JOIN case_assignments a ON a.user_id=u.id AND ${INR('a.assigned_at')}
       WHERE u.active OR a.id IS NOT NULL
-      GROUP BY u.id ORDER BY u.id`,[s,s])]);
+      GROUP BY u.id ORDER BY u.id`,[s])]);
   const cnt=(arr,f)=>arr.filter(f).length,avg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length*10)/10:null;
   const days=done.map(d=>+d.days),reason=t=>t.replace(/^marked as returned by BRELA \(round \d+\):\s*/,'');
   const byType=[...new Set([...recv,...done,...rets].map(r=>r.type))].sort().map(t=>({type:t,received:cnt(recv,r=>r.type===t),completed:cnt(done,r=>r.type===t),returns:cnt(rets,r=>r.type===t),avgDays:avg(done.filter(r=>r.type===t).map(r=>+r.days))}));
