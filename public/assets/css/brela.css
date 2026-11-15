@@ -188,8 +188,28 @@ td.text-end{white-space:nowrap}
 @media(max-width:575px){.tp-seg{width:100%}.tp-seg button{flex:1 1 auto}}
 .tp-card .badge{font-size:12px;font-weight:500;padding:5px 8px}
 .tp-card .badge.bg-warning-subtle{color:#9a6200!important}.tp-card .badge.bg-light{border:1px solid #e3e7f0}
-.tp-card .btn-icon{background:transparent;border:0;color:#6b7694;width:32px;height:32px}
-.tp-card .btn-icon:hover{background:#eef1ff;color:#3b4cb8}.tp-card .btn-icon.text-danger{color:#d64545!important}.tp-card .btn-icon.text-danger:hover{background:#fdecec}
+.tp-card .btn-icon{background:transparent!important;border:0;color:#6b7694;width:32px;height:32px}
+.tp-card .btn-icon:hover{background:#eef1ff!important;color:#3b4cb8}.tp-card .btn-icon.text-danger{color:#d64545!important}.tp-card .btn-icon.text-danger:hover{background:#fdecec!important}
 .tp-x{border:0;background:transparent;color:#8590ab;width:28px;height:28px;border-radius:8px;font-size:18px;line-height:1;display:inline-flex;align-items:center;justify-content:center;align-self:flex-start}
 .tp-x:hover{background:#eef0f6;color:#2b3452}
 .tp-prog .progress{background:#e3e7f0}
+
+/* ===== Settings ===== */
+.st-nav{display:flex;flex-direction:column;gap:2px;position:sticky;top:90px}
+.st-link{display:flex;align-items:center;gap:10px;border:0;background:transparent;border-radius:10px;padding:10px 12px;color:#4b587a;font-size:14px;cursor:pointer;width:100%}
+.st-link i{font-size:19px;color:#8590ab}.st-link:hover{background:#eef0f6;color:#2b3452}
+.st-link.on{background:#fff;color:#3b4cb8;font-weight:600;box-shadow:0 1px 3px rgba(30,40,90,.10)}.st-link.on i{color:#3b4cb8}
+.st-c{font-size:11px;background:#eef0f6;color:#5b6786;border-radius:10px;padding:1px 7px;font-weight:600}
+.st-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.st-s{font-size:12.5px}
+.st-t thead th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#7a84a0;font-weight:600;border-bottom:1px solid #e9ecf3;padding:12px 16px;background:#fafbfe}
+.st-t td{padding:12px 16px}.st-off{opacity:.6}
+.st-ic{width:34px;height:34px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.st-role{background:#fff;border:1px solid #e3e7f0;border-radius:12px;padding:14px 16px;height:100%}
+@media(max-width:991px){.st-nav{position:static;flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px}.st-link{width:auto;white-space:nowrap;flex:none;background:#eef0f6}.st-link.on{background:#fff}}
+.st-t .btn-icon,.st-role .btn-icon{background:transparent!important;border:0;color:#6b7694;width:32px;height:32px}
+.st-t .btn-icon:hover,.st-role .btn-icon:hover{background:#eef1ff!important;color:#3b4cb8}
+.st-t .btn-icon.text-danger,.st-role .btn-icon.text-danger{color:#d64545!important}.st-t .btn-icon.text-danger:hover,.st-role .btn-icon.text-danger:hover{background:#fdecec!important}
+.st-t .badge,.st-role .badge,#wa .badge,#ai .badge{font-size:12px;font-weight:500}
+.st-det{border:1px solid #e3e7f0;border-radius:10px;padding:12px 14px;margin:14px 0}.st-det summary{cursor:pointer;font-weight:600;font-size:14px}
+@media(max-width:767px){.st-t td,.st-t th{padding:10px 10px}.st-t .text-end{white-space:normal!important}}
