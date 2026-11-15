@@ -72,3 +72,7 @@ CREATE TABLE IF NOT EXISTS templates(id SERIAL PRIMARY KEY, name TEXT NOT NULL, 
 CREATE TABLE IF NOT EXISTS template_versions(id SERIAL PRIMARY KEY, template_id INT NOT NULL REFERENCES templates(id) ON DELETE CASCADE, version INT NOT NULL, body TEXT NOT NULL, note TEXT, source TEXT NOT NULL DEFAULT 'manual', created_by INT, created_at TIMESTAMPTZ DEFAULT now(), UNIQUE(template_id,version));
 CREATE TABLE IF NOT EXISTS ai_runs(id SERIAL PRIMARY KEY, user_id INT, case_id INT REFERENCES cases(id) ON DELETE SET NULL, template_id INT REFERENCES templates(id) ON DELETE SET NULL, kind TEXT NOT NULL, mode TEXT, provider TEXT, model TEXT, ok BOOLEAN NOT NULL DEFAULT TRUE, error TEXT, tokens_in INT, tokens_out INT, ms INT, output TEXT, created_at TIMESTAMPTZ DEFAULT now());
 CREATE INDEX IF NOT EXISTS idx_ai_runs_time ON ai_runs(created_at);
+-- Original Word template package (Templates_Package): the exact .docx to fill, plus its manifest defaults.
+ALTER TABLE templates ADD COLUMN IF NOT EXISTS docx_name TEXT;
+ALTER TABLE templates ADD COLUMN IF NOT EXISTS docx_data BYTEA;
+ALTER TABLE templates ADD COLUMN IF NOT EXISTS docx_defaults JSONB NOT NULL DEFAULT '{}';

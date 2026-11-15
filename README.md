@@ -88,6 +88,10 @@ Goal: one person prepares many BRELA documents a day. Documents are made from **
 
 **Limits (v1):** scanned PDFs and images cannot be read (paste the text); output is Word (.docx) with headings, bold, bullets and tables, not a pixel-exact copy of a BRELA form's layout.
 
+**Official Word template package** (`Templates_Package/`). The senior-approved house set (members'/directors' resolutions, notices of call and forfeiture, Memorandum and Articles, and BRELA Forms 213a/213b, 57a/57b and 131) ships with the app. On the **Templates** page, a Senior or Manager presses **Import Word package**: each document becomes an editable draft template — the yellow `[LABELS]` become `{{fields}}` (e.g. `[COMPANY NAME]` → `{{company_name}}`), the house rules land in *Notes for the AI*, and the **exact original .docx is stored with the template**. Two ways to use them:
+- Like any other template: the AI prepares from, or an approved one instantly fills, the text version.
+- **Official Word form:** when preparing a document, templates marked *official Word form* are filled into the exact original file (layout, letterhead and form tables untouched) from the details on file. Details that are not on file stay as yellow labels; the app lists them so you can add them under *Details for documents* (lowercase, e.g. `members_meeting_date`) and press Prepare again. Clauses that need a Senior's confirmation remain highlighted yellow in the Word file.
+
 ## BRELA track number
 Every case has a **BRELA track number** field under the client name (type it after submitting; Enter or the tick saves it). Every team member can set it, it is recorded in the case history, and the app warns if another case already uses the same number (ignoring spaces and capitals). Clients can also carry a track number (client page, *edit client*). The number shows on the board cards, My Work, the client page (next to each case), the monthly report and its CSV, and the **Clients search finds a client by any of their track numbers**, so when BRELA calls with a number you can find the case in seconds.
 
