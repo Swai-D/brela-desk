@@ -122,6 +122,7 @@ const roleLevel=async k=>((await one('SELECT level FROM roles WHERE key=$1',[Str
 const otherManagers=async excludeId=>(await one(`SELECT count(*)::int AS n FROM users u JOIN roles r ON r.key=u.role WHERE u.active AND r.level='MANAGER' AND u.id<>$1`,[excludeId||0])).n;
 const log=(caseId,userId,text)=>q('INSERT INTO activity(case_id,user_id,text) VALUES($1,$2,$3)',[caseId,userId,text]);
 const WA=require('./whatsapp')({q,one,putDisk});
+const AI=require('./ai')({q,one,enc,dec}),E=require('./docs');
 const caseInfo=id=>one(CASE_SQL+' WHERE c.id=$1',[id]);
 app.get('/webhooks/whatsapp',WA.verify);app.post('/webhooks/whatsapp',WA.receive);
 // ---- auth (with simple brute-force guard)
@@ -275,11 +276,11 @@ app.get('/api/search',wrap(async(req,res)=>{
    ['MANAGER','SENIOR'].includes(req.user.level)?q(`SELECT cr.id,cr.label,cr.client_id,cl.name AS client FROM credentials cr JOIN clients cl ON cl.id=cr.client_id WHERE cr.label ILIKE $1 ORDER BY cr.id DESC LIMIT 4`,[like]):[]]);
   res.json({q:qs,clients,cases,files,comments,creds})}));
 app.get('/api/clients/:id',wrap(async(req,res)=>{
-  const id=+req.params.id,client=await one('SELECT id,name,phone,email,track_number FROM clients WHERE id=$1',[id]);if(!client)fail(404,'Not found');
+  const id=+req.params.id,client=await one('SELECT id,name,phone,email,track_number,profile FROM clients WHERE id=$1',[id]);if(!client)fail(404,'Not found');
   const [cases,files,creds]=await Promise.all([q(CASE_SQL+' WHERE c.client_id=$1 ORDER BY c.id DESC',[id]),
    q(FILES+' WHERE f.client_id=$1 AND NOT f.inbox ORDER BY f.id DESC',[id]),
    q(`SELECT c.id,c.label,c.username,(SELECT u.name||' · '||to_char(a.created_at,'DD Mon HH24:MI') FROM credential_access a JOIN users u ON u.id=a.user_id WHERE a.credential_id=c.id ORDER BY a.id DESC LIMIT 1) AS last_access FROM credentials c WHERE c.client_id=$1 ORDER BY c.id`,[id])]);
-  res.json({client,cases,files,creds})}));
+  res.json({client,cases,files,creds,people:await q('SELECT * FROM client_people WHERE client_id=$1 ORDER BY position,id',[id])})}));
 const putFile=async(req,{clientId,caseId,docId})=>{
   if(!req.file)fail(400,'Choose a file');
   const name=Buffer.from(req.file.originalname,'latin1').toString('utf8'),buf=req.file.buffer;
@@ -516,6 +517,7 @@ app.post('/api/whatsapp/test',need('MANAGER'),wrap(async(req,res)=>{
   const r=await WA.sendTemplate(to,'hello_world',[],req.user.id,'en_US');if(!r.ok)fail(400,r.error||'Send failed');res.json({ok:1})}));
 app.post('/api/whatsapp/digest-now',need('MANAGER'),wrap(async(req,res)=>res.json({people:await WA.runDigest(true)})));
 // ---- static + boot
+require('./ai-routes')(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E});
 // ---- static files, safe across deploys (Railway sits behind a proxy/CDN)
 // HTML is never cached and links to CSS/JS carry the build id (?v=...), so a new deploy can never be paired with old styles or scripts.
 const PUB=path.join(__dirname,'public'),VER=String(process.env.RAILWAY_GIT_COMMIT_SHA||process.env.SOURCE_COMMIT||process.env.GIT_SHA||Date.now().toString(36)).slice(0,12);
