@@ -69,6 +69,29 @@ The system tells people what to do, so a new team member can simply follow it:
 - First sign-in shows a short welcome with your role's responsibilities.
 - A case counts as finished when BRELA approves it; the Manager is alerted to send the report to the client.
 
+## AI assistant and document templates
+Goal: one person prepares many BRELA documents a day. Documents are made from **templates**; the **AI** prepares them while a template is still being perfected, and once a template is approved it fills **instantly, with no AI and no cost**.
+
+**How it works**
+1. **Templates** (menu, Senior and Manager manage, everyone can read): create one from a document BRELA already accepted (upload Word, a PDF with real text, or paste text; the AI turns the parts that change into fields), or write one by hand. Fields look like `{{company_name}}`; unknown details become `[[gaps]]`; `{{#directors}} ... {{/directors}}` repeats for each director (also shareholders, secretaries, beneficial_owners, people). Each template has *Notes for the AI* (BRELA's format rules) and a version history.
+2. **Company details**: on the client page add the company's details (registered office, business activity, share capital...) and its directors, shareholders and others once. Each case has its own *Details for documents* (capital, proposed names...). **Smart fill** reads a pasted client message and suggests the details; nothing is saved until you press Apply.
+3. **Prepare a document**: on a case, press the robot icon next to a checklist item (or *Prepare a document*). Pick a template. A **draft** template makes the AI prepare the document using it as the format guide; an **approved** template fills instantly. Fill the remaining gaps in the panel (they can be remembered on the case), edit the text, and **save as Word (.docx)**: the file is attached to the checklist item, which is ticked when no gaps remain.
+4. **Teach**: after correcting a document, *Teach the template* turns your final version into an improved template (new version). When a template comes out clean (no manual edits, no gaps) three times in a row it is flagged *ready to approve*. Approve it and it fills instantly from then on. Editing an approved template sends it back to draft.
+
+**Set up the AI (Manager): Settings, AI assistant**
+- Choose the **provider** (Anthropic, OpenAI, Google Gemini, xAI, Mistral, or any OpenAI-compatible endpoint), paste the **API key**, pick the **model**. Model names change often: the refresh button loads the live list from the provider; you can also type any model ID. *Save and test the connection* checks it.
+- Defaults are tuned for official documents: temperature 0.2, 4096 tokens, a BRELA-focused system prompt (editable, resettable). Built-in rules always apply: never invent facts, leave unknowns as `[[gaps]]`, output only the document.
+- **Cost control:** requests per day (everyone) and per hour (each person), who may use the AI (Everyone / Senior and above / Manager only), and a usage report (requests and tokens per person, recent requests with errors). Instant fills and connection tests are not counted.
+- **The key** is stored encrypted (same `ENCRYPTION_KEY` as the vault), never sent back to the browser (only its last 4 characters), and every settings change is in the audit log. Each provider keeps its own key and model.
+
+**Privacy.** The AI is a third-party service. With the default *Standard* privacy, ID numbers, phone numbers, emails and dates of birth are never sent: the AI writes a placeholder and this server fills in the real value afterwards. Names, addresses and company details are sent. *Off* sends everything. Text pasted into Smart fill, and accepted documents used to create templates, are sent as they are: prefer examples without real personal details. Check your provider's data-retention terms before handling real client data. The AI can make mistakes: people read and approve every document.
+
+**Limits (v1):** scanned PDFs and images cannot be read (paste the text); output is Word (.docx) with headings, bold, bullets and tables, not a pixel-exact copy of a BRELA form's layout.
+
+**Official Word template package** (`Templates_Package/`). The senior-approved house set (members'/directors' resolutions, notices of call and forfeiture, Memorandum and Articles, and BRELA Forms 213a/213b, 57a/57b and 131) ships with the app. On the **Templates** page, a Senior or Manager presses **Import Word package**: each document becomes an editable draft template — the yellow `[LABELS]` become `{{fields}}` (e.g. `[COMPANY NAME]` → `{{company_name}}`), the house rules land in *Notes for the AI*, and the **exact original .docx is stored with the template**. Two ways to use them:
+- Like any other template: the AI prepares from, or an approved one instantly fills, the text version.
+- **Official Word form:** when preparing a document, templates marked *official Word form* are filled into the exact original file (layout, letterhead and form tables untouched) from the details on file. Details that are not on file stay as yellow labels; the app lists them so you can add them under *Details for documents* (lowercase, e.g. `members_meeting_date`) and press Prepare again. Clauses that need a Senior's confirmation remain highlighted yellow in the Word file.
+
 ## BRELA track number
 Every case has a **BRELA track number** field under the client name (type it after submitting; Enter or the tick saves it). Every team member can set it, it is recorded in the case history, and the app warns if another case already uses the same number (ignoring spaces and capitals). Clients can also carry a track number (client page, *edit client*). The number shows on the board cards, My Work, the client page (next to each case), the monthly report and its CSV, and the **Clients search finds a client by any of their track numbers**, so when BRELA calls with a number you can find the case in seconds.
 

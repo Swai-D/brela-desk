@@ -66,3 +66,15 @@ CREATE INDEX IF NOT EXISTS idx_credentials_client ON credentials(client_id);
 CREATE INDEX IF NOT EXISTS idx_credential_access_cred ON credential_access(credential_id);
 CREATE TABLE IF NOT EXISTS user_signatures(id SERIAL PRIMARY KEY, user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'signature', image BYTEA NOT NULL, mime TEXT NOT NULL DEFAULT 'image/png', is_default BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT now());
 CREATE INDEX IF NOT EXISTS idx_user_signatures_user ON user_signatures(user_id);
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS profile JSONB NOT NULL DEFAULT '{}';
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS data JSONB NOT NULL DEFAULT '{}';
+CREATE TABLE IF NOT EXISTS client_people(id SERIAL PRIMARY KEY, client_id INT NOT NULL REFERENCES clients(id) ON DELETE CASCADE, roles JSONB NOT NULL DEFAULT '[]', full_name TEXT NOT NULL, nationality TEXT, id_type TEXT, id_number TEXT, dob TEXT, address TEXT, phone TEXT, email TEXT, shares TEXT, position INT NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS ai_settings(id INT PRIMARY KEY DEFAULT 1 CHECK(id=1), data JSONB NOT NULL DEFAULT '{}', keys JSONB NOT NULL DEFAULT '{}', updated_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE IF NOT EXISTS templates(id SERIAL PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'DOCUMENT', description TEXT, ai_notes TEXT, case_type_id INT REFERENCES case_types(id) ON DELETE SET NULL, keywords TEXT, status TEXT NOT NULL DEFAULT 'DRAFT', version INT NOT NULL DEFAULT 1, uses INT NOT NULL DEFAULT 0, clean_runs INT NOT NULL DEFAULT 0, created_by INT, created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE IF NOT EXISTS template_versions(id SERIAL PRIMARY KEY, template_id INT NOT NULL REFERENCES templates(id) ON DELETE CASCADE, version INT NOT NULL, body TEXT NOT NULL, note TEXT, source TEXT NOT NULL DEFAULT 'manual', created_by INT, created_at TIMESTAMPTZ DEFAULT now(), UNIQUE(template_id,version));
+CREATE TABLE IF NOT EXISTS ai_runs(id SERIAL PRIMARY KEY, user_id INT, case_id INT REFERENCES cases(id) ON DELETE SET NULL, template_id INT REFERENCES templates(id) ON DELETE SET NULL, kind TEXT NOT NULL, mode TEXT, provider TEXT, model TEXT, ok BOOLEAN NOT NULL DEFAULT TRUE, error TEXT, tokens_in INT, tokens_out INT, ms INT, output TEXT, created_at TIMESTAMPTZ DEFAULT now());
+CREATE INDEX IF NOT EXISTS idx_ai_runs_time ON ai_runs(created_at);
+-- Original Word template package (Templates_Package): the exact .docx to fill, plus its manifest defaults.
+ALTER TABLE templates ADD COLUMN IF NOT EXISTS docx_name TEXT;
+ALTER TABLE templates ADD COLUMN IF NOT EXISTS docx_data BYTEA;
+ALTER TABLE templates ADD COLUMN IF NOT EXISTS docx_defaults JSONB NOT NULL DEFAULT '{}';
