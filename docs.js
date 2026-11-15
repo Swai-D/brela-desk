@@ -84,6 +84,62 @@ async function textToDocx(text,{title=''}={}){
  const doc=new D.Document({title,styles:{default:{document:{run:{font:'Times New Roman',size:24}}}},sections:[{children:kids}]});
  return D.Packer.toBuffer(doc)}
 
+// ---- .docx template package: fill the yellow [LABELS] of an original Word template (port of Templates_Package/fill_template.py) ----
+const W_NS='http://schemas.openxmlformats.org/wordprocessingml/2006/main',XML_NS='http://www.w3.org/XML/1998/namespace';
+const labelFromKey=k=>{const o=/_OPT$/.test(k);const b=o?k.slice(0,-4):k;return b.replace(/_/g,' ')+(o?', IF ANY':'')};
+function docxTargets(zip){return Object.keys(zip.files).filter(f=>!zip.files[f].dir&&/^word\/.+\.xml$/.test(f)&&/document|header/.test(f))}
+
+async function docxFill(buf,values,{acceptClauses=false}={}){
+ const JSZip=require('jszip'),{DOMParser,XMLSerializer}=require('@xmldom/xmldom');
+ const zip=await JSZip.loadAsync(buf);
+ const l2k={};for(const k of Object.keys(values))l2k[labelFromKey(k)]=k;
+ const missing=new Set();let filled=0,clauses=0;
+ const q=t=>`{${W_NS}}${t}`;
+ for(const f of docxTargets(zip)){
+  const doc=new DOMParser().parseFromString(await zip.file(f).async('string'),'text/xml');
+  const del=[];
+  for(const p of Array.from(doc.getElementsByTagNameNS(W_NS,'p'))){
+   const runs=Array.from(p.childNodes).filter(n=>n.nodeType===1&&n.namespaceURI===W_NS&&n.localName==='r');
+   const rtext=r=>Array.from(r.getElementsByTagNameNS(W_NS,'t')).map(t=>t.textContent).join('');
+   const isHl=r=>{const rPr=Array.from(r.childNodes).find(n=>n.nodeType===1&&n.namespaceURI===W_NS&&n.localName==='rPr');return !!rPr&&!!Array.from(rPr.childNodes).find(n=>n.localName==='highlight')};
+   const unhl=r=>{const rPr=Array.from(r.childNodes).find(n=>n.nodeType===1&&n.namespaceURI===W_NS&&n.localName==='rPr');if(rPr)Array.from(rPr.childNodes).filter(n=>n.localName==='highlight').forEach(h=>rPr.removeChild(h))};
+   const inCell=p!==p.ownerElement&&(()=>{for(let a=p.parentNode;a&&a.nodeType===1;a=a.parentNode)if(a.namespaceURI===W_NS&&a.localName==='tc')return true;return false})();
+   for(let i=0;i<runs.length;i++){const r=runs[i];if(!isHl(r))continue;
+    const wrapped=0<i&&i<runs.length-1&&rtext(runs[i-1])==='['&&rtext(runs[i+1])===']';
+    const key=l2k[rtext(r)];
+    if(wrapped&&key){
+     const val=values[key];
+     if(val===undefined||val===null){missing.add(key);continue}
+     const v=String(val);filled++;
+     const ts=Array.from(r.getElementsByTagNameNS(W_NS,'t'));
+     if(!ts.length){const t=doc.createElementNS(W_NS,'w:t');r.appendChild(t);ts.push(t)}
+     ts[0].textContent=v;ts[0].setAttributeNS(XML_NS,'xml:space','preserve');
+     for(const extra of ts.slice(1))r.removeChild(extra);
+     unhl(r);
+     p.removeChild(runs[i-1]);p.removeChild(runs[i+1]);
+     if(v===''&&!/_OPT$/.test(key)&&!inCell)del.push(p)}
+    else if(!wrapped){if(acceptClauses)unhl(r);else clauses++}
+    else missing.add('?'+rtext(r))}
+  }
+  for(const p of del)if(p.parentNode)p.parentNode.removeChild(p);
+  zip.file(f,'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+new XMLSerializer().serializeToString(doc))}
+ const buffer=await zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'});
+ return{buffer,missing:[...missing],filled,clauses}}
+
+// Map the app context (client, case data, people) to the UPPER_SNAKE values a package template needs.
+function packageValues(ctx){
+ const v={};for(const [k,x] of Object.entries(ctx.values||{}))if(String(x??'').trim()!=='')v[k.toUpperCase()]=String(x);
+ const lists=ctx.lists||{},dirs=lists.directors||[],secs=lists.secretaries||[],mem=lists.shareholders&&lists.shareholders.length?lists.shareholders:dirs;
+ if(!v.CHAIRMAN_NAME&&dirs.length)v.CHAIRMAN_NAME=dirs[0].name;
+ if(!v.SECRETARY_NAME&&secs.length)v.SECRETARY_NAME=secs[0].name;
+ dirs.forEach((p,i)=>{const n=i+1;v['ATTENDEE_'+n+'_NAME']=p.name||'';if(!v['MEMBER_'+n+'_NAME'])v['MEMBER_'+n+'_NAME']=p.name||''});
+ mem.forEach((p,i)=>{const n=i+1;if(!v['MEMBER_'+n+'_NAME'])v['MEMBER_'+n+'_NAME']=p.name||''});
+ return v}
+
+// Convert an extracted .docx text back into a template body: [LABEL] -> {{key}}, using the label->key map of the package.
+function docxTextToBody(text,l2k){
+ return String(text||'').replace(/\[([A-Z][A-Z0-9 ]*(?:, IF ANY)?)\]/g,(m,l)=>{const k=l2k[l.trim()];return k?`{{${k.toLowerCase()}}}`:m}).replace(/\n{3,}/g,'\n\n').trim()}
+
 // ---- reading uploaded files (accepted documents used to create templates)
 async function extractText(buf,name='',mime=''){
  const ext=(String(name).split('.').pop()||'').toLowerCase();let text;
@@ -95,4 +151,4 @@ async function extractText(buf,name='',mime=''){
  if(text.length<20){const e=new Error('No readable text found in this file (scanned documents are not supported yet: paste the text instead).');e.status=400;throw e}
  return text.slice(0,60000)}
 
-module.exports={fields,render,gaps,applyGaps,reverse,buildContext,withhold,suggestScore,textToDocx,extractText,personScope,SENSITIVE_KEY,ROLE_LISTS};
+module.exports={fields,render,gaps,applyGaps,reverse,buildContext,withhold,suggestScore,textToDocx,extractText,personScope,SENSITIVE_KEY,ROLE_LISTS,labelFromKey,docxFill,docxTargets,packageValues,docxTextToBody};

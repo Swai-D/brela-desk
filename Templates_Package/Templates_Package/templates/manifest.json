@@ -1,0 +1,3311 @@
+{
+ "description": "Template manifest. Placeholders are shown in the documents as [HIGHLIGHTED LABEL] (label = key with spaces); clauses highlighted WITHOUT brackets are provisions to confirm (same convention as the senior Memorandum and Articles template). Values come from a data file (see fill_template.py). Keys ending _OPT may be left empty; other keys left empty delete their paragraph.",
+ "defaults": {
+  "ABSENT_NAMES": "None.",
+  "ABSENT_MEMBERS_WITH_SHARES": "None.",
+  "COMPANY_TYPE": "PRIVATE COMPANY LIMITED BY SHARES",
+  "ROLE_UPPER": "DIRECTOR",
+  "ROLE_LOWER": "director",
+  "SIGNING_DIRECTOR_ROLE": "Director",
+  "SIGNING_DIRECTOR_ROLE_BRACKETED": "(Director)",
+  "SHARE_TYPE": "Ordinary",
+  "SHARE_CLASS_IF_APPLICABLE": "Not applicable",
+  "PREMIUM_OR_DISCOUNT": "Not applicable",
+  "CONTINUATION_SHEETS": "0",
+  "SHARE_CLASS": "ORDINARY",
+  "FULL_MEMBERS_LIST_TICK_OPT": "X",
+  "ADDITIONAL_OR_REPLACEMENT": "additional directors",
+  "WAS_OR_WERE": "were",
+  "HAVE_OR_HAS": "have",
+  "RESIGNING_NOUN": "directors",
+  "NEW_DIRECTORS_NOUN": "directors",
+  "NEW_DIRECTORS_CONSENTS": "their signed written consents",
+  "SIGNATORY_TITLE": "Chairman of the Board of Directors",
+  "TABLE_A_PROVISION": "Article 1 of the Company’s Articles of Association",
+  "NEW_DIRECTOR_1_POSSESSIVE": "his",
+  "NEW_DIRECTOR_2_POSSESSIVE": "his",
+  "ALLOTTEE_1_CLASS": "Ordinary",
+  "ALLOTTEE_2_CLASS": "Ordinary",
+  "ALLOTTEE_3_CLASS": "Ordinary",
+  "ALLOTTEE_4_CLASS": "Ordinary",
+  "ITEM_4_NON_CASH_CONSIDERATION": "Not applicable",
+  "ITEM_5_BONUS_RESERVES": "Not applicable",
+  "ITEM_6_DEBT_RELEASED": "Not applicable",
+  "ITEM_7_LOAN_STOCK_CONVERTED": "Not applicable",
+  "ITEM_8A_PROPERTY_PARTICULARS": "Not applicable",
+  "ITEM_8B_PURCHASE_PRICE_MANNER": "Not applicable",
+  "ITEM_8_CASH_OR_BILLS": "Not applicable",
+  "ITEM_8_DEBENTURES": "Not applicable",
+  "ITEM_8_SHARES": "Not applicable",
+  "ITEM_8_LIABILITIES_ASSUMED": "Not applicable",
+  "ITEM_8_MORTGAGES": "Not applicable",
+  "ITEM_8_HIRE_PURCHASE": "Not applicable",
+  "ITEM_8_OTHER_LIABILITIES": "Not applicable",
+  "ITEM_8_ANY_OTHER_CONSIDERATION": "Not applicable"
+ },
+ "templates": [
+  {
+   "id": "T01",
+   "file": "T01_Members_Resolution_Appointment_of_Directors.docx",
+   "title": "Members' Resolution - Appointment of Directors",
+   "category": "Members' resolution",
+   "status": "Senior-approved house style (RAHU final set 1), tokenised. Dates/cross-references now linked to the resignation resolution",
+   "use_rules": "Appoint 1-2 directors BEFORE the resigning directors leave. Consents to act must be in hand. s.189: company must keep at least 2 directors.",
+   "clauses_to_confirm": [
+    "with effect from the time of receipt of that consent",
+    "with effect from the time of receipt of that consent"
+   ],
+   "placeholders": [
+    {
+     "key": "CHAIRMAN_NAME",
+     "label": "CHAIRMAN NAME",
+     "description": "Chairman of the Board / of the meeting (must also appear in the attendee list)",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_3_NAME",
+     "label": "MEMBER 3 NAME",
+     "description": "Member 3 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_4_NAME",
+     "label": "MEMBER 4 NAME",
+     "description": "Member 4 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_5_NAME",
+     "label": "MEMBER 5 NAME",
+     "description": "Member 5 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_6_NAME",
+     "label": "MEMBER 6 NAME",
+     "description": "Member 6 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_7_NAME",
+     "label": "MEMBER 7 NAME",
+     "description": "Member 7 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "NEW_DIRECTORS_NAMES",
+     "label": "NEW DIRECTORS NAMES",
+     "description": "Newly appointed director(s), joined with 'and'",
+     "example": "Ronald Baraka Shelukindo and Emmanuel Santa Chacha",
+     "optional": false
+    },
+    {
+     "key": "MEMBERS_MEETING_DATE",
+     "label": "MEMBERS MEETING DATE",
+     "description": "Date of the members' meeting appointing the directors (D Month YYYY)",
+     "example": "29 September 2026",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_NAMES",
+     "label": "ABSENT NAMES",
+     "description": "Directors/members absent, or 'None.'",
+     "example": "None.",
+     "optional": false,
+     "default": "None."
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "GM_NOTICE_PROVISION",
+     "label": "GM NOTICE PROVISION",
+     "description": "Article allowing a general meeting on shorter notice (use only if ALL members consented)",
+     "example": "Article 4(a) of the Company’s Articles of Association, which varies Regulation 40 of Table ‘A’ as applied by Article 1",
+     "optional": false
+    },
+    {
+     "key": "GM_QUORUM_WORD",
+     "label": "GM QUORUM WORD",
+     "description": "Members' quorum in words (from the Articles)",
+     "example": "two",
+     "optional": false
+    },
+    {
+     "key": "GM_QUORUM_PROVISION",
+     "label": "GM QUORUM PROVISION",
+     "description": "Article fixing members' quorum",
+     "example": "Article 4(b) of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "MEMBERS_MEETING_TIME",
+     "label": "MEMBERS MEETING TIME",
+     "description": "Time (24h, EAT)",
+     "example": "10:00",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_1_NAME",
+     "label": "MEMBER 1 NAME",
+     "description": "Member 1 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_1_SHARES",
+     "label": "MEMBER 1 SHARES",
+     "description": "Shares held by member 1 (number, with commas)",
+     "example": "5,000",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_2_NAME",
+     "label": "MEMBER 2 NAME",
+     "description": "Member 2 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_2_SHARES",
+     "label": "MEMBER 2 SHARES",
+     "description": "Shares held by member 2 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_3_SHARES",
+     "label": "MEMBER 3 SHARES",
+     "description": "Shares held by member 3 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_4_SHARES",
+     "label": "MEMBER 4 SHARES",
+     "description": "Shares held by member 4 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_5_SHARES",
+     "label": "MEMBER 5 SHARES",
+     "description": "Shares held by member 5 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_6_SHARES",
+     "label": "MEMBER 6 SHARES",
+     "description": "Shares held by member 6 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_7_SHARES",
+     "label": "MEMBER 7 SHARES",
+     "description": "Shares held by member 7 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_MEMBERS_WITH_SHARES",
+     "label": "ABSENT MEMBERS WITH SHARES",
+     "description": "Members absent with their shares, or 'None.'",
+     "example": "None.",
+     "optional": false,
+     "default": "None."
+    },
+    {
+     "key": "TABLE_A_PROVISION",
+     "label": "TABLE A PROVISION",
+     "description": "Article of the Company's Articles that adopts Table A of the Companies Act (confirm in the Articles; if Table A is not adopted the Regulation references in the resolutions must be revisited)",
+     "example": "Article 1 of the Company’s Articles of Association",
+     "optional": false,
+     "default": "Article 1 of the Company’s Articles of Association"
+    },
+    {
+     "key": "DIRECTORS_NUMBER_PROVISION",
+     "label": "DIRECTORS NUMBER PROVISION",
+     "description": "Article fixing min/max number of directors",
+     "example": "Article 5 of the Company’s Articles of Association (under which the number of directors shall be not less than one and not more than ten)",
+     "optional": false
+    },
+    {
+     "key": "EXISTING_DIRECTORS_NAMES",
+     "label": "EXISTING DIRECTORS NAMES",
+     "description": "Directors in office before the appointment",
+     "example": "Hussein Mzee Khatibu, Rahim Abubakar Ahmed and Kassimu Bakari Shemzigwa",
+     "optional": false
+    },
+    {
+     "key": "ADDITIONAL_OR_REPLACEMENT",
+     "label": "ADDITIONAL OR REPLACEMENT",
+     "description": "'additional directors' (appointed before resignations) / 'a replacement director'",
+     "example": "additional directors",
+     "optional": false,
+     "default": "additional directors"
+    },
+    {
+     "key": "NEW_DIRECTOR_1_NAME",
+     "label": "NEW DIRECTOR 1 NAME",
+     "description": "First new director (full name). \"\" deletes the paragraph",
+     "example": "Ronald Baraka Shelukindo",
+     "optional": false
+    },
+    {
+     "key": "NEW_DIRECTOR_1_POSSESSIVE",
+     "label": "NEW DIRECTOR 1 POSSESSIVE",
+     "description": "his / her / his or her",
+     "example": " his",
+     "optional": false,
+     "default": "his"
+    },
+    {
+     "key": "NEW_DIRECTOR_2_NAME",
+     "label": "NEW DIRECTOR 2 NAME",
+     "description": "Second new director. Use \"\" if only one",
+     "example": "Emmanuel Santa Chacha",
+     "optional": false
+    },
+    {
+     "key": "NEW_DIRECTOR_2_POSSESSIVE",
+     "label": "NEW DIRECTOR 2 POSSESSIVE",
+     "description": "his / her / his or her",
+     "example": "his",
+     "optional": false,
+     "default": "his"
+    },
+    {
+     "key": "RESIGNING_DIRECTORS_NAMES",
+     "label": "RESIGNING DIRECTORS NAMES",
+     "description": "Resigning director(s)",
+     "example": "Rahim Abubakar Ahmed and Kassimu Bakari Shemzigwa",
+     "optional": false
+    },
+    {
+     "key": "HAVE_OR_HAS",
+     "label": "HAVE OR HAS",
+     "description": "'have' (plural) / 'has' (one person)",
+     "example": "have",
+     "optional": false,
+     "default": "have"
+    },
+    {
+     "key": "RESIGNING_NOUN",
+     "label": "RESIGNING NOUN",
+     "description": "'directors' / 'a director'",
+     "example": "directors",
+     "optional": false,
+     "default": "directors"
+    },
+    {
+     "key": "RESIGNATION_MEETING_DATE",
+     "label": "RESIGNATION MEETING DATE",
+     "description": "Date of the directors' meeting accepting the resignation(s). Must be ON/AFTER the members' meeting and after the appointees' consents",
+     "example": "29 September 2026",
+     "optional": false
+    },
+    {
+     "key": "RESIGNATION_MEETING_TIME",
+     "label": "RESIGNATION MEETING TIME",
+     "description": "Time (24h, EAT)",
+     "example": "11:00",
+     "optional": false
+    },
+    {
+     "key": "APPOINTMENT_FILING_DEADLINE",
+     "label": "APPOINTMENT FILING DEADLINE",
+     "description": "Date appointments take effect + 14 days (s.213). Last day to lodge Form 213a",
+     "example": "13 October 2026",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "T02",
+   "file": "T02_Resolution_of_Directors_Resignation_of_Directors.docx",
+   "title": "Resolution of Directors - Resignation of Directors",
+   "category": "Directors' resolution",
+   "status": "Senior-approved house style (RAHU final set 2), tokenised",
+   "use_rules": "Held on/after the members' meeting. Resignations take effect only after the appointments. Lodge Form 213b within 14 days (s.213).",
+   "clauses_to_confirm": [
+    "to take effect at the conclusion of this meeting",
+    "to take effect at the conclusion of this meeting",
+    "each with effect from the conclusion of this meeting"
+   ],
+   "placeholders": [
+    {
+     "key": "ATTENDEE_1_NAME",
+     "label": "ATTENDEE 1 NAME",
+     "description": "Person 1 present at the directors' meeting. \"\" deletes the line",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_1_ROLE_OPT",
+     "label": "ATTENDEE 1 ROLE, IF ANY",
+     "description": "Role of person 1",
+     "example": "Chairman of the Board of Directors",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_2_NAME",
+     "label": "ATTENDEE 2 NAME",
+     "description": "Person 2 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_2_ROLE_OPT",
+     "label": "ATTENDEE 2 ROLE, IF ANY",
+     "description": "Role of person 2",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_3_NAME",
+     "label": "ATTENDEE 3 NAME",
+     "description": "Person 3 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_3_ROLE_OPT",
+     "label": "ATTENDEE 3 ROLE, IF ANY",
+     "description": "Role of person 3",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_4_NAME",
+     "label": "ATTENDEE 4 NAME",
+     "description": "Person 4 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_4_ROLE_OPT",
+     "label": "ATTENDEE 4 ROLE, IF ANY",
+     "description": "Role of person 4",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_5_NAME",
+     "label": "ATTENDEE 5 NAME",
+     "description": "Person 5 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_5_ROLE_OPT",
+     "label": "ATTENDEE 5 ROLE, IF ANY",
+     "description": "Role of person 5",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "RESIGNING_DIRECTORS_NAMES",
+     "label": "RESIGNING DIRECTORS NAMES",
+     "description": "Resigning director(s)",
+     "example": "Rahim Abubakar Ahmed and Kassimu Bakari Shemzigwa",
+     "optional": false
+    },
+    {
+     "key": "RESIGNATION_MEETING_DATE",
+     "label": "RESIGNATION MEETING DATE",
+     "description": "Date of the directors' meeting accepting the resignation(s). Must be ON/AFTER the members' meeting and after the appointees' consents",
+     "example": "29 September 2026",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_NAMES",
+     "label": "ABSENT NAMES",
+     "description": "Directors/members absent, or 'None.'",
+     "example": "None.",
+     "optional": false,
+     "default": "None."
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "BOARD_NOTICE_PROVISION",
+     "label": "BOARD NOTICE PROVISION",
+     "description": "Provision of the Articles / Table A governing notice of directors' meetings. Take from the company's Articles (Table A reg. 88 applies unless varied)",
+     "example": "Regulation 88 of Table ‘A’ in the Schedule to the Companies Act, Cap. 212, R.E. 2023 (“the Act”), as applied to the Company by Article 1 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_WORD",
+     "label": "BOARD QUORUM WORD",
+     "description": "Directors' quorum in words (from the Articles)",
+     "example": "two",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_PROVISION",
+     "label": "BOARD QUORUM PROVISION",
+     "description": "Article fixing directors' quorum",
+     "example": "Article 7 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "CHAIRMAN_NAME",
+     "label": "CHAIRMAN NAME",
+     "description": "Chairman of the Board / of the meeting (must also appear in the attendee list)",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "MEMBERS_MEETING_DATE",
+     "label": "MEMBERS MEETING DATE",
+     "description": "Date of the members' meeting appointing the directors (D Month YYYY)",
+     "example": "29 September 2026",
+     "optional": false
+    },
+    {
+     "key": "MEMBERS_MEETING_TIME",
+     "label": "MEMBERS MEETING TIME",
+     "description": "Time (24h, EAT)",
+     "example": "10:00",
+     "optional": false
+    },
+    {
+     "key": "NEW_DIRECTORS_NAMES",
+     "label": "NEW DIRECTORS NAMES",
+     "description": "Newly appointed director(s), joined with 'and'",
+     "example": "Ronald Baraka Shelukindo and Emmanuel Santa Chacha",
+     "optional": false
+    },
+    {
+     "key": "WAS_OR_WERE",
+     "label": "WAS OR WERE",
+     "description": "'were' for two or more people, 'was' for one",
+     "example": "were",
+     "optional": false,
+     "default": "were"
+    },
+    {
+     "key": "NEW_DIRECTORS_NOUN",
+     "label": "NEW DIRECTORS NOUN",
+     "description": "'directors' / 'a director'",
+     "example": "directors",
+     "optional": false,
+     "default": "directors"
+    },
+    {
+     "key": "NEW_DIRECTORS_CONSENTS",
+     "label": "NEW DIRECTORS CONSENTS",
+     "description": "'their signed written consents' / 'his or her signed written consent'",
+     "example": "their signed written consents",
+     "optional": false,
+     "default": "their signed written consents"
+    },
+    {
+     "key": "RESIGNING_1_NAME",
+     "label": "RESIGNING 1 NAME",
+     "description": "First resigning director",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    },
+    {
+     "key": "RESIGNING_1_NOTE_OPT",
+     "label": "RESIGNING 1 NOTE, IF ANY",
+     "description": "Optional sentence about what the person keeps (secretary / shares)",
+     "example": "He remains the Company Secretary and a member of the Company.",
+     "optional": true
+    },
+    {
+     "key": "RESIGNING_2_NAME",
+     "label": "RESIGNING 2 NAME",
+     "description": "Second resigning director. \"\" if only one",
+     "example": "Kassimu Bakari Shemzigwa",
+     "optional": false
+    },
+    {
+     "key": "RESIGNING_2_NOTE_OPT",
+     "label": "RESIGNING 2 NOTE, IF ANY",
+     "description": "Optional sentence",
+     "example": "He remains a member of the Company holding 100 ordinary shares.",
+     "optional": true
+    },
+    {
+     "key": "TABLE_A_PROVISION",
+     "label": "TABLE A PROVISION",
+     "description": "Article of the Company's Articles that adopts Table A of the Companies Act (confirm in the Articles; if Table A is not adopted the Regulation references in the resolutions must be revisited)",
+     "example": "Article 1 of the Company’s Articles of Association",
+     "optional": false,
+     "default": "Article 1 of the Company’s Articles of Association"
+    },
+    {
+     "key": "REMAINING_DIRECTORS_NAMES",
+     "label": "REMAINING DIRECTORS NAMES",
+     "description": "Directors after the resignations (must be at least 2 - s.189)",
+     "example": "Hussein Mzee Khatibu, Ronald Baraka Shelukindo and Emmanuel Santa Chacha",
+     "optional": false
+    },
+    {
+     "key": "RESIGNATION_MEETING_TIME",
+     "label": "RESIGNATION MEETING TIME",
+     "description": "Time (24h, EAT)",
+     "example": "11:00",
+     "optional": false
+    },
+    {
+     "key": "RESIGNATION_FILING_DEADLINE",
+     "label": "RESIGNATION FILING DEADLINE",
+     "description": "Resignation effective date + 14 days (s.213). Last day to lodge Form 213b",
+     "example": "13 October 2026",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "T03",
+   "file": "T03_Resolution_of_Directors_Call_on_Shares.docx",
+   "title": "Resolution of Directors - Call on Shares",
+   "category": "Directors' resolution",
+   "status": "Senior-approved house style (RAHU final set 3). Call stated as 'amount called' + per-share figure",
+   "use_rules": "Call per share max 1/4 of nominal value; due date at least 14 clear days after the notice (Table A reg. 14). Only possible if the shares are NOT fully paid.",
+   "clauses_to_confirm": [
+    "or into the Company bank account"
+   ],
+   "placeholders": [
+    {
+     "key": "ATTENDEE_1_NAME",
+     "label": "ATTENDEE 1 NAME",
+     "description": "Person 1 present at the directors' meeting. \"\" deletes the line",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_1_ROLE_OPT",
+     "label": "ATTENDEE 1 ROLE, IF ANY",
+     "description": "Role of person 1",
+     "example": "Chairman of the Board of Directors",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_2_NAME",
+     "label": "ATTENDEE 2 NAME",
+     "description": "Person 2 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_2_ROLE_OPT",
+     "label": "ATTENDEE 2 ROLE, IF ANY",
+     "description": "Role of person 2",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_3_NAME",
+     "label": "ATTENDEE 3 NAME",
+     "description": "Person 3 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_3_ROLE_OPT",
+     "label": "ATTENDEE 3 ROLE, IF ANY",
+     "description": "Role of person 3",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_4_NAME",
+     "label": "ATTENDEE 4 NAME",
+     "description": "Person 4 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_4_ROLE_OPT",
+     "label": "ATTENDEE 4 ROLE, IF ANY",
+     "description": "Role of person 4",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_5_NAME",
+     "label": "ATTENDEE 5 NAME",
+     "description": "Person 5 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_5_ROLE_OPT",
+     "label": "ATTENDEE 5 ROLE, IF ANY",
+     "description": "Role of person 5",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "CALL_RESOLUTION_DATE",
+     "label": "CALL RESOLUTION DATE",
+     "description": "Date of the directors' resolution making the call",
+     "example": "30 September 2026",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_NAMES",
+     "label": "ABSENT NAMES",
+     "description": "Directors/members absent, or 'None.'",
+     "example": "None.",
+     "optional": false,
+     "default": "None."
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "BOARD_NOTICE_PROVISION",
+     "label": "BOARD NOTICE PROVISION",
+     "description": "Provision of the Articles / Table A governing notice of directors' meetings. Take from the company's Articles (Table A reg. 88 applies unless varied)",
+     "example": "Regulation 88 of Table ‘A’ in the Schedule to the Companies Act, Cap. 212, R.E. 2023 (“the Act”), as applied to the Company by Article 1 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_WORD",
+     "label": "BOARD QUORUM WORD",
+     "description": "Directors' quorum in words (from the Articles)",
+     "example": "two",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_PROVISION",
+     "label": "BOARD QUORUM PROVISION",
+     "description": "Article fixing directors' quorum",
+     "example": "Article 7 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "CHAIRMAN_NAME",
+     "label": "CHAIRMAN NAME",
+     "description": "Chairman of the Board / of the meeting (must also appear in the attendee list)",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "CALL_RESOLUTION_TIME",
+     "label": "CALL RESOLUTION TIME",
+     "description": "Time (24h, EAT)",
+     "example": "10:00",
+     "optional": false
+    },
+    {
+     "key": "SHARES_NUMBER",
+     "label": "SHARES NUMBER",
+     "description": "Number of shares subject to the call / forfeiture (figures)",
+     "example": "2,000",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_NAME",
+     "label": "MEMBER NAME",
+     "description": "Member subject to the call / forfeiture",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    },
+    {
+     "key": "CALL_AMOUNT_WORDS",
+     "label": "CALL AMOUNT WORDS",
+     "description": "Total call amount in words",
+     "example": "two million and five hundred thousand",
+     "optional": false
+    },
+    {
+     "key": "CALL_AMOUNT",
+     "label": "CALL AMOUNT",
+     "description": "Total call amount in figures (max 1/4 of nominal value per share, Table A reg. 14)",
+     "example": "2,500,000",
+     "optional": false
+    },
+    {
+     "key": "CALL_PER_SHARE",
+     "label": "CALL PER SHARE",
+     "description": "Call per share with currency",
+     "example": "TZS 1,250",
+     "optional": false
+    },
+    {
+     "key": "CALL_DUE_DATE",
+     "label": "CALL DUE DATE",
+     "description": "Payment date for the call. MUST be at least 14 CLEAR days after the notice of call (Table A reg. 14)",
+     "example": "31 October 2026",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "T04",
+   "file": "T04_Notice_of_Call.docx",
+   "title": "Notice of Call",
+   "category": "Letter",
+   "status": "Senior-approved house style (RAHU final set, Notice of call)",
+   "use_rules": "Serve on the member with the call resolution date; due date must equal the one in T03.",
+   "clauses_to_confirm": [
+    "or into a bank account designated by the Company"
+   ],
+   "placeholders": [
+    {
+     "key": "SIGNATORY_NAME",
+     "label": "SIGNATORY NAME",
+     "description": "Signatory of the notice",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "SIGNATORY_TITLE",
+     "label": "SIGNATORY TITLE",
+     "description": "Signatory title",
+     "example": "Chairman of the Board of Directors",
+     "optional": false,
+     "default": "Chairman of the Board of Directors"
+    },
+    {
+     "key": "ADDRESSEE_NAME",
+     "label": "ADDRESSEE NAME",
+     "description": "Addressee of the notice",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    },
+    {
+     "key": "ADDRESSEE_ADDRESS_LINE_1",
+     "label": "ADDRESSEE ADDRESS LINE 1",
+     "description": "Addressee address line 1",
+     "example": "Chamazi, Temeke, Dar es Salaam,",
+     "optional": false
+    },
+    {
+     "key": "ADDRESSEE_ADDRESS_LINE_2",
+     "label": "ADDRESSEE ADDRESS LINE 2",
+     "description": "Addressee address line 2",
+     "example": "Tanzania",
+     "optional": false
+    },
+    {
+     "key": "NOTICE_DATE",
+     "label": "NOTICE DATE",
+     "description": "Date on the letter",
+     "example": "30 September 2026",
+     "optional": false
+    },
+    {
+     "key": "CALL_RESOLUTION_DATE",
+     "label": "CALL RESOLUTION DATE",
+     "description": "Date of the directors' resolution making the call",
+     "example": "30 September 2026",
+     "optional": false
+    },
+    {
+     "key": "SHARES_NUMBER_WORDS",
+     "label": "SHARES NUMBER WORDS",
+     "description": "Same number in words",
+     "example": "two thousand",
+     "optional": false
+    },
+    {
+     "key": "SHARES_NUMBER",
+     "label": "SHARES NUMBER",
+     "description": "Number of shares subject to the call / forfeiture (figures)",
+     "example": "2,000",
+     "optional": false
+    },
+    {
+     "key": "CALL_AMOUNT_WORDS",
+     "label": "CALL AMOUNT WORDS",
+     "description": "Total call amount in words",
+     "example": "two million and five hundred thousand",
+     "optional": false
+    },
+    {
+     "key": "CALL_AMOUNT",
+     "label": "CALL AMOUNT",
+     "description": "Total call amount in figures (max 1/4 of nominal value per share, Table A reg. 14)",
+     "example": "2,500,000",
+     "optional": false
+    },
+    {
+     "key": "CALL_DUE_DATE",
+     "label": "CALL DUE DATE",
+     "description": "Payment date for the call. MUST be at least 14 CLEAR days after the notice of call (Table A reg. 14)",
+     "example": "31 October 2026",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_ADDRESS_LINE_1",
+     "label": "COMPANY ADDRESS LINE 1",
+     "description": "Letterhead line 1 (area / district)",
+     "example": "Toangoma, Temeke",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_ADDRESS_LINE_2",
+     "label": "COMPANY ADDRESS LINE 2",
+     "description": "Letterhead line 2 (P.O. Box, city, country)",
+     "example": "P.O. Box 47, Dar es Salaam, Tanzania",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "T05",
+   "file": "T05_Notice_Requiring_Payment_Reg29.docx",
+   "title": "Notice Requiring Payment (Reg. 29) - recommended step",
+   "category": "Letter",
+   "status": "DRAFTED by AI - NOT in the senior-approved set; pending senior review",
+   "use_rules": "Table A reg. 29: at least 14 clear days' notice warning of forfeiture before shares can be forfeited. Skip only if the senior confirms it is not needed.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "REG29_NOTICE_DATE",
+     "label": "REG29 NOTICE DATE",
+     "description": "Date of the Reg. 29 notice requiring payment (after the call due date has passed). Leave \"\" if the Reg. 29 step is NOT used",
+     "example": "2 November 2026",
+     "optional": false
+    },
+    {
+     "key": "CALL_AMOUNT_WORDS",
+     "label": "CALL AMOUNT WORDS",
+     "description": "Total call amount in words",
+     "example": "two million and five hundred thousand",
+     "optional": false
+    },
+    {
+     "key": "CALL_AMOUNT",
+     "label": "CALL AMOUNT",
+     "description": "Total call amount in figures (max 1/4 of nominal value per share, Table A reg. 14)",
+     "example": "2,500,000",
+     "optional": false
+    },
+    {
+     "key": "SHARES_NUMBER_WORDS",
+     "label": "SHARES NUMBER WORDS",
+     "description": "Same number in words",
+     "example": "two thousand",
+     "optional": false
+    },
+    {
+     "key": "SHARES_NUMBER",
+     "label": "SHARES NUMBER",
+     "description": "Number of shares subject to the call / forfeiture (figures)",
+     "example": "2,000",
+     "optional": false
+    },
+    {
+     "key": "CALL_RESOLUTION_DATE",
+     "label": "CALL RESOLUTION DATE",
+     "description": "Date of the directors' resolution making the call",
+     "example": "30 September 2026",
+     "optional": false
+    },
+    {
+     "key": "NOTICE_OF_CALL_DATE",
+     "label": "NOTICE OF CALL DATE",
+     "description": "Date the Notice of Call was served (normally = call resolution date)",
+     "example": "30 September 2026",
+     "optional": false
+    },
+    {
+     "key": "CALL_DUE_DATE",
+     "label": "CALL DUE DATE",
+     "description": "Payment date for the call. MUST be at least 14 CLEAR days after the notice of call (Table A reg. 14)",
+     "example": "31 October 2026",
+     "optional": false
+    },
+    {
+     "key": "REG29_EXPIRY_DATE",
+     "label": "REG29 EXPIRY DATE",
+     "description": "Date by which payment is required: at least 14 CLEAR days after the Reg. 29 notice. Leave \"\" if not used",
+     "example": "17 November 2026",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_ADDRESS_LINE_1",
+     "label": "COMPANY ADDRESS LINE 1",
+     "description": "Letterhead line 1 (area / district)",
+     "example": "Toangoma, Temeke",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_ADDRESS_LINE_2",
+     "label": "COMPANY ADDRESS LINE 2",
+     "description": "Letterhead line 2 (P.O. Box, city, country)",
+     "example": "P.O. Box 47, Dar es Salaam, Tanzania",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "T06A",
+   "file": "T06A_Resolution_of_Directors_Forfeiture_Reallotment_to_Follow.docx",
+   "title": "Resolution of Directors - Forfeiture (re-allotment to follow)",
+   "category": "Directors' resolution",
+   "status": "Senior-approved house style (RAHU final set 4); optional Reg. 29 recital added",
+   "use_rules": "Forfeiture date must be AFTER the last payment deadline. Use REG29_* = \"\" if no Reg. 29 notice.",
+   "clauses_to_confirm": [
+    "re-allotted or otherwise disposed of"
+   ],
+   "placeholders": [
+    {
+     "key": "ATTENDEE_1_NAME",
+     "label": "ATTENDEE 1 NAME",
+     "description": "Person 1 present at the directors' meeting. \"\" deletes the line",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_1_ROLE_OPT",
+     "label": "ATTENDEE 1 ROLE, IF ANY",
+     "description": "Role of person 1",
+     "example": "Chairman of the Board of Directors",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_2_NAME",
+     "label": "ATTENDEE 2 NAME",
+     "description": "Person 2 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_2_ROLE_OPT",
+     "label": "ATTENDEE 2 ROLE, IF ANY",
+     "description": "Role of person 2",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_3_NAME",
+     "label": "ATTENDEE 3 NAME",
+     "description": "Person 3 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_3_ROLE_OPT",
+     "label": "ATTENDEE 3 ROLE, IF ANY",
+     "description": "Role of person 3",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_4_NAME",
+     "label": "ATTENDEE 4 NAME",
+     "description": "Person 4 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_4_ROLE_OPT",
+     "label": "ATTENDEE 4 ROLE, IF ANY",
+     "description": "Role of person 4",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_5_NAME",
+     "label": "ATTENDEE 5 NAME",
+     "description": "Person 5 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_5_ROLE_OPT",
+     "label": "ATTENDEE 5 ROLE, IF ANY",
+     "description": "Role of person 5",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "FORFEITURE_DATE",
+     "label": "FORFEITURE DATE",
+     "description": "Date of the forfeiture resolution: AFTER LAST_PAYMENT_DEADLINE",
+     "example": "18 November 2026",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_NAMES",
+     "label": "ABSENT NAMES",
+     "description": "Directors/members absent, or 'None.'",
+     "example": "None.",
+     "optional": false,
+     "default": "None."
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "BOARD_NOTICE_PROVISION",
+     "label": "BOARD NOTICE PROVISION",
+     "description": "Provision of the Articles / Table A governing notice of directors' meetings. Take from the company's Articles (Table A reg. 88 applies unless varied)",
+     "example": "Regulation 88 of Table ‘A’ in the Schedule to the Companies Act, Cap. 212, R.E. 2023 (“the Act”), as applied to the Company by Article 1 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_WORD",
+     "label": "BOARD QUORUM WORD",
+     "description": "Directors' quorum in words (from the Articles)",
+     "example": "two",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_PROVISION",
+     "label": "BOARD QUORUM PROVISION",
+     "description": "Article fixing directors' quorum",
+     "example": "Article 7 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "CHAIRMAN_NAME",
+     "label": "CHAIRMAN NAME",
+     "description": "Chairman of the Board / of the meeting (must also appear in the attendee list)",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "CALL_RESOLUTION_DATE",
+     "label": "CALL RESOLUTION DATE",
+     "description": "Date of the directors' resolution making the call",
+     "example": "30 September 2026",
+     "optional": false
+    },
+    {
+     "key": "SHARES_NUMBER",
+     "label": "SHARES NUMBER",
+     "description": "Number of shares subject to the call / forfeiture (figures)",
+     "example": "2,000",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_NAME",
+     "label": "MEMBER NAME",
+     "description": "Member subject to the call / forfeiture",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    },
+    {
+     "key": "CALL_DUE_DATE",
+     "label": "CALL DUE DATE",
+     "description": "Payment date for the call. MUST be at least 14 CLEAR days after the notice of call (Table A reg. 14)",
+     "example": "31 October 2026",
+     "optional": false
+    },
+    {
+     "key": "NOTICE_OF_CALL_DATE",
+     "label": "NOTICE OF CALL DATE",
+     "description": "Date the Notice of Call was served (normally = call resolution date)",
+     "example": "30 September 2026",
+     "optional": false
+    },
+    {
+     "key": "REG29_NOTICE_DATE",
+     "label": "REG29 NOTICE DATE",
+     "description": "Date of the Reg. 29 notice requiring payment (after the call due date has passed). Leave \"\" if the Reg. 29 step is NOT used",
+     "example": "2 November 2026",
+     "optional": false
+    },
+    {
+     "key": "REG29_EXPIRY_DATE",
+     "label": "REG29 EXPIRY DATE",
+     "description": "Date by which payment is required: at least 14 CLEAR days after the Reg. 29 notice. Leave \"\" if not used",
+     "example": "17 November 2026",
+     "optional": false
+    },
+    {
+     "key": "LAST_PAYMENT_DEADLINE",
+     "label": "LAST PAYMENT DEADLINE",
+     "description": "Last payment deadline given to the member = CALL_DUE_DATE, or REG29_EXPIRY_DATE when Reg. 29 is used",
+     "example": "17 November 2026",
+     "optional": false
+    },
+    {
+     "key": "TABLE_A_PROVISION",
+     "label": "TABLE A PROVISION",
+     "description": "Article of the Company's Articles that adopts Table A of the Companies Act (confirm in the Articles; if Table A is not adopted the Regulation references in the resolutions must be revisited)",
+     "example": "Article 1 of the Company’s Articles of Association",
+     "optional": false,
+     "default": "Article 1 of the Company’s Articles of Association"
+    },
+    {
+     "key": "FORFEITURE_TIME",
+     "label": "FORFEITURE TIME",
+     "description": "Time (24h, EAT)",
+     "example": "10:00",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "T06B",
+   "file": "T06B_Resolution_of_Directors_Forfeiture_Shares_Remain_Unissued.docx",
+   "title": "Resolution of Directors - Forfeiture (shares remain unissued)",
+   "category": "Directors' resolution",
+   "status": "Variant of T06A drafted by AI (DAR-LYON case) - pending senior review",
+   "use_rules": "Use when forfeited shares are NOT re-allotted: they revert to unissued authorised capital.",
+   "clauses_to_confirm": [
+    "shall not be allotted, sold or otherwise disposed of to any person; they shall be treated as unissued shares forming part of the Company’s authorised share capital, available for allotment only by a further resolution of the Board"
+   ],
+   "placeholders": [
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "FORFEITURE_DATE",
+     "label": "FORFEITURE DATE",
+     "description": "Date of the forfeiture resolution: AFTER LAST_PAYMENT_DEADLINE",
+     "example": "18 November 2026",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_NAMES",
+     "label": "ABSENT NAMES",
+     "description": "Directors/members absent, or 'None.'",
+     "example": "None.",
+     "optional": false,
+     "default": "None."
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "BOARD_NOTICE_PROVISION",
+     "label": "BOARD NOTICE PROVISION",
+     "description": "Provision of the Articles / Table A governing notice of directors' meetings. Take from the company's Articles (Table A reg. 88 applies unless varied)",
+     "example": "Regulation 88 of Table ‘A’ in the Schedule to the Companies Act, Cap. 212, R.E. 2023 (“the Act”), as applied to the Company by Article 1 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_WORD",
+     "label": "BOARD QUORUM WORD",
+     "description": "Directors' quorum in words (from the Articles)",
+     "example": "two",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_PROVISION",
+     "label": "BOARD QUORUM PROVISION",
+     "description": "Article fixing directors' quorum",
+     "example": "Article 7 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "CHAIRMAN_NAME",
+     "label": "CHAIRMAN NAME",
+     "description": "Chairman of the Board / of the meeting (must also appear in the attendee list)",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "CALL_RESOLUTION_DATE",
+     "label": "CALL RESOLUTION DATE",
+     "description": "Date of the directors' resolution making the call",
+     "example": "30 September 2026",
+     "optional": false
+    },
+    {
+     "key": "SHARES_NUMBER",
+     "label": "SHARES NUMBER",
+     "description": "Number of shares subject to the call / forfeiture (figures)",
+     "example": "2,000",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_NAME",
+     "label": "MEMBER NAME",
+     "description": "Member subject to the call / forfeiture",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    },
+    {
+     "key": "CALL_DUE_DATE",
+     "label": "CALL DUE DATE",
+     "description": "Payment date for the call. MUST be at least 14 CLEAR days after the notice of call (Table A reg. 14)",
+     "example": "31 October 2026",
+     "optional": false
+    },
+    {
+     "key": "NOTICE_OF_CALL_DATE",
+     "label": "NOTICE OF CALL DATE",
+     "description": "Date the Notice of Call was served (normally = call resolution date)",
+     "example": "30 September 2026",
+     "optional": false
+    },
+    {
+     "key": "REG29_NOTICE_DATE",
+     "label": "REG29 NOTICE DATE",
+     "description": "Date of the Reg. 29 notice requiring payment (after the call due date has passed). Leave \"\" if the Reg. 29 step is NOT used",
+     "example": "2 November 2026",
+     "optional": false
+    },
+    {
+     "key": "REG29_EXPIRY_DATE",
+     "label": "REG29 EXPIRY DATE",
+     "description": "Date by which payment is required: at least 14 CLEAR days after the Reg. 29 notice. Leave \"\" if not used",
+     "example": "17 November 2026",
+     "optional": false
+    },
+    {
+     "key": "LAST_PAYMENT_DEADLINE",
+     "label": "LAST PAYMENT DEADLINE",
+     "description": "Last payment deadline given to the member = CALL_DUE_DATE, or REG29_EXPIRY_DATE when Reg. 29 is used",
+     "example": "17 November 2026",
+     "optional": false
+    },
+    {
+     "key": "TABLE_A_PROVISION",
+     "label": "TABLE A PROVISION",
+     "description": "Article of the Company's Articles that adopts Table A of the Companies Act (confirm in the Articles; if Table A is not adopted the Regulation references in the resolutions must be revisited)",
+     "example": "Article 1 of the Company’s Articles of Association",
+     "optional": false,
+     "default": "Article 1 of the Company’s Articles of Association"
+    },
+    {
+     "key": "FORFEITURE_TIME",
+     "label": "FORFEITURE TIME",
+     "description": "Time (24h, EAT)",
+     "example": "10:00",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "T07A",
+   "file": "T07A_Resolution_of_Directors_Allotment_Other_Than_Cash.docx",
+   "title": "Resolution of Directors - Allotment (consideration other than cash)",
+   "category": "Directors' resolution",
+   "status": "Senior-approved house style (RAHU final set 5); typos fixed; forfeited-shares recital added",
+   "use_rules": "Needs Form 57a + Form 57b (F03, F04). Return of allotment within 60 days (s.57).",
+   "clauses_to_confirm": [
+    "at nominal value",
+    "at nominal value",
+    "at nominal value",
+    "at nominal value"
+   ],
+   "placeholders": [
+    {
+     "key": "ATTENDEE_1_NAME",
+     "label": "ATTENDEE 1 NAME",
+     "description": "Person 1 present at the directors' meeting. \"\" deletes the line",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_1_ROLE_OPT",
+     "label": "ATTENDEE 1 ROLE, IF ANY",
+     "description": "Role of person 1",
+     "example": "Chairman of the Board of Directors",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_2_NAME",
+     "label": "ATTENDEE 2 NAME",
+     "description": "Person 2 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_2_ROLE_OPT",
+     "label": "ATTENDEE 2 ROLE, IF ANY",
+     "description": "Role of person 2",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_3_NAME",
+     "label": "ATTENDEE 3 NAME",
+     "description": "Person 3 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_3_ROLE_OPT",
+     "label": "ATTENDEE 3 ROLE, IF ANY",
+     "description": "Role of person 3",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_4_NAME",
+     "label": "ATTENDEE 4 NAME",
+     "description": "Person 4 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_4_ROLE_OPT",
+     "label": "ATTENDEE 4 ROLE, IF ANY",
+     "description": "Role of person 4",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_5_NAME",
+     "label": "ATTENDEE 5 NAME",
+     "description": "Person 5 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_5_ROLE_OPT",
+     "label": "ATTENDEE 5 ROLE, IF ANY",
+     "description": "Role of person 5",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "ALLOTMENT_DATE",
+     "label": "ALLOTMENT DATE",
+     "description": "Date of the allotment resolution: ON/AFTER the forfeiture date",
+     "example": "18 November 2026",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_NAMES",
+     "label": "ABSENT NAMES",
+     "description": "Directors/members absent, or 'None.'",
+     "example": "None.",
+     "optional": false,
+     "default": "None."
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "BOARD_NOTICE_PROVISION",
+     "label": "BOARD NOTICE PROVISION",
+     "description": "Provision of the Articles / Table A governing notice of directors' meetings. Take from the company's Articles (Table A reg. 88 applies unless varied)",
+     "example": "Regulation 88 of Table ‘A’ in the Schedule to the Companies Act, Cap. 212, R.E. 2023 (“the Act”), as applied to the Company by Article 1 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_WORD",
+     "label": "BOARD QUORUM WORD",
+     "description": "Directors' quorum in words (from the Articles)",
+     "example": "two",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_PROVISION",
+     "label": "BOARD QUORUM PROVISION",
+     "description": "Article fixing directors' quorum",
+     "example": "Article 7 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "CHAIRMAN_NAME",
+     "label": "CHAIRMAN NAME",
+     "description": "Chairman of the Board / of the meeting (must also appear in the attendee list)",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "FORFEITURE_DATE",
+     "label": "FORFEITURE DATE",
+     "description": "Date of the forfeiture resolution: AFTER LAST_PAYMENT_DEADLINE",
+     "example": "18 November 2026",
+     "optional": false
+    },
+    {
+     "key": "FORFEITED_SHARES_NUMBER",
+     "label": "FORFEITED SHARES NUMBER",
+     "description": "Number of shares forfeited / available to re-allot",
+     "example": "2,000",
+     "optional": false
+    },
+    {
+     "key": "FORMER_MEMBER_NAME",
+     "label": "FORMER MEMBER NAME",
+     "description": "Member whose shares were forfeited (allotment recital)",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    },
+    {
+     "key": "TABLE_A_PROVISION",
+     "label": "TABLE A PROVISION",
+     "description": "Article of the Company's Articles that adopts Table A of the Companies Act (confirm in the Articles; if Table A is not adopted the Regulation references in the resolutions must be revisited)",
+     "example": "Article 1 of the Company’s Articles of Association",
+     "optional": false,
+     "default": "Article 1 of the Company’s Articles of Association"
+    },
+    {
+     "key": "ALLOTMENT_TIME",
+     "label": "ALLOTMENT TIME",
+     "description": "Time (24h, EAT)",
+     "example": "11:00",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_1_SHARES",
+     "label": "ALLOTTEE 1 SHARES",
+     "description": "Shares allotted to allottee 1",
+     "example": "500",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_1_NAME",
+     "label": "ALLOTTEE 1 NAME",
+     "description": "Allottee 1 full name. \"\" deletes the paragraph (resolutions) / blanks the block (forms)",
+     "example": "Ronald Baraka Shelukindo",
+     "optional": false
+    },
+    {
+     "key": "CONSIDERATION_DESCRIPTION",
+     "label": "CONSIDERATION DESCRIPTION",
+     "description": "(non-cash allotment) the consideration, e.g. services rendered or to be rendered",
+     "example": "services rendered or to be rendered to the Company, including management, business development and customer relationship management",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_2_SHARES",
+     "label": "ALLOTTEE 2 SHARES",
+     "description": "Shares allotted to allottee 2",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_2_NAME",
+     "label": "ALLOTTEE 2 NAME",
+     "description": "Allottee 2 full name. \"\" deletes the paragraph (resolutions) / blanks the block (forms)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_3_SHARES",
+     "label": "ALLOTTEE 3 SHARES",
+     "description": "Shares allotted to allottee 3",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_3_NAME",
+     "label": "ALLOTTEE 3 NAME",
+     "description": "Allottee 3 full name. \"\" deletes the paragraph (resolutions) / blanks the block (forms)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_4_SHARES",
+     "label": "ALLOTTEE 4 SHARES",
+     "description": "Shares allotted to allottee 4",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_4_NAME",
+     "label": "ALLOTTEE 4 NAME",
+     "description": "Allottee 4 full name. \"\" deletes the paragraph (resolutions) / blanks the block (forms)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "T07B",
+   "file": "T07B_Resolution_of_Directors_Allotment_Cash.docx",
+   "title": "Resolution of Directors - Allotment (cash)",
+   "category": "Directors' resolution",
+   "status": "Cash variant drafted by AI - pending senior review",
+   "use_rules": "Needs Form 57a (F03). 57b not required. Share certificates within 60 days (s.84).",
+   "clauses_to_confirm": [
+    "at nominal value",
+    "at nominal value",
+    "at nominal value",
+    "at nominal value"
+   ],
+   "placeholders": [
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "ALLOTMENT_DATE",
+     "label": "ALLOTMENT DATE",
+     "description": "Date of the allotment resolution: ON/AFTER the forfeiture date",
+     "example": "18 November 2026",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_NAMES",
+     "label": "ABSENT NAMES",
+     "description": "Directors/members absent, or 'None.'",
+     "example": "None.",
+     "optional": false,
+     "default": "None."
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "BOARD_NOTICE_PROVISION",
+     "label": "BOARD NOTICE PROVISION",
+     "description": "Provision of the Articles / Table A governing notice of directors' meetings. Take from the company's Articles (Table A reg. 88 applies unless varied)",
+     "example": "Regulation 88 of Table ‘A’ in the Schedule to the Companies Act, Cap. 212, R.E. 2023 (“the Act”), as applied to the Company by Article 1 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_WORD",
+     "label": "BOARD QUORUM WORD",
+     "description": "Directors' quorum in words (from the Articles)",
+     "example": "two",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_PROVISION",
+     "label": "BOARD QUORUM PROVISION",
+     "description": "Article fixing directors' quorum",
+     "example": "Article 7 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "CHAIRMAN_NAME",
+     "label": "CHAIRMAN NAME",
+     "description": "Chairman of the Board / of the meeting (must also appear in the attendee list)",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "FORFEITURE_DATE",
+     "label": "FORFEITURE DATE",
+     "description": "Date of the forfeiture resolution: AFTER LAST_PAYMENT_DEADLINE",
+     "example": "18 November 2026",
+     "optional": false
+    },
+    {
+     "key": "FORFEITED_SHARES_NUMBER",
+     "label": "FORFEITED SHARES NUMBER",
+     "description": "Number of shares forfeited / available to re-allot",
+     "example": "2,000",
+     "optional": false
+    },
+    {
+     "key": "FORMER_MEMBER_NAME",
+     "label": "FORMER MEMBER NAME",
+     "description": "Member whose shares were forfeited (allotment recital)",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    },
+    {
+     "key": "TABLE_A_PROVISION",
+     "label": "TABLE A PROVISION",
+     "description": "Article of the Company's Articles that adopts Table A of the Companies Act (confirm in the Articles; if Table A is not adopted the Regulation references in the resolutions must be revisited)",
+     "example": "Article 1 of the Company’s Articles of Association",
+     "optional": false,
+     "default": "Article 1 of the Company’s Articles of Association"
+    },
+    {
+     "key": "ALLOTMENT_TIME",
+     "label": "ALLOTMENT TIME",
+     "description": "Time (24h, EAT)",
+     "example": "11:00",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_1_SHARES",
+     "label": "ALLOTTEE 1 SHARES",
+     "description": "Shares allotted to allottee 1",
+     "example": "500",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_1_NAME",
+     "label": "ALLOTTEE 1 NAME",
+     "description": "Allottee 1 full name. \"\" deletes the paragraph (resolutions) / blanks the block (forms)",
+     "example": "Ronald Baraka Shelukindo",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_1_AMOUNT",
+     "label": "ALLOTTEE 1 AMOUNT",
+     "description": "(cash allotment) price payable by allottee 1, with currency",
+     "example": "TZS 2,500,000",
+     "optional": false
+    },
+    {
+     "key": "PAYMENT_DATE",
+     "label": "PAYMENT DATE",
+     "description": "(cash allotment) date by which the allottees must pay in full",
+     "example": "2 December 2026",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_2_SHARES",
+     "label": "ALLOTTEE 2 SHARES",
+     "description": "Shares allotted to allottee 2",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_2_NAME",
+     "label": "ALLOTTEE 2 NAME",
+     "description": "Allottee 2 full name. \"\" deletes the paragraph (resolutions) / blanks the block (forms)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_2_AMOUNT",
+     "label": "ALLOTTEE 2 AMOUNT",
+     "description": "(cash allotment) price payable by allottee 2, with currency",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_3_SHARES",
+     "label": "ALLOTTEE 3 SHARES",
+     "description": "Shares allotted to allottee 3",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_3_NAME",
+     "label": "ALLOTTEE 3 NAME",
+     "description": "Allottee 3 full name. \"\" deletes the paragraph (resolutions) / blanks the block (forms)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_3_AMOUNT",
+     "label": "ALLOTTEE 3 AMOUNT",
+     "description": "(cash allotment) price payable by allottee 3, with currency",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_4_SHARES",
+     "label": "ALLOTTEE 4 SHARES",
+     "description": "Shares allotted to allottee 4",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_4_NAME",
+     "label": "ALLOTTEE 4 NAME",
+     "description": "Allottee 4 full name. \"\" deletes the paragraph (resolutions) / blanks the block (forms)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_4_AMOUNT",
+     "label": "ALLOTTEE 4 AMOUNT",
+     "description": "(cash allotment) price payable by allottee 4, with currency",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "T08",
+   "file": "T08_Members_Resolution_Relaxation_of_Regulation_95.docx",
+   "title": "Members' Resolution - Relaxation of Regulation 95",
+   "category": "Members' resolution",
+   "status": "DRAFTED by AI - NOT in the senior-approved set; pending senior review",
+   "use_rules": "Only when every director is an interested allottee (Table A regs. 95-97). Must precede the allotment resolution.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "CHAIRMAN_NAME",
+     "label": "CHAIRMAN NAME",
+     "description": "Chairman of the Board / of the meeting (must also appear in the attendee list)",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_3_NAME",
+     "label": "MEMBER 3 NAME",
+     "description": "Member 3 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_4_NAME",
+     "label": "MEMBER 4 NAME",
+     "description": "Member 4 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_5_NAME",
+     "label": "MEMBER 5 NAME",
+     "description": "Member 5 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_6_NAME",
+     "label": "MEMBER 6 NAME",
+     "description": "Member 6 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_7_NAME",
+     "label": "MEMBER 7 NAME",
+     "description": "Member 7 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "RELAXATION_MEETING_DATE",
+     "label": "RELAXATION MEETING DATE",
+     "description": "Date of members' meeting relaxing Reg. 95 (BEFORE the allotment resolution)",
+     "example": "18 November 2026",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_NAMES",
+     "label": "ABSENT NAMES",
+     "description": "Directors/members absent, or 'None.'",
+     "example": "None.",
+     "optional": false,
+     "default": "None."
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "GM_NOTICE_PROVISION",
+     "label": "GM NOTICE PROVISION",
+     "description": "Article allowing a general meeting on shorter notice (use only if ALL members consented)",
+     "example": "Article 4(a) of the Company’s Articles of Association, which varies Regulation 40 of Table ‘A’ as applied by Article 1",
+     "optional": false
+    },
+    {
+     "key": "GM_QUORUM_WORD",
+     "label": "GM QUORUM WORD",
+     "description": "Members' quorum in words (from the Articles)",
+     "example": "two",
+     "optional": false
+    },
+    {
+     "key": "GM_QUORUM_PROVISION",
+     "label": "GM QUORUM PROVISION",
+     "description": "Article fixing members' quorum",
+     "example": "Article 4(b) of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "RELAXATION_MEETING_TIME",
+     "label": "RELAXATION MEETING TIME",
+     "description": "Time (24h, EAT)",
+     "example": "10:30",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_1_NAME",
+     "label": "MEMBER 1 NAME",
+     "description": "Member 1 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_1_SHARES",
+     "label": "MEMBER 1 SHARES",
+     "description": "Shares held by member 1 (number, with commas)",
+     "example": "5,000",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_2_NAME",
+     "label": "MEMBER 2 NAME",
+     "description": "Member 2 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_2_SHARES",
+     "label": "MEMBER 2 SHARES",
+     "description": "Shares held by member 2 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_3_SHARES",
+     "label": "MEMBER 3 SHARES",
+     "description": "Shares held by member 3 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_4_SHARES",
+     "label": "MEMBER 4 SHARES",
+     "description": "Shares held by member 4 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_5_SHARES",
+     "label": "MEMBER 5 SHARES",
+     "description": "Shares held by member 5 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_6_SHARES",
+     "label": "MEMBER 6 SHARES",
+     "description": "Shares held by member 6 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_7_SHARES",
+     "label": "MEMBER 7 SHARES",
+     "description": "Shares held by member 7 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_MEMBERS_WITH_SHARES",
+     "label": "ABSENT MEMBERS WITH SHARES",
+     "description": "Members absent with their shares, or 'None.'",
+     "example": "None.",
+     "optional": false,
+     "default": "None."
+    },
+    {
+     "key": "FORFEITED_SHARES_NUMBER",
+     "label": "FORFEITED SHARES NUMBER",
+     "description": "Number of shares forfeited / available to re-allot",
+     "example": "2,000",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEES_NAMES_AND_SHARES",
+     "label": "ALLOTTEES NAMES AND SHARES",
+     "description": "(Reg. 95 relaxation) allottees and their shares",
+     "example": "Hussein Mzee Khatibu (1,000 shares), Ronald Baraka Shelukindo (500 shares) and Emmanuel Santa Chacha (500 shares)",
+     "optional": false
+    },
+    {
+     "key": "TABLE_A_PROVISION",
+     "label": "TABLE A PROVISION",
+     "description": "Article of the Company's Articles that adopts Table A of the Companies Act (confirm in the Articles; if Table A is not adopted the Regulation references in the resolutions must be revisited)",
+     "example": "Article 1 of the Company’s Articles of Association",
+     "optional": false,
+     "default": "Article 1 of the Company’s Articles of Association"
+    }
+   ]
+  },
+  {
+   "id": "F01",
+   "file": "F01_Form_213a_Appointment_of_Director_or_Secretary.docx",
+   "title": "Form 213a - Appointment of Director or Secretary",
+   "category": "BRELA form",
+   "status": "Senior-approved format (RAHU final set), BRELA template",
+   "use_rules": "One form per appointee. Date of appointment = date consent received. Lodge within 14 days.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_1",
+     "label": "COMPANY NAME LINE 1",
+     "description": "BRELA forms: company name, first line (box 1)",
+     "example": "RAHU MULTISERVICES",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_2",
+     "label": "COMPANY NAME LINE 2",
+     "description": "BRELA forms: company name, second line (box 2)",
+     "example": "COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "APPOINTMENT_DATE",
+     "label": "APPOINTMENT DATE",
+     "description": "Form 213a date of appointment (CAPITALS) = date the written consent to act was received",
+     "example": "29 SEPTEMBER 2026",
+     "optional": false
+    },
+    {
+     "key": "ROLE_UPPER",
+     "label": "ROLE UPPER",
+     "description": "DIRECTOR or SECRETARY",
+     "example": "DIRECTOR",
+     "optional": false,
+     "default": "DIRECTOR"
+    },
+    {
+     "key": "FIRST_NAMES",
+     "label": "FIRST NAMES",
+     "description": "All first names incl. middle names, CAPITALS",
+     "example": "RONALD BARAKA",
+     "optional": false
+    },
+    {
+     "key": "SURNAME",
+     "label": "SURNAME",
+     "description": "Surname, CAPITALS",
+     "example": "SHELUKINDO",
+     "optional": false
+    },
+    {
+     "key": "PREVIOUS_NAMES_OPT",
+     "label": "PREVIOUS NAMES, IF ANY",
+     "description": "Previous names, or \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "ADDRESS_LINE_1",
+     "label": "ADDRESS LINE 1",
+     "description": "Usual residential address line 1 (CAPITALS)",
+     "example": "PLOT NO. 119, PEACOCK STREET, SALASALA,",
+     "optional": false
+    },
+    {
+     "key": "ADDRESS_LINE_2",
+     "label": "ADDRESS LINE 2",
+     "description": "Address line 2",
+     "example": "KINONDONI DISTRICT, DAR ES SALAAM,",
+     "optional": false
+    },
+    {
+     "key": "ADDRESS_LINE_3_OPT",
+     "label": "ADDRESS LINE 3, IF ANY",
+     "description": "Address line 3",
+     "example": "P.O. BOX 23318, POST CODE 14130",
+     "optional": true
+    },
+    {
+     "key": "NATIONALITY",
+     "label": "NATIONALITY",
+     "description": "Nationality (CAPITALS)",
+     "example": "TANZANIAN",
+     "optional": false
+    },
+    {
+     "key": "DOB",
+     "label": "DOB",
+     "description": "Date of birth, D MONTH YYYY (CAPITALS)",
+     "example": "10 OCTOBER 1976",
+     "optional": false
+    },
+    {
+     "key": "OCCUPATION",
+     "label": "OCCUPATION",
+     "description": "Business occupation (CAPITALS)",
+     "example": "ENTREPRENEUR",
+     "optional": false
+    },
+    {
+     "key": "OTHER_DIRECTORSHIPS_OPT",
+     "label": "OTHER DIRECTORSHIPS, IF ANY",
+     "description": "Other Tanzanian directorships, or \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "ROLE_LOWER",
+     "label": "ROLE LOWER",
+     "description": "director or secretary",
+     "example": "director",
+     "optional": false,
+     "default": "director"
+    },
+    {
+     "key": "CONSENT_DATE",
+     "label": "CONSENT DATE",
+     "description": "Date appointee signs consent (form text: 29th September 2026)",
+     "example": "29th September 2026",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DATE",
+     "label": "SIGNING DATE",
+     "description": "Date the serving director signs (form text: 29th September 2026)",
+     "example": "29th September 2026",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_NAME",
+     "label": "SIGNING DIRECTOR NAME",
+     "description": "Serving director signing the form (CAPITALS)",
+     "example": "HUSSEIN MZEE KHATIBU",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_ROLE",
+     "label": "SIGNING DIRECTOR ROLE",
+     "description": "Role under the signature",
+     "example": "Director",
+     "optional": false,
+     "default": "Director"
+    }
+   ]
+  },
+  {
+   "id": "F02",
+   "file": "F02_Form_213b_Termination_of_Director_or_Secretary.docx",
+   "title": "Form 213b - Termination of Appointment",
+   "category": "BRELA form",
+   "status": "Senior-approved format (RAHU final set), built on the BRELA 213a template",
+   "use_rules": "One form per person. Signed by a SERVING director. Lodge within 14 days.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_1",
+     "label": "COMPANY NAME LINE 1",
+     "description": "BRELA forms: company name, first line (box 1)",
+     "example": "RAHU MULTISERVICES",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_2",
+     "label": "COMPANY NAME LINE 2",
+     "description": "BRELA forms: company name, second line (box 2)",
+     "example": "COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "TERMINATION_DATE",
+     "label": "TERMINATION DATE",
+     "description": "Form 213b date of termination (CAPITALS) = date resignation took effect",
+     "example": "29 SEPTEMBER 2026",
+     "optional": false
+    },
+    {
+     "key": "ROLE_UPPER",
+     "label": "ROLE UPPER",
+     "description": "DIRECTOR or SECRETARY",
+     "example": "DIRECTOR",
+     "optional": false,
+     "default": "DIRECTOR"
+    },
+    {
+     "key": "FIRST_NAMES",
+     "label": "FIRST NAMES",
+     "description": "All first names incl. middle names, CAPITALS",
+     "example": "RONALD BARAKA",
+     "optional": false
+    },
+    {
+     "key": "SURNAME",
+     "label": "SURNAME",
+     "description": "Surname, CAPITALS",
+     "example": "SHELUKINDO",
+     "optional": false
+    },
+    {
+     "key": "DOB",
+     "label": "DOB",
+     "description": "Date of birth, D MONTH YYYY (CAPITALS)",
+     "example": "10 OCTOBER 1976",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DATE",
+     "label": "SIGNING DATE",
+     "description": "Date the serving director signs (form text: 29th September 2026)",
+     "example": "29th September 2026",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_NAME",
+     "label": "SIGNING DIRECTOR NAME",
+     "description": "Serving director signing the form (CAPITALS)",
+     "example": "HUSSEIN MZEE KHATIBU",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_ROLE",
+     "label": "SIGNING DIRECTOR ROLE",
+     "description": "Role under the signature",
+     "example": "Director",
+     "optional": false,
+     "default": "Director"
+    }
+   ]
+  },
+  {
+   "id": "F03",
+   "file": "F03_Form_57a_Return_of_Allotment_of_Shares.docx",
+   "title": "Form 57a - Return of Allotment of Shares",
+   "category": "BRELA form",
+   "status": "Senior-approved format (RAHU final set), BRELA template; up to 3 allottees (more -> continuation sheet)",
+   "use_rules": "Lodge within 60 days of the allotment (s.57). Date must equal the allotment resolution date.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_1",
+     "label": "COMPANY NAME LINE 1",
+     "description": "BRELA forms: company name, first line (box 1)",
+     "example": "RAHU MULTISERVICES",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_2",
+     "label": "COMPANY NAME LINE 2",
+     "description": "BRELA forms: company name, second line (box 2)",
+     "example": "COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "ALLOTMENT_DATE_FROM",
+     "label": "ALLOTMENT DATE FROM",
+     "description": "57a: date of allotment (From box)",
+     "example": "18 November 2026",
+     "optional": false
+    },
+    {
+     "key": "ALLOTMENT_DATE_TO_OPT",
+     "label": "ALLOTMENT DATE TO, IF ANY",
+     "description": "57a: end date if allotted over a period, else \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "SHARE_TYPE",
+     "label": "SHARE TYPE",
+     "description": "Ordinary / Preference",
+     "example": "Ordinary",
+     "optional": false,
+     "default": "Ordinary"
+    },
+    {
+     "key": "SHARE_CLASS_IF_APPLICABLE",
+     "label": "SHARE CLASS IF APPLICABLE",
+     "description": "Class A / Class B, else 'Not applicable'",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "NUMBER_ALLOTTED",
+     "label": "NUMBER ALLOTTED",
+     "description": "Total shares allotted (figures)",
+     "example": "2,000",
+     "optional": false
+    },
+    {
+     "key": "NOMINAL_VALUE_PER_SHARE",
+     "label": "NOMINAL VALUE PER SHARE",
+     "description": "Nominal value per share with currency",
+     "example": "TZS 5,000",
+     "optional": false
+    },
+    {
+     "key": "AMOUNT_PAID_OR_DUE_PER_SHARE",
+     "label": "AMOUNT PAID OR DUE PER SHARE",
+     "description": "Amount paid or due on each share, with currency",
+     "example": "TZS 5,000",
+     "optional": false
+    },
+    {
+     "key": "PREMIUM_OR_DISCOUNT",
+     "label": "PREMIUM OR DISCOUNT",
+     "description": "'Not applicable' if issued at par",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "CONSIDERATION_FOR_ALLOTMENT",
+     "label": "CONSIDERATION FOR ALLOTMENT",
+     "description": "57a: 'Cash.' or 'Other than cash.'",
+     "example": "Other than cash.",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_1_NAME",
+     "label": "ALLOTTEE 1 NAME",
+     "description": "Allottee 1 full name. \"\" deletes the paragraph (resolutions) / blanks the block (forms)",
+     "example": "Ronald Baraka Shelukindo",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_1_CLASS",
+     "label": "ALLOTTEE 1 CLASS",
+     "description": "Class of shares allotted",
+     "example": "Ordinary",
+     "optional": false,
+     "default": "Ordinary"
+    },
+    {
+     "key": "ALLOTTEE_1_SHARES",
+     "label": "ALLOTTEE 1 SHARES",
+     "description": "Shares allotted to allottee 1",
+     "example": "500",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_1_ADDRESS",
+     "label": "ALLOTTEE 1 ADDRESS",
+     "description": "Allottee address, BRELA format (CAPITALS)",
+     "example": "TANZANIA, REGION DAR ES SALAAM, DISTRICT KINONDONI, WARD SALASALA, POSTAL CODE 14130, PLOT NUMBER 119, STREET PEACOCK STREET",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_2_NAME",
+     "label": "ALLOTTEE 2 NAME",
+     "description": "Allottee 2 full name. \"\" deletes the paragraph (resolutions) / blanks the block (forms)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_2_CLASS",
+     "label": "ALLOTTEE 2 CLASS",
+     "description": "Class of shares allotted",
+     "example": "Ordinary",
+     "optional": false,
+     "default": "Ordinary"
+    },
+    {
+     "key": "ALLOTTEE_2_SHARES",
+     "label": "ALLOTTEE 2 SHARES",
+     "description": "Shares allotted to allottee 2",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_2_ADDRESS",
+     "label": "ALLOTTEE 2 ADDRESS",
+     "description": "Allottee address, BRELA format (CAPITALS)",
+     "example": "TANZANIA, REGION DAR ES SALAAM, DISTRICT KINONDONI, WARD SALASALA, POSTAL CODE 14130, PLOT NUMBER 119, STREET PEACOCK STREET",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_3_NAME",
+     "label": "ALLOTTEE 3 NAME",
+     "description": "Allottee 3 full name. \"\" deletes the paragraph (resolutions) / blanks the block (forms)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_3_CLASS",
+     "label": "ALLOTTEE 3 CLASS",
+     "description": "Class of shares allotted",
+     "example": "Ordinary",
+     "optional": false,
+     "default": "Ordinary"
+    },
+    {
+     "key": "ALLOTTEE_3_SHARES",
+     "label": "ALLOTTEE 3 SHARES",
+     "description": "Shares allotted to allottee 3",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_3_ADDRESS",
+     "label": "ALLOTTEE 3 ADDRESS",
+     "description": "Allottee address, BRELA format (CAPITALS)",
+     "example": "TANZANIA, REGION DAR ES SALAAM, DISTRICT KINONDONI, WARD SALASALA, POSTAL CODE 14130, PLOT NUMBER 119, STREET PEACOCK STREET",
+     "optional": false
+    },
+    {
+     "key": "CONTINUATION_SHEETS",
+     "label": "CONTINUATION SHEETS",
+     "description": "Number of continuation sheets",
+     "example": "0",
+     "optional": false,
+     "default": "0"
+    },
+    {
+     "key": "ALLOTTEE_1_CONSENT_DATE",
+     "label": "ALLOTTEE 1 CONSENT DATE",
+     "description": "Date allottee signs the consent on Form 57a",
+     "example": "18 November 2026",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_2_CONSENT_DATE",
+     "label": "ALLOTTEE 2 CONSENT DATE",
+     "description": "Date allottee signs the consent on Form 57a",
+     "example": "18 November 2026",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_3_CONSENT_DATE",
+     "label": "ALLOTTEE 3 CONSENT DATE",
+     "description": "Date allottee signs the consent on Form 57a",
+     "example": "18 November 2026",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_NAME",
+     "label": "SIGNING DIRECTOR NAME",
+     "description": "Serving director signing the form (CAPITALS)",
+     "example": "HUSSEIN MZEE KHATIBU",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DATE",
+     "label": "SIGNING DATE",
+     "description": "Date the serving director signs (form text: 29th September 2026)",
+     "example": "29th September 2026",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_ROLE_BRACKETED",
+     "label": "SIGNING DIRECTOR ROLE BRACKETED",
+     "description": "Role in brackets (57a)",
+     "example": "(Director)",
+     "optional": false,
+     "default": "(Director)"
+    },
+    {
+     "key": "PERCENT_PAID_UP_OPT",
+     "label": "PERCENT PAID UP, IF ANY",
+     "description": "57a: % each share is treated as paid up (only if NOT paid in cash)",
+     "example": "100%",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "id": "F04",
+   "file": "F04_Form_57b_Contract_Shares_Not_Paid_in_Cash.docx",
+   "title": "Form 57b - Contract for Shares Not Paid in Cash",
+   "category": "BRELA form",
+   "status": "Built from the BRELA template and the sample supplied; pending senior review",
+   "use_rules": "Needed only when shares are paid otherwise than in cash (T07A).",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "NUMBER_OF_SHARES_NON_CASH",
+     "label": "NUMBER OF SHARES NON CASH",
+     "description": "57b item 1: shares allotted fully/partly paid otherwise than in cash",
+     "example": "2,000",
+     "optional": false
+    },
+    {
+     "key": "NOMINAL_VALUE_PER_SHARE_NUMERIC",
+     "label": "NOMINAL VALUE PER SHARE NUMERIC",
+     "description": "57b item 2 (form already prints 'TZS.')",
+     "example": "5,000",
+     "optional": false
+    },
+    {
+     "key": "AMOUNT_NOMINAL_PAID_UP_NON_CASH",
+     "label": "AMOUNT NOMINAL PAID UP NON CASH",
+     "description": "57b item 3(a)",
+     "example": "5,000",
+     "optional": false
+    },
+    {
+     "key": "VALUE_PER_SHARE_INCL_PREMIUM",
+     "label": "VALUE PER SHARE INCL PREMIUM",
+     "description": "57b item 3(b)",
+     "example": "5,000",
+     "optional": false
+    },
+    {
+     "key": "AMOUNT_PAID_UP_ON_VALUE",
+     "label": "AMOUNT PAID UP ON VALUE",
+     "description": "57b item 3(c)",
+     "example": "5,000",
+     "optional": false
+    },
+    {
+     "key": "ITEM_4_NON_CASH_CONSIDERATION",
+     "label": "ITEM 4 NON CASH CONSIDERATION",
+     "description": "57b item 4: nature and amount of consideration (e.g. services) and number of shares",
+     "example": "Shares issued for other than cash for management, business development and customer relationship management services rendered by ... to the Company, the number of shares being 500 ordinary shares and the consideration being ... shillings.",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "ITEM_5_BONUS_RESERVES",
+     "label": "ITEM 5 BONUS RESERVES",
+     "description": "57b item 5",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "ITEM_6_DEBT_RELEASED",
+     "label": "ITEM 6 DEBT RELEASED",
+     "description": "57b item 6",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "ITEM_7_LOAN_STOCK_CONVERTED",
+     "label": "ITEM 7 LOAN STOCK CONVERTED",
+     "description": "57b item 7",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "ITEM_8A_PROPERTY_PARTICULARS",
+     "label": "ITEM 8A PROPERTY PARTICULARS",
+     "description": "57b item 8a",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "ITEM_8B_PURCHASE_PRICE_MANNER",
+     "label": "ITEM 8B PURCHASE PRICE MANNER",
+     "description": "57b item 8b",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "ITEM_8_CASH_OR_BILLS",
+     "label": "ITEM 8 CASH OR BILLS",
+     "description": "57b 8: cash or bills",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "ITEM_8_DEBENTURES",
+     "label": "ITEM 8 DEBENTURES",
+     "description": "57b 8: debentures",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "ITEM_8_SHARES",
+     "label": "ITEM 8 SHARES",
+     "description": "57b 8: shares",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "ITEM_8_LIABILITIES_ASSUMED",
+     "label": "ITEM 8 LIABILITIES ASSUMED",
+     "description": "57b 8: liabilities assumed",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "ITEM_8_MORTGAGES",
+     "label": "ITEM 8 MORTGAGES",
+     "description": "57b 8: mortgages",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "ITEM_8_HIRE_PURCHASE",
+     "label": "ITEM 8 HIRE PURCHASE",
+     "description": "57b 8: hire purchase",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "ITEM_8_OTHER_LIABILITIES",
+     "label": "ITEM 8 OTHER LIABILITIES",
+     "description": "57b 8: other liabilities",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "ITEM_8_ANY_OTHER_CONSIDERATION",
+     "label": "ITEM 8 ANY OTHER CONSIDERATION",
+     "description": "57b 8: any other consideration",
+     "example": "Not applicable",
+     "optional": false,
+     "default": "Not applicable"
+    },
+    {
+     "key": "SIGNING_DIRECTOR_NAME",
+     "label": "SIGNING DIRECTOR NAME",
+     "description": "Serving director signing the form (CAPITALS)",
+     "example": "HUSSEIN MZEE KHATIBU",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DATE",
+     "label": "SIGNING DATE",
+     "description": "Date the serving director signs (form text: 29th September 2026)",
+     "example": "29th September 2026",
+     "optional": false
+    },
+    {
+     "key": "CERTIFICATE_THRESHOLD_OPT",
+     "label": "CERTIFICATE THRESHOLD, IF ANY",
+     "description": "57b certificate of value amount (TZS), if required",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "ALLOTTEE_SIGN_DATE",
+     "label": "ALLOTTEE SIGN DATE",
+     "description": "57b: allottee signing date",
+     "example": "18 November 2026",
+     "optional": false
+    },
+    {
+     "key": "ALLOTTEE_NAME",
+     "label": "ALLOTTEE NAME",
+     "description": "57b: allottee who signs the certificate",
+     "example": "Ronald Baraka Shelukindo",
+     "optional": false
+    },
+    {
+     "key": "OFFICER_SIGN_DATE",
+     "label": "OFFICER SIGN DATE",
+     "description": "57b: company officer signing date",
+     "example": "18 November 2026",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "F05",
+   "file": "F05_Form_131_Annual_Return_of_a_Company.docx",
+   "title": "Form 131 - Annual Return of a Company",
+   "category": "BRELA form",
+   "status": "Built from the BRELA template and the sample supplied; pending senior review",
+   "use_rules": "Made up to the incorporation anniversary (s.131), filed within 28 days; shows the company AS AT that date. Attach audited accounts certified by a director and the secretary (s.135).",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "RETURN_DATE",
+     "label": "RETURN DATE",
+     "description": "Annual return 'made up to' date = anniversary of incorporation (s.131), CAPITALS",
+     "example": "15 AUGUST 2026",
+     "optional": false
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_TYPE",
+     "label": "COMPANY TYPE",
+     "description": "Company type",
+     "example": "PRIVATE COMPANY LIMITED BY SHARES",
+     "optional": false,
+     "default": "PRIVATE COMPANY LIMITED BY SHARES"
+    },
+    {
+     "key": "PRINCIPAL_ACTIVITIES",
+     "label": "PRINCIPAL ACTIVITIES",
+     "description": "Principal business activities (CAPITALS)",
+     "example": "TRANSPORTATION SERVICES",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_1",
+     "label": "COMPANY NAME LINE 1",
+     "description": "BRELA forms: company name, first line (box 1)",
+     "example": "RAHU MULTISERVICES",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_2",
+     "label": "COMPANY NAME LINE 2",
+     "description": "BRELA forms: company name, second line (box 2)",
+     "example": "COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_PREVIOUS_NAMES_OPT",
+     "label": "SECRETARY PREVIOUS NAMES, IF ANY",
+     "description": "Secretary previous names",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "SECRETARY_ADDRESS",
+     "label": "SECRETARY ADDRESS",
+     "description": "Secretary address (CAPITALS)",
+     "example": "CHAMAZI, TEMEKE, DAR ES SALAAM, TANZANIA",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_NAME",
+     "label": "DIRECTOR 1 NAME",
+     "description": "Director 1 full name (CAPITALS)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_OCCUPATION",
+     "label": "DIRECTOR 1 OCCUPATION",
+     "description": "Business occupation",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_PREVIOUS_NAMES_OPT",
+     "label": "DIRECTOR 1 PREVIOUS NAMES, IF ANY",
+     "description": "Previous names or \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "DIRECTOR_1_NATIONALITY",
+     "label": "DIRECTOR 1 NATIONALITY",
+     "description": "Nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_ADDRESS",
+     "label": "DIRECTOR 1 ADDRESS",
+     "description": "Residential address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_DOB",
+     "label": "DIRECTOR 1 DOB",
+     "description": "Date of birth DD/MM/YYYY",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_OTHER_DIRECTORSHIPS_OPT",
+     "label": "DIRECTOR 1 OTHER DIRECTORSHIPS, IF ANY",
+     "description": "Other directorships or \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "DIRECTOR_2_NAME",
+     "label": "DIRECTOR 2 NAME",
+     "description": "Director 2 full name (CAPITALS)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_OCCUPATION",
+     "label": "DIRECTOR 2 OCCUPATION",
+     "description": "Business occupation",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_PREVIOUS_NAMES_OPT",
+     "label": "DIRECTOR 2 PREVIOUS NAMES, IF ANY",
+     "description": "Previous names or \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "DIRECTOR_2_NATIONALITY",
+     "label": "DIRECTOR 2 NATIONALITY",
+     "description": "Nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_ADDRESS",
+     "label": "DIRECTOR 2 ADDRESS",
+     "description": "Residential address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_DOB",
+     "label": "DIRECTOR 2 DOB",
+     "description": "Date of birth DD/MM/YYYY",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_OTHER_DIRECTORSHIPS_OPT",
+     "label": "DIRECTOR 2 OTHER DIRECTORSHIPS, IF ANY",
+     "description": "Other directorships or \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "DIRECTOR_3_NAME",
+     "label": "DIRECTOR 3 NAME",
+     "description": "Director 3 full name (CAPITALS)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_3_OCCUPATION",
+     "label": "DIRECTOR 3 OCCUPATION",
+     "description": "Business occupation",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_3_PREVIOUS_NAMES_OPT",
+     "label": "DIRECTOR 3 PREVIOUS NAMES, IF ANY",
+     "description": "Previous names or \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "DIRECTOR_3_NATIONALITY",
+     "label": "DIRECTOR 3 NATIONALITY",
+     "description": "Nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_3_ADDRESS",
+     "label": "DIRECTOR 3 ADDRESS",
+     "description": "Residential address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_3_DOB",
+     "label": "DIRECTOR 3 DOB",
+     "description": "Date of birth DD/MM/YYYY",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_3_OTHER_DIRECTORSHIPS_OPT",
+     "label": "DIRECTOR 3 OTHER DIRECTORSHIPS, IF ANY",
+     "description": "Other directorships or \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "SHARE_CLASS",
+     "label": "SHARE CLASS",
+     "description": "Class of shares in issue",
+     "example": "ORDINARY",
+     "optional": false,
+     "default": "ORDINARY"
+    },
+    {
+     "key": "SHARES_ISSUED",
+     "label": "SHARES ISSUED",
+     "description": "Number of shares issued in this class",
+     "example": "7,120",
+     "optional": false
+    },
+    {
+     "key": "AGGREGATE_NOMINAL_VALUE",
+     "label": "AGGREGATE NOMINAL VALUE",
+     "description": "Aggregate nominal value (figures; form prints TZS.)",
+     "example": "35,600,000",
+     "optional": false
+    },
+    {
+     "key": "SHARES_ISSUED_TOTAL",
+     "label": "SHARES ISSUED TOTAL",
+     "description": "Total shares issued",
+     "example": "7,120",
+     "optional": false
+    },
+    {
+     "key": "AGGREGATE_NOMINAL_VALUE_TOTAL",
+     "label": "AGGREGATE NOMINAL VALUE TOTAL",
+     "description": "Total nominal value",
+     "example": "35,600,000",
+     "optional": false
+    },
+    {
+     "key": "NO_CHARGES_TICK_OPT",
+     "label": "NO CHARGES TICK, IF ANY",
+     "description": "X if there were no charges in the period",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "LIST_OF_CHANGES_TICK_OPT",
+     "label": "LIST OF CHANGES TICK, IF ANY",
+     "description": "X if a list of changes is enclosed",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "FULL_MEMBERS_LIST_TICK_OPT",
+     "label": "FULL MEMBERS LIST TICK, IF ANY",
+     "description": "X if a full list of members is enclosed",
+     "example": "X",
+     "optional": true,
+     "default": "X"
+    },
+    {
+     "key": "MEMBER_1_NAME_ADDRESS_OPT",
+     "label": "MEMBER 1 NAME ADDRESS, IF ANY",
+     "description": "Member 1: 'NAME - ADDRESS' (alphabetical order; past and present members)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_1_SHARES_HELD_OPT",
+     "label": "MEMBER 1 SHARES HELD, IF ANY",
+     "description": "Shares held at return date by member 1",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_1_REMARKS_OPT",
+     "label": "MEMBER 1 REMARKS, IF ANY",
+     "description": "Remarks for member 1",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_2_NAME_ADDRESS_OPT",
+     "label": "MEMBER 2 NAME ADDRESS, IF ANY",
+     "description": "Member 2: 'NAME - ADDRESS' (alphabetical order; past and present members)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_2_SHARES_HELD_OPT",
+     "label": "MEMBER 2 SHARES HELD, IF ANY",
+     "description": "Shares held at return date by member 2",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_2_REMARKS_OPT",
+     "label": "MEMBER 2 REMARKS, IF ANY",
+     "description": "Remarks for member 2",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_3_NAME_ADDRESS_OPT",
+     "label": "MEMBER 3 NAME ADDRESS, IF ANY",
+     "description": "Member 3: 'NAME - ADDRESS' (alphabetical order; past and present members)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_3_SHARES_HELD_OPT",
+     "label": "MEMBER 3 SHARES HELD, IF ANY",
+     "description": "Shares held at return date by member 3",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_3_REMARKS_OPT",
+     "label": "MEMBER 3 REMARKS, IF ANY",
+     "description": "Remarks for member 3",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_4_NAME_ADDRESS_OPT",
+     "label": "MEMBER 4 NAME ADDRESS, IF ANY",
+     "description": "Member 4: 'NAME - ADDRESS' (alphabetical order; past and present members)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_4_SHARES_HELD_OPT",
+     "label": "MEMBER 4 SHARES HELD, IF ANY",
+     "description": "Shares held at return date by member 4",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_4_REMARKS_OPT",
+     "label": "MEMBER 4 REMARKS, IF ANY",
+     "description": "Remarks for member 4",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_5_NAME_ADDRESS_OPT",
+     "label": "MEMBER 5 NAME ADDRESS, IF ANY",
+     "description": "Member 5: 'NAME - ADDRESS' (alphabetical order; past and present members)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_5_SHARES_HELD_OPT",
+     "label": "MEMBER 5 SHARES HELD, IF ANY",
+     "description": "Shares held at return date by member 5",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_5_REMARKS_OPT",
+     "label": "MEMBER 5 REMARKS, IF ANY",
+     "description": "Remarks for member 5",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_6_NAME_ADDRESS_OPT",
+     "label": "MEMBER 6 NAME ADDRESS, IF ANY",
+     "description": "Member 6: 'NAME - ADDRESS' (alphabetical order; past and present members)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_6_SHARES_HELD_OPT",
+     "label": "MEMBER 6 SHARES HELD, IF ANY",
+     "description": "Shares held at return date by member 6",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_6_REMARKS_OPT",
+     "label": "MEMBER 6 REMARKS, IF ANY",
+     "description": "Remarks for member 6",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_7_NAME_ADDRESS_OPT",
+     "label": "MEMBER 7 NAME ADDRESS, IF ANY",
+     "description": "Member 7: 'NAME - ADDRESS' (alphabetical order; past and present members)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_7_SHARES_HELD_OPT",
+     "label": "MEMBER 7 SHARES HELD, IF ANY",
+     "description": "Shares held at return date by member 7",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_7_REMARKS_OPT",
+     "label": "MEMBER 7 REMARKS, IF ANY",
+     "description": "Remarks for member 7",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_8_NAME_ADDRESS_OPT",
+     "label": "MEMBER 8 NAME ADDRESS, IF ANY",
+     "description": "Member 8: 'NAME - ADDRESS' (alphabetical order; past and present members)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_8_SHARES_HELD_OPT",
+     "label": "MEMBER 8 SHARES HELD, IF ANY",
+     "description": "Shares held at return date by member 8",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_8_REMARKS_OPT",
+     "label": "MEMBER 8 REMARKS, IF ANY",
+     "description": "Remarks for member 8",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_9_NAME_ADDRESS_OPT",
+     "label": "MEMBER 9 NAME ADDRESS, IF ANY",
+     "description": "Member 9: 'NAME - ADDRESS' (alphabetical order; past and present members)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_9_SHARES_HELD_OPT",
+     "label": "MEMBER 9 SHARES HELD, IF ANY",
+     "description": "Shares held at return date by member 9",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_9_REMARKS_OPT",
+     "label": "MEMBER 9 REMARKS, IF ANY",
+     "description": "Remarks for member 9",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_10_NAME_ADDRESS_OPT",
+     "label": "MEMBER 10 NAME ADDRESS, IF ANY",
+     "description": "Member 10: 'NAME - ADDRESS' (alphabetical order; past and present members)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_10_SHARES_HELD_OPT",
+     "label": "MEMBER 10 SHARES HELD, IF ANY",
+     "description": "Shares held at return date by member 10",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "MEMBER_10_REMARKS_OPT",
+     "label": "MEMBER 10 REMARKS, IF ANY",
+     "description": "Remarks for member 10",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "SIGNING_DATE_OPT",
+     "label": "SIGNING DATE, IF ANY",
+     "description": "Date of signature (leave \"\" so the signer dates it)",
+     "example": "",
+     "optional": true
+    }
+   ]
+  }
+ ]
+}

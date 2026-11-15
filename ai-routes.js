@@ -1,4 +1,5 @@
 // Routes for the AI assistant: settings, templates, company data, document generation.
+const fs=require('fs'),path=require('path');
 const SR=['MANAGER','SENIOR'],KEY=/^[a-z][a-z0-9_]{0,40}$/,ROLES=['director','shareholder','secretary','beneficial_owner','other'];
 const COMMON_KEYS=['company_name','proposed_names','business_activity','registered_office','postal_address','share_capital','number_of_shares','share_value','date_of_incorporation','tin','financial_year_end','objects'];
 module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
@@ -48,7 +49,7 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  app.get('/api/cases/:id/context',wrap(async(req,res)=>{const x=await contextFor(+req.params.id);res.json({values:x.ctx.values,data:x.cd,profile:x.client.profile,people:x.people,keys:[...new Set([...COMMON_KEYS,...Object.keys(x.client.profile),...Object.keys(x.cd)])]})}));
 
  // ---------- templates
- const TLIST=`SELECT t.id,t.name,t.kind,t.description,t.case_type_id,ct.name AS case_type,t.keywords,t.status,t.version,t.uses,t.clean_runs,t.updated_at FROM templates t LEFT JOIN case_types ct ON ct.id=t.case_type_id`;
+ const TLIST=`SELECT t.id,t.name,t.kind,t.description,t.case_type_id,ct.name AS case_type,t.keywords,t.status,t.version,t.uses,t.clean_runs,(t.docx_name IS NOT NULL) AS has_docx,t.updated_at FROM templates t LEFT JOIN case_types ct ON ct.id=t.case_type_id`;
  const bodyOf=async t=>(await one('SELECT body FROM template_versions WHERE template_id=$1 AND version=$2',[t.id,t.version])).body;
  const kindOf=k=>['FORM','DOCUMENT'].includes(k)?k:'DOCUMENT';
  const newVersion=async(t,body,note,source,user)=>{const v=t.version+1;await q('INSERT INTO template_versions(template_id,version,body,note,source,created_by) VALUES($1,$2,$3,$4,$5,$6)',[t.id,v,body,note||null,source,user]);await q(`UPDATE templates SET version=$2,status='DRAFT',clean_runs=0,updated_at=now() WHERE id=$1`,[t.id,v]);return v};
@@ -168,4 +169,45 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const t=await one(`INSERT INTO templates(name,kind,description,ai_notes,case_type_id,keywords,created_by) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`,[name,kindOf(b.kind),clean(b.description)||null,clean(b.ai_notes)||null,+b.case_type_id||null,clean(b.keywords)||null,req.user.id]);
   await q('INSERT INTO template_versions(template_id,version,body,note,source,created_by) VALUES($1,1,$2,$3,$4,$5)',[t.id,body,aiUsed?'Created from an accepted document with AI':'Created from an uploaded document',aiUsed?'ai':'manual',req.user.id]);
   res.json({id:t.id,ai_used:aiUsed,fields:E.fields(body)})}));
+
+ // import the official Word template package (Templates_Package): a text template + the exact .docx for each entry
+ const PKG=path.join(__dirname,'Templates_Package','Templates_Package');
+ app.post('/api/templates/import-package',need(...SR),wrap(async(req,res)=>{
+  const mf=path.join(PKG,'templates','manifest.json');let man;
+  try{man=JSON.parse(fs.readFileSync(mf,'utf8'))}catch{fail(400,'Templates_Package is not part of this deployment (templates/manifest.json is missing)')}
+  const created=[],skipped=[];
+  for(const m of man.templates||[]){
+   const exists=await one('SELECT id FROM templates WHERE name=$1',[m.title]);if(exists){skipped.push(m.title);continue}
+   const buf=fs.readFileSync(path.join(PKG,'templates',m.file));
+   const raw=(await require('mammoth').extractRawText({buffer:buf})).value;
+   const l2k={};for(const k of Object.keys(man.defaults||{}))l2k[E.labelFromKey(k)]=k;
+   for(const p of m.placeholders||[]){l2k[p.label]=p.key;l2k[E.labelFromKey(p.key)]=p.key}
+   const body=E.docxTextToBody(raw,l2k);
+   const defaults={...man.defaults};for(const p of m.placeholders||[])defaults[p.key]=p.default===undefined?null:p.default;
+   const notes=[m.use_rules?`USE RULES: ${m.use_rules}`:'',
+    (m.clauses_to_confirm||[]).length?`CLAUSES TO CONFIRM (yellow in the Word form): ${[...new Set(m.clauses_to_confirm)].join(' | ')}`:'',
+    (m.placeholders||[]).length?`FIELDS: ${m.placeholders.map(p=>`${p.key}${p.optional?' (optional)':''}`).join(', ')}`:''].filter(Boolean).join('\n\n');
+   const t=await one(`INSERT INTO templates(name,kind,description,ai_notes,keywords,docx_name,docx_data,docx_defaults,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9) RETURNING id`,
+    [m.title,String(m.id).startsWith('F')?'FORM':'DOCUMENT',`${m.category} — official Word template`,notes||null,`${m.id.toLowerCase()} ${String(m.title).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}`,m.file,buf,JSON.stringify(defaults),req.user.id]);
+   await q('INSERT INTO template_versions(template_id,version,body,note,source,created_by) VALUES($1,1,$2,$3,$4,$5)',[t.id,body,'Imported from the official Word template package','manual',req.user.id]);
+   created.push(m.title)}
+  if(created.length)await audit(req,'template.import',`${created.length} template(s) from the Word template package`);
+  res.json({created,skipped})}));
+
+ // fill an original Word template (exact layout) from the case details
+ app.post('/api/cases/:id/ai/generate-docx',wrap(async(req,res)=>{
+  const id=+req.params.id,b=req.body||{},x=await contextFor(id);
+  const t=await one('SELECT * FROM templates WHERE id=$1 AND docx_data IS NOT NULL',[+b.template_id]);if(!t)fail(404,'This template has no original Word file');
+  const item=b.item_id?await one('SELECT id,name FROM case_docs WHERE id=$1 AND case_id=$2',[+b.item_id,id]):null;
+  if(b.item_id&&!item)fail(400,'That checklist item is not on this case');
+  const values={...(t.docx_defaults||{}),...E.packageValues(x.ctx)};
+  let r;try{r=await E.docxFill(t.docx_data,values)}catch(e){fail(400,'Could not fill this Word template: '+e.message)}
+  const name=(item?item.name:t.name).replace(/[\\/:*?"<>|]+/g,' ').trim()||'Document';
+  const f=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'template') RETURNING id,filename`,
+   [x.c.client_id,id,item?item.id:null,`${name}.docx`,'application/vnd.openxmlformats-officedocument.wordprocessingml.document',r.buffer.length,r.buffer,req.user.id]);
+  if(item&&!r.missing.length)await q('UPDATE case_docs SET done=TRUE WHERE id=$1',[item.id]);
+  await AI.record({userId:req.user.id,caseId:id,templateId:t.id,kind:'fill',mode:'docx',output:`filled ${r.filled}, ${r.missing.length} missing`});
+  await log(id,req.user.id,`filled official Word template "${t.name}"${item?` for "${item.name}"`:''} (${r.filled} detail${r.filled===1?'':'s'} placed${r.missing.length?`, ${r.missing.length} still missing`:''})`);
+  await q('UPDATE templates SET uses=uses+1 WHERE id=$1',[t.id]);
+  res.json({file:f,missing:r.missing,clauses:r.clauses,filled:r.filled})}));
 };
