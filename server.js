@@ -281,9 +281,9 @@ app.get('/api/clients/:id',wrap(async(req,res)=>{
    q(FILES+' WHERE f.client_id=$1 AND NOT f.inbox ORDER BY f.id DESC',[id]),
    q(`SELECT c.id,c.label,c.username,(SELECT u.name||' · '||to_char(a.created_at,'DD Mon HH24:MI') FROM credential_access a JOIN users u ON u.id=a.user_id WHERE a.credential_id=c.id ORDER BY a.id DESC LIMIT 1) AS last_access FROM credentials c WHERE c.client_id=$1 ORDER BY c.id`,[id])]);
   res.json({client,cases,files,creds,people:await q('SELECT * FROM client_people WHERE client_id=$1 ORDER BY position,id',[id])})}));
-const putFile=async(req,{clientId,caseId,docId})=>{
+const putFile=async(req,{clientId,caseId,docId,name:nm})=>{
   if(!req.file)fail(400,'Choose a file');
-  const name=Buffer.from(req.file.originalname,'latin1').toString('utf8'),buf=req.file.buffer;
+  const name=nm||Buffer.from(req.file.originalname,'latin1').toString('utf8'),buf=req.file.buffer;
   if(FILES_DIR)return one('INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,path,uploaded_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,filename',[clientId,caseId||null,docId||null,name,req.file.mimetype,req.file.size,putDisk(name,buf),req.user.id]);
   return one('INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,filename',[clientId,caseId||null,docId||null,name,req.file.mimetype,req.file.size,buf,req.user.id])};
 const up=(req,res,next)=>upload.single('file')(req,res,e=>e?res.status(400).json({error:e.code==='LIMIT_FILE_SIZE'?'File too large (max 15 MB)':'Upload failed'}):next());
@@ -294,6 +294,8 @@ app.get('/api/files/:id',wrap(async(req,res)=>{
   res.set({'Content-Type':f.mime||'application/octet-stream','Content-Disposition':`${inline?'inline':'attachment'}; filename*=UTF-8''${encodeURIComponent(f.filename)}`,'X-Content-Type-Options':'nosniff'});
   if(f.path&&FILES_DIR){const fp=path.resolve(FILES_DIR,f.path);if(!fp.startsWith(path.resolve(FILES_DIR)))fail(404,'Not found');return res.send(fs.readFileSync(fp))}
   res.send(f.data)}));
+app.get('/api/files/:id/info',wrap(async(req,res)=>{
+  const f=await one('SELECT f.id,f.filename,f.mime,f.size,f.client_id,f.case_id,f.case_doc_id,f.uploaded_by,f.inbox,c.code AS case_code,d.name AS doc_name FROM files f LEFT JOIN cases c ON c.id=f.case_id LEFT JOIN case_docs d ON d.id=f.case_doc_id WHERE f.id=$1',[+req.params.id]);if(!f)fail(404,'Not found');res.json(f)}));
 app.delete('/api/files/:id',wrap(async(req,res)=>{
   const f=await one('SELECT uploaded_by,filename,path FROM files WHERE id=$1',[+req.params.id]);if(!f)fail(404,'Not found');
   if(!['MANAGER','SENIOR'].includes(req.user.level)&&f.uploaded_by!==req.user.id)fail(403,'Only the uploader, a Senior or a Manager can delete this');
@@ -304,6 +306,63 @@ app.patch('/api/files/:id',wrap(async(req,res)=>{
   const f=await one('SELECT uploaded_by FROM files WHERE id=$1',[+req.params.id]);if(!f)fail(404,'Not found');
   if(!['MANAGER','SENIOR'].includes(req.user.level)&&f.uploaded_by!==req.user.id)fail(403,'Only the uploader, a Senior or a Manager can rename this');
   const n=String(req.body.filename||'').trim().slice(0,200);if(!n)fail(400,'Name required');await q('UPDATE files SET filename=$1 WHERE id=$2',[n,+req.params.id]);res.json({ok:1})}));
+// ---- Doc Studio: each person's saved signatures (private to them) and saving edited PDFs back into the client folder / case
+const sigUpload=multer({storage:multer.memoryStorage(),limits:{fileSize:2*1024*1024}});
+const sigUp=(req,res,next)=>sigUpload.single('file')(req,res,e=>e?res.status(400).json({error:e.code==='LIMIT_FILE_SIZE'?'Signature image is too large (max 2 MB)':'Upload failed'}):next());
+const isPng=b=>!!b&&b.length>8&&b.subarray(0,8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]));
+const isPdf=b=>!!b&&b.length>5&&b.subarray(0,5).toString('latin1')==='%PDF-';
+app.get('/api/me/signatures',wrap(async(req,res)=>res.json(await q('SELECT id,name,kind,is_default,created_at FROM user_signatures WHERE user_id=$1 ORDER BY is_default DESC,id',[req.user.id]))));
+app.get('/api/me/signatures/:id/image',wrap(async(req,res)=>{
+  const s=await one('SELECT image,mime FROM user_signatures WHERE id=$1 AND user_id=$2',[+req.params.id,req.user.id]);if(!s)fail(404,'Not found');
+  res.set({'Content-Type':s.mime,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}).send(s.image)}));
+app.post('/api/me/signatures',sigUp,wrap(async(req,res)=>{
+  if(!req.file||!isPng(req.file.buffer))fail(400,'The signature must be a PNG image');
+  const kind=['signature','stamp'].includes(req.body.kind)?req.body.kind:'signature',name=String(req.body.name||'').trim().slice(0,60)||(kind==='stamp'?'Stamp':'Signature');
+  if((await one('SELECT count(*)::int AS n FROM user_signatures WHERE user_id=$1',[req.user.id])).n>=12)fail(400,'You can keep up to 12 signatures and stamps. Delete one first.');
+  const makeDefault=kind==='signature'&&(!(await one(`SELECT 1 FROM user_signatures WHERE user_id=$1 AND kind='signature'`,[req.user.id]))||req.body.isDefault==='1');
+  if(makeDefault)await q('UPDATE user_signatures SET is_default=FALSE WHERE user_id=$1',[req.user.id]);
+  const s=await one('INSERT INTO user_signatures(user_id,name,kind,image,mime,is_default) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,name,kind,is_default',[req.user.id,name,kind,req.file.buffer,'image/png',makeDefault]);
+  await audit(req,'signature.create',name);res.json(s)}));
+app.patch('/api/me/signatures/:id',wrap(async(req,res)=>{
+  const id=+req.params.id,s=await one('SELECT id FROM user_signatures WHERE id=$1 AND user_id=$2',[id,req.user.id]);if(!s)fail(404,'Not found');
+  if(req.body.name!==undefined){const n=String(req.body.name).trim().slice(0,60);if(!n)fail(400,'Name required');await q('UPDATE user_signatures SET name=$1 WHERE id=$2',[n,id])}
+  if(req.body.isDefault&&(await one('SELECT kind FROM user_signatures WHERE id=$1',[id])).kind==='signature'){await q('UPDATE user_signatures SET is_default=(id=$2) WHERE user_id=$1',[req.user.id,id])}
+  res.json({ok:1})}));
+app.delete('/api/me/signatures/:id',wrap(async(req,res)=>{
+  const id=+req.params.id,s=await one('SELECT name,is_default FROM user_signatures WHERE id=$1 AND user_id=$2',[id,req.user.id]);if(!s)fail(404,'Not found');
+  await q('DELETE FROM user_signatures WHERE id=$1',[id]);
+  if(s.is_default)await q(`UPDATE user_signatures SET is_default=TRUE WHERE id=(SELECT id FROM user_signatures WHERE user_id=$1 AND kind='signature' ORDER BY id LIMIT 1)`,[req.user.id]);
+  await audit(req,'signature.delete',s.name);res.json({ok:1})}));
+// Save the result of an edit (signed PDF, or images turned into a PDF). The browser builds the PDF; the server checks it, stores it like any other upload,
+// ticks the checklist item, and writes the case history and audit log. mode "replace" overwrites the original (same rules as renaming a file).
+app.post('/api/studio/save',up,wrap(async(req,res)=>{
+  if(!req.file||!isPdf(req.file.buffer))fail(400,'The result must be a PDF');
+  const b=req.body,action=b.action==='pdf'?'pdf':'sign';
+  let clientId=+b.clientId||null,caseId=null,docId=null,doc=null;
+  if(b.caseDocId){doc=await one('SELECT d.id,d.case_id,d.name,c.client_id FROM case_docs d JOIN cases c ON c.id=d.case_id WHERE d.id=$1',[+b.caseDocId]);if(!doc)fail(400,'Checklist item not found');clientId=doc.client_id;caseId=doc.case_id;docId=doc.id}
+  else if(b.caseId){const c=await one('SELECT id,client_id FROM cases WHERE id=$1',[+b.caseId]);if(!c)fail(400,'Case not found');clientId=c.client_id;caseId=c.id}
+  if(!clientId||!await one('SELECT 1 FROM clients WHERE id=$1',[clientId]))fail(400,'Choose a client');
+  let name=String(b.filename||Buffer.from(req.file.originalname,'latin1').toString('utf8')).trim().replace(/[\\/:*?"<>|]+/g,'_').slice(0,190)||'document';
+  if(!/\.pdf$/i.test(name))name+='.pdf';
+  req.file.mimetype='application/pdf';
+  const buf=req.file.buffer;let saved;
+  if(b.mode==='replace'&&b.replaceFileId){
+    const old=await one('SELECT id,uploaded_by,filename,path,client_id,case_id,case_doc_id,mime FROM files WHERE id=$1 AND NOT inbox',[+b.replaceFileId]);if(!old)fail(404,'The original file was not found');
+    if(!['MANAGER','SENIOR'].includes(req.user.level)&&old.uploaded_by!==req.user.id)fail(403,'Only the uploader, a Senior or a Manager can replace this file');
+    if(!/pdf/i.test(old.mime||''))fail(400,'Only a PDF can be replaced by a PDF');
+    if(FILES_DIR){const p=putDisk(old.filename,buf);await q('UPDATE files SET size=$1,path=$2,data=NULL WHERE id=$3',[buf.length,p,old.id]);if(old.path)try{fs.unlinkSync(path.join(FILES_DIR,old.path))}catch{}}
+    else await q('UPDATE files SET size=$1,data=$2,path=NULL WHERE id=$3',[buf.length,buf,old.id]);
+    saved={id:old.id,filename:old.filename};if(!caseId&&old.case_id){caseId=old.case_id;docId=old.case_doc_id}
+  }else saved=await putFile(req,{clientId,caseId,docId,name});
+  if(doc&&b.markDone==='1')await q('UPDATE case_docs SET done=TRUE WHERE id=$1',[doc.id]);
+  const pages=Math.max(0,Math.min(999,+b.pages||0)),src=String(b.source||'').slice(0,190),verb=b.mode==='replace'?'replaced':'saved';
+  if(caseId)await log(caseId,req.user.id,action==='pdf'?`made "${saved.filename}" from ${+b.images||'some'} image(s)${doc?' for '+doc.name:''}`:`signed ${src?'"'+src+'" and ':''}${verb} "${saved.filename}"${doc?' for '+doc.name:''}`);
+  if(action==='sign'){
+    const ids=String(b.sigIds||'').split(',').map(x=>+x).filter(Boolean).slice(0,10);
+    const used=ids.length?await q('SELECT name FROM user_signatures WHERE id=ANY($1::int[]) AND user_id=$2',[ids,req.user.id]):[];
+    await audit(req,'signature.use',`${used.map(x=>x.name).join(', ')||'signature/stamp'} → ${saved.filename}${pages?' ('+pages+' pages)':''}`)}
+  else await audit(req,'studio.pdf',`${saved.filename} (${+b.images||0} images)`);
+  res.json({id:saved.id,filename:saved.filename,size:buf.length,caseId,caseDocId:docId,clientId})}));
 app.post('/api/clients/:id/credentials',need('MANAGER','SENIOR'),wrap(async(req,res)=>{
   const {label,username,password}=req.body;if(!label||!password)fail(400,'Label and password are required');
   res.json(await one('INSERT INTO credentials(client_id,label,username,secret_enc,created_by) VALUES($1,$2,$3,$4,$5) RETURNING id',[+req.params.id,label,username||null,enc(password),req.user.id]))}));

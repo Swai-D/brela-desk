@@ -128,6 +128,19 @@ Uses the official **WhatsApp Business Cloud API** (Meta). Two things work out of
 - Rules for new assets: put files under `public/assets/`, reference them with **relative** paths (`assets/css/x.css`, never `http://...`), and match the file name's capitals exactly (Linux, where Railway runs, is case-sensitive; Windows and macOS are not). `npm test` includes a **deploy check** that opens every page, loads every CSS, JS, font and image they reference (including `url(...)` inside CSS), and fails the pull request if one is missing, has the wrong type, uses plain `http`, or lacks the version.
 - This replaces the Laravel/Vite asset helper approach (`ASSET_HELPER_GUIDE.md` in cici-store): there is no build step or hashed file names here, so the version is added when the page is served.
 
+## Doc Studio (sign, edit, photos to PDF)
+
+Sidebar section **Doc Studio** (`studio.html`). It works on files already in a client folder or case and saves the result back there.
+
+- **Sign / edit a PDF**: place your signature, stamp, date, text, whiteout, highlight or image; drag, resize, undo/redo; "repeat on all pages". Handles rotated and cropped pages. Saved as a new file by default; "Replace the original" is allowed for the uploader, Senior or Manager. Optionally ticks the checklist item.
+- **Images to PDF**: pick photos from the client folder, the WhatsApp inbox or your device; reorder, rotate, A4/Letter/fit, margins, clean-up / B&W, quality, with a live size estimate against the 15 MB limit.
+- **Entry points**: PDF/image rows get a Doc Studio icon, the case page has a Doc Studio button and a "Photos to PDF" link per checklist item.
+- **Signatures are private**: stored per user (`user_signatures`), PNG only, max 12, never visible to other users. A signature is a visual mark, not a cryptographic one. Whiteout covers content but does not remove it.
+- **Audit**: `signature.create`, `signature.delete`, `signature.use`, `studio.pdf`; each save also writes the case history.
+- **Endpoints**: `/api/me/signatures` (GET/POST/PATCH/DELETE, `/:id/image`), `POST /api/studio/save`, `GET /api/files/:id/info`.
+- **Libraries** (vendored, no build step): pdf.js 3.11.174 and pdf-lib 1.17.1 in `public/assets/libs/`. Typed signatures load Google Fonts lazily.
+- Merge, split and compress are a later phase.
+
 ## Tests & CI
 `npm test` starts the real server against a fresh PostgreSQL database (set `DATABASE_URL`, e.g. a throwaway local database) with a fake WhatsApp API, then runs the API, WhatsApp and report suites. GitHub Actions runs the same on every pull request (`.github/workflows/ci.yml`). **Never point `DATABASE_URL` at a database with real data when running tests: it is wiped.**
 

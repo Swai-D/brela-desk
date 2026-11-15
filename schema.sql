@@ -64,6 +64,8 @@ CREATE INDEX IF NOT EXISTS idx_activity_case ON activity(case_id);
 CREATE INDEX IF NOT EXISTS idx_files_client ON files(client_id);
 CREATE INDEX IF NOT EXISTS idx_credentials_client ON credentials(client_id);
 CREATE INDEX IF NOT EXISTS idx_credential_access_cred ON credential_access(credential_id);
+CREATE TABLE IF NOT EXISTS user_signatures(id SERIAL PRIMARY KEY, user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'signature', image BYTEA NOT NULL, mime TEXT NOT NULL DEFAULT 'image/png', is_default BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT now());
+CREATE INDEX IF NOT EXISTS idx_user_signatures_user ON user_signatures(user_id);
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS profile JSONB NOT NULL DEFAULT '{}';
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS data JSONB NOT NULL DEFAULT '{}';
 CREATE TABLE IF NOT EXISTS client_people(id SERIAL PRIMARY KEY, client_id INT NOT NULL REFERENCES clients(id) ON DELETE CASCADE, roles JSONB NOT NULL DEFAULT '[]', full_name TEXT NOT NULL, nationality TEXT, id_type TEXT, id_number TEXT, dob TEXT, address TEXT, phone TEXT, email TEXT, shares TEXT, position INT NOT NULL DEFAULT 0);
