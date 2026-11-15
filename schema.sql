@@ -64,3 +64,5 @@ CREATE INDEX IF NOT EXISTS idx_activity_case ON activity(case_id);
 CREATE INDEX IF NOT EXISTS idx_files_client ON files(client_id);
 CREATE INDEX IF NOT EXISTS idx_credentials_client ON credentials(client_id);
 CREATE INDEX IF NOT EXISTS idx_credential_access_cred ON credential_access(credential_id);
+CREATE TABLE IF NOT EXISTS user_signatures(id SERIAL PRIMARY KEY, user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'signature', image BYTEA NOT NULL, mime TEXT NOT NULL DEFAULT 'image/png', is_default BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT now());
+CREATE INDEX IF NOT EXISTS idx_user_signatures_user ON user_signatures(user_id);
