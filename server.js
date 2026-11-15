@@ -185,7 +185,7 @@ app.get('/api/bootstrap',wrap(async(req,res)=>{
    q('SELECT id,name,role,active'+(req.user.level==='MANAGER'?',email,phone,wa_opt_in':'')+',avatar_at::text AS avatar FROM users ORDER BY id'),q('SELECT id,name,active,sop FROM case_types ORDER BY name'),
    q('SELECT case_type_id,name FROM case_type_docs ORDER BY position,id'),q('SELECT id,name,phone,email,track_number FROM clients ORDER BY name'),
    q(CASE_SQL+' ORDER BY c.id DESC'),
-   q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id]),one('SELECT count(*)::int AS n FROM notifs WHERE user_id=$1 AND NOT read',[req.user.id]),q(`SELECT key,name,level,team_queue FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`),q(`SELECT user_id,count(*)::int AS completed FROM activity WHERE created_at>=now()-interval '7 days' AND text LIKE 'moved % → done' GROUP BY user_id ORDER BY completed DESC,user_id`)]);
+   q('SELECT a.text,a.created_at,a.user_id,a.case_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id]),one('SELECT count(*)::int AS n FROM notifs WHERE user_id=$1 AND NOT read',[req.user.id]),q(`SELECT key,name,level,team_queue FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`),q(`SELECT user_id,count(*)::int AS completed FROM activity WHERE created_at>=now()-interval '7 days' AND text LIKE 'moved % → done' GROUP BY user_id ORDER BY completed DESC,user_id`)]);
   const weeklyWork=await one(`SELECT count(DISTINCT a.case_id)::int AS assigned,
     count(DISTINCT a.case_id) FILTER (WHERE EXISTS (
       SELECT 1 FROM activity done_event
@@ -462,7 +462,7 @@ app.get('/api/audit',need('MANAGER'),wrap(async(req,res)=>{
 // Paginated dashboard activity (newest first)
 app.get('/api/activity',wrap(async(req,res)=>{
   const n0=parseInt(req.query.size),size=n0>0?Math.min(50,n0):5,total=(await one('SELECT count(*)::int AS n FROM activity')).n,pages=Math.max(1,Math.ceil(total/size)),page=Math.min(pages,Math.max(1,parseInt(req.query.page)||1));
-  const items=await q('SELECT a.text,a.created_at,a.user_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT $1 OFFSET $2',[size,(page-1)*size]);
+  const items=await q('SELECT a.text,a.created_at,a.user_id,a.case_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT $1 OFFSET $2',[size,(page-1)*size]);
   res.json({items,total,page,pages,size})}));
 app.post('/api/cases/:id/move',wrap(async(req,res)=>{
   const id=+req.params.id,to=req.body.to,reason=String(req.body.reason||'').trim(),c=await one('SELECT * FROM cases WHERE id=$1',[id]);
