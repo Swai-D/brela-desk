@@ -43,4 +43,6 @@ const profileJs=js.slice(js.indexOf('async profile()'),js.indexOf('async dashboa
 ok('the profile picture uploader is inside personal information and the green case-board link replaces the header uploader',/Personal information[\s\S]*?id="avatarForm"/.test(profileJs)&&/btn btn-success" href="cases-board\.html"[\s\S]*?Back To Case Board/.test(profileJs));
 const profileHeader=profileJs.slice(profileJs.indexOf('id="profile-avatar"'),profileJs.indexOf('Personal information'));
 ok('the profile header shows the full name and one role line only',/>\$\{esc\(ME\.name\)\}<\/h5>/.test(profileHeader)&&/>\$\{esc\(RN\(ME\.role\)\)\}<\/p>/.test(profileHeader)&&!/LV_N\[role\?\.level\]/.test(profileHeader));
+const boardJs=js.slice(js.indexOf('async board()'),js.indexOf('async clients()'));
+ok('the case board has lanes, quick filters, overdue counts and keeps drag-and-drop with the BRELA reason prompt',/bd-col/.test(boardJs)&&/bd-card/.test(boardJs)&&/bd-flt/.test(boardJs)&&/dragula\(/.test(boardJs)&&/askText\('BRELA returned this case'/.test(boardJs)&&/\/move`/.test(boardJs));
 process.exit(fails?(console.log('\n'+fails+' FAILED'),1):(console.log('\nall passed'),0));
