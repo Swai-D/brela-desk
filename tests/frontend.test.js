@@ -45,4 +45,6 @@ const profileJs=js.slice(js.indexOf('async profile()'),js.indexOf('async dashboa
 ok('the profile picture uploader is inside personal information and the green case-board link replaces the header uploader',/Personal information[\s\S]*?id="avatarForm"/.test(profileJs)&&/btn btn-success" href="cases-board\.html"[\s\S]*?Back To Case Board/.test(profileJs));
 const profileHeader=profileJs.slice(profileJs.indexOf('id="profile-avatar"'),profileJs.indexOf('Personal information'));
 ok('the profile header shows the full name and one role line only',/>\$\{esc\(ME\.name\)\}<\/h5>/.test(profileHeader)&&/>\$\{esc\(RN\(ME\.role\)\)\}<\/p>/.test(profileHeader)&&!/LV_N\[role\?\.level\]/.test(profileHeader));
+const detJs=js.slice(js.indexOf('async detail()'),js.indexOf('async inbox()'));
+ok('Case detail has a hero header with meta strip, a track number form, the BRELA correction banner and document rows',/class="card cd-hero"/.test(detJs)&&/cd-meta/.test(detJs)&&/id="tnForm"/.test(detJs)&&/cd-return/.test(detJs)&&/cd-doc /.test(detJs)&&/class="form-check-input dk"/.test(detJs));
 process.exit(fails?(console.log('\n'+fails+' FAILED'),1):(console.log('\nall passed'),0));
