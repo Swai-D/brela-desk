@@ -54,4 +54,6 @@ ok('Reports has icon KPI cards, month navigation, styled cards and keeps the CSV
 const pbJs=js.slice(js.indexOf('async playbook()'),js.indexOf('async search()'));
 ok('Playbook has a role hero, a numbered stage timeline, role cards and keeps the manager edit buttons',/pb-hero/.test(pbJs)&&/pb-stage/.test(pbJs)&&/pb-role/.test(pbJs)&&/class="btn btn-icon btn-light er"/.test(pbJs)&&/class="btn btn-icon btn-light es"/.test(pbJs)&&/data-t="/.test(pbJs));
 ok('the profile shows a cover, personal stats, recent cases as rows and highlights you in the team list',/pf-cover/.test(profileJs)&&/pf-stats/.test(profileJs)&&/mwRow\(c\)/.test(profileJs)&&/pf-mem/.test(profileJs));
+const cssAll=require('fs').readFileSync(require('path').join(__dirname,'..','public/assets/css/brela.css'),'utf8');
+ok('long client names truncate inside the clients list cards (min-w-0 is defined)',/\.min-w-0\{min-width:0!important\}/.test(cssAll)&&/\.cl-item\{min-width:0;overflow:hidden/.test(cssAll));
 process.exit(fails?(console.log('\n'+fails+' FAILED'),1):(console.log('\nall passed'),0));

@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --env-file=.env server.js",
-    "test": "bash tests/run.sh"
+    "test": "bash tests/run.sh",
+    "sync-crm": "node sync-crm.js"
   },
   "engines": {
     "node": ">=20"

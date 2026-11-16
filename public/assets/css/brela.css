@@ -365,3 +365,10 @@ td.text-end{white-space:nowrap}
 .profile-content>.row.align-items-end>.col-sm>.d-flex{align-items:flex-start!important}
 .profile-content .flex-grow-1.pb-2{padding-top:52px}
 .profile-content>.row.align-items-end>.col-sm-auto{padding-top:12px}
+/* clients list: long names must truncate inside the card */
+.min-w-0{min-width:0!important}
+.cl-item{min-width:0;overflow:hidden;max-width:100%}
+.cl-item>.flex-grow-1{min-width:0;overflow:hidden}
+.cl-item .text-truncate{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl-list,.cl-side{min-width:0}
+.cl-head h4,.cd-hero h4,.bd-client,.mw-row .fw-semibold{overflow-wrap:anywhere}
