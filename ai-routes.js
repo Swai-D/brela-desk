@@ -81,6 +81,34 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const t=await one('SELECT * FROM templates WHERE id=$1',[+req.params.id]);if(!t)fail(404,'Template not found');const body=await bodyOf(t);
   const ctx=req.body.case_id?(await contextFor(+req.body.case_id)).ctx:{values:{today:new Date().toDateString()},lists:{}};res.json(E.render(body,ctx))}));
 
+ // ---------- document view: the template as a real Word file (what the generated document looks like)
+ const DOCX_MIME='application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+ // placeholders become the yellow [gaps] of the Word file; list blocks keep one sample line
+ const previewBody=b=>String(b||'').replace(/\{\{#[a-z][a-z0-9_]*\}\}\n?/g,'').replace(/\{\{\/[a-z][a-z0-9_]*\}\}\n?/g,'').replace(/\{\{\s*([a-z][a-z0-9_]*)(?:\s*\|[^}]*)?\}\}/g,'[[$1]]');
+ const safeName=n=>String(n||'template').replace(/[\\/:*?"<>|]+/g,' ').trim()||'template';
+ app.get('/api/templates/:id/docx',wrap(async(req,res)=>{
+  const t=await one('SELECT * FROM templates WHERE id=$1',[+req.params.id]);if(!t)fail(404,'Template not found');
+  const buf=t.docx_data?Buffer.from(t.docx_data):await E.textToDocx(previewBody(await bodyOf(t)),{title:t.name});
+  res.set({'Content-Type':DOCX_MIME,'Content-Length':buf.length,'Content-Disposition':`${req.query.download?'attachment':'inline'}; filename*=UTF-8''${encodeURIComponent(safeName(t.docx_name?t.docx_name.replace(/\.docx$/i,''):t.name)+'.docx')}`,'Cache-Control':'no-store'});res.send(buf)}));
+ app.post('/api/templates/render-docx',wrap(async(req,res)=>{
+  const b=req.body||{},body=String(b.body||'');if(body.length>200000)fail(400,'The template is too long');
+  const buf=await E.textToDocx(previewBody(body),{title:clean(b.title)||'Template'});
+  res.set({'Content-Type':DOCX_MIME,'Content-Length':buf.length,'Cache-Control':'no-store'});res.send(buf)}));
+ // an edited Word file comes back: it replaces the official form (and re-reads its text), or, for a text template, is read into editable HTML
+ app.post('/api/templates/docx-to-html',need(...SR),up,wrap(async(req,res)=>{
+  if(!req.file)fail(400,'Choose a Word (.docx) file');if(!/\.docx$/i.test(Buffer.from(req.file.originalname,'latin1').toString('utf8')))fail(400,'Use a .docx file');
+  let html;try{html=(await require('mammoth').convertToHtml({buffer:req.file.buffer})).value}catch{fail(400,'This Word file could not be read')}
+  res.json({html})}));
+ app.post('/api/templates/:id/upload-docx',need(...SR),up,wrap(async(req,res)=>{
+  const t=await one('SELECT * FROM templates WHERE id=$1',[+req.params.id]);if(!t)fail(404,'Template not found');if(!t.docx_data)fail(400,'This template has no official Word form to replace');
+  if(!req.file)fail(400,'Choose a Word (.docx) file');const name=Buffer.from(req.file.originalname,'latin1').toString('utf8');if(!/\.docx$/i.test(name))fail(400,'Use a .docx file');
+  let raw;try{raw=(await require('mammoth').extractRawText({buffer:req.file.buffer})).value}catch{fail(400,'This Word file could not be read')}
+  const l2k={};for(const k of Object.keys(t.docx_defaults||{}))l2k[E.labelFromKey(k)]=k;
+  const body=E.docxTextToBody(raw,l2k);if(!body.trim())fail(400,'The Word file has no text');
+  await q('UPDATE templates SET docx_name=$2,docx_data=$3,updated_at=now() WHERE id=$1',[t.id,name.slice(0,200),req.file.buffer]);
+  const version=body!==await bodyOf(t)?await newVersion(t,body,'Word form replaced with an edited file','manual',req.user.id):t.version;
+  await audit(req,'template.docx',`${t.name}: Word form replaced (${name})`);res.json({ok:1,version,body})}));
+
  // ---------- AI helpers
  async function guard(req,kind){
   const st=await AI.status(req.user);if(!st.configured)fail(400,'The AI is not set up yet. A Manager can add an API key in Settings → AI assistant.');
