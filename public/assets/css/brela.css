@@ -381,3 +381,16 @@ td.text-end{white-space:nowrap}
 .sd-segbtn button.on{background:#e5ebff;color:#3b4cb8}
 .sd-tx{position:absolute;box-sizing:border-box;cursor:text;border-radius:2px;outline:1px dashed rgba(91,115,232,.35);background:rgba(91,115,232,.06)}
 .sd-tx:hover{outline:2px solid #5b73e8;background:rgba(91,115,232,.16)}
+
+/* ===== Doc Studio: page tools ===== */
+.sd-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px;max-height:62vh;overflow:auto;padding:2px}
+.sd-pcard{background:#fff;border:1px solid #e3e7f0;border-radius:12px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.sd-pcard.is-del{opacity:.6;border-style:dashed}
+.sd-pth{position:relative;width:100%;height:170px;display:flex;align-items:center;justify-content:center;background:#f3f5fa;border-radius:8px;overflow:hidden}
+.sd-pth-in{transition:transform .2s;display:flex}.sd-pth canvas{max-width:130px;max-height:150px;box-shadow:0 2px 8px rgba(30,40,90,.18);background:#fff;display:block}
+.sd-pblank{width:104px;height:140px;background:#fff;box-shadow:0 2px 8px rgba(30,40,90,.18);display:flex;align-items:center;justify-content:center;color:#9aa3bb;font-size:12px}
+.sd-pdel{position:absolute;inset:0;background:rgba(255,255,255,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#d64545;font-weight:600;font-size:13px}.sd-pdel i{font-size:24px}
+.sd-pnum{font-size:12px;color:#7a84a0;font-weight:600}
+.sd-pact{display:flex;gap:4px}.sd-pact button{width:30px;height:30px;border:1px solid #e3e7f0;background:#fff;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:#4b587a}
+.sd-pact button:hover:not(:disabled){background:#eef1ff;color:#3b4cb8}.sd-pact button:disabled{opacity:.35}
+.sd-padd{border:1px dashed #c5cde0;background:transparent;border-radius:8px;font-size:12px;color:#5b73e8;padding:3px 8px;width:100%}.sd-padd:hover{background:#eef1ff}
