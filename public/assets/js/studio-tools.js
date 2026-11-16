@@ -12,40 +12,102 @@ function trim(cv,pad=6){
  if(x1<0)return null;x0=Math.max(0,x0-pad);y0=Math.max(0,y0-pad);x1=Math.min(w-1,x1+pad);y1=Math.min(h-1,y1+pad);
  const o=document.createElement('canvas'),ow=x1-x0+1,oh=y1-y0+1,k=Math.min(1,900/ow);o.width=Math.round(ow*k);o.height=Math.round(oh*k);
  o.getContext('2d').drawImage(cv,x0,y0,ow,oh,0,0,o.width,o.height);return o}
-function photoToCanvas(img,{kind,remove,thr,ink}){
+// ---- background removal engine: estimates the paper (even with shadows), then turns it transparent
+function bgMap(cv){
+ const w=cv.width,h=cv.height,s=Math.max(1,Math.round(Math.max(w,h)/160)),sw=Math.max(2,Math.ceil(w/s)),sh=Math.max(2,Math.ceil(h/s));
+ const sm=document.createElement('canvas');sm.width=sw;sm.height=sh;const sx=sm.getContext('2d',{willReadFrequently:true});sx.imageSmoothingQuality='high';sx.drawImage(cv,0,0,sw,sh);
+ const d=sx.getImageData(0,0,sw,sh).data,L=new Float32Array(sw*sh),T=new Float32Array(sw*sh),M=new Float32Array(sw*sh),r=3;
+ for(let i=0;i<sw*sh;i++)L[i]=.299*d[i*4]+.587*d[i*4+1]+.114*d[i*4+2];
+ for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){let m=0;for(let k=Math.max(0,x-r);k<=Math.min(sw-1,x+r);k++)if(L[y*sw+k]>m)m=L[y*sw+k];T[y*sw+x]=m}
+ for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){let m=0;for(let k=Math.max(0,y-r);k<=Math.min(sh-1,y+r);k++)if(T[k*sw+x]>m)m=T[k*sw+x];M[y*sw+x]=m}
+ const im=sx.createImageData(sw,sh);for(let i=0;i<sw*sh;i++){im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=M[i];im.data[i*4+3]=255}sx.putImageData(im,0,0);
+ const big=document.createElement('canvas');big.width=w;big.height=h;const bx=big.getContext('2d',{willReadFrequently:true});bx.imageSmoothingQuality='high';bx.drawImage(sm,0,0,w,h);
+ const o=bx.getImageData(0,0,w,h).data,out=new Uint8Array(w*h);for(let i=0;i<w*h;i++)out[i]=o[i*4];return out}
+function srcCanvas(img){
  const k=Math.min(1,1400/Math.max(img.naturalWidth,img.naturalHeight)),cv=document.createElement('canvas');cv.width=Math.round(img.naturalWidth*k);cv.height=Math.round(img.naturalHeight*k);
- const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(img,0,0,cv.width,cv.height);
+ cv.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0,cv.width,cv.height);return cv}
+function cutBase(src,{kind,remove,thr,ink,keep,mode,pick,tol}){
+ const w=src.width,h=src.height,cv=document.createElement('canvas');cv.width=w;cv.height=h;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(src,0,0);
  if(!remove)return cv;
- const im=x.getImageData(0,0,cv.width,cv.height),d=im.data,[ir,ig,ib]=hexRgb(ink).map(v=>Math.round(v*255));
- for(let i=0;i<d.length;i+=4){
-  if(kind==='stamp'){d[i+3]=clamp((255-Math.min(d[i],d[i+1],d[i+2]))*2.2,0,255)}
-  else{const L=.299*d[i]+.587*d[i+1]+.114*d[i+2],a=clamp((thr-L)/thr*1.8,0,1);d[i]=ir;d[i+1]=ig;d[i+2]=ib;d[i+3]=Math.round(a*255)}}
+ const im=x.getImageData(0,0,w,h),d=im.data,[ir,ig,ib]=hexRgb(ink).map(v=>Math.round(v*255)),stamp=kind==='stamp',byColour=mode==='pick'&&pick,bg=byColour?null:bgMap(src);
+ for(let i=0,p=0;i<d.length;i+=4,p++){
+  if(byColour){const dist=Math.hypot(d[i]-pick[0],d[i+1]-pick[1],d[i+2]-pick[2]);d[i+3]=Math.round(255*(dist<=tol?0:dist>=tol*1.6?1:(dist-tol)/(tol*.6)));continue}
+  const B=Math.max(80,bg[p]),L=.299*d[i]+.587*d[i+1]+.114*d[i+2],n=Math.min(255,L/B*255);
+  const a=stamp?clamp((255-n)*2.2/255,0,1):clamp((thr-n)/thr*1.8,0,1);
+  if(stamp||keep){const k=255/B;for(let c=0;c<3;c++){let v=clamp(d[i+c]*k,0,255);if(a>.04)v=clamp((v-255*(1-a))/a,0,255);d[i+c]=v}}
+  else{d[i]=ir;d[i+1]=ig;d[i+2]=ib}
+  d[i+3]=Math.round(a*255)}
  x.putImageData(im,0,0);return cv}
+function withErase(base,erase){
+ if(!erase)return base;const cv=document.createElement('canvas');cv.width=base.width;cv.height=base.height;const x=cv.getContext('2d');x.drawImage(base,0,0);x.globalCompositeOperation='destination-out';x.drawImage(erase,0,0);return cv}
+
+// ---- the reusable "remove background" panel (signature dialog, stamp dialog and the Image tool)
+function mountCutout(host,{kind='signature',removeDefault=true}={}){
+ const stamp=kind==='stamp';let src=null,erase=null,mode='auto',pick=null,ink=INKS[0],base=null,key='',pv,painting=false,last=null;
+ host.innerHTML=`<div class="sd-cut-pv"><canvas id="cu-pv"></canvas></div>
+ <div class="d-flex flex-wrap align-items-center gap-3 mt-2"><label class="form-check mb-0"><input type="checkbox" class="form-check-input" id="cu-rm" ${removeDefault?'checked':''}><span class="form-check-label fw-medium">Remove the background</span></label>
+  <div class="sd-segbtn" id="cu-mode" role="group" aria-label="How to remove it"><button type="button" data-m="auto" class="on">Automatic</button><button type="button" data-m="pick">Pick colour</button><button type="button" data-m="erase">Erase marks</button></div></div>
+ <div class="row g-3 mt-0 align-items-center"><div class="col-sm-6" id="cu-s1"><label class="small fw-medium d-block" id="cu-l1">Strength</label><input type="range" id="cu-thr" class="form-range" min="110" max="235" value="190"></div>
+  <div class="col-sm-6" id="cu-s2" hidden><label class="small fw-medium d-block">Tolerance</label><input type="range" id="cu-tol" class="form-range" min="10" max="160" value="60"></div>
+  <div class="col-sm-6" id="cu-s3" hidden><label class="small fw-medium d-block">Eraser size</label><input type="range" id="cu-br" class="form-range" min="6" max="80" value="26"></div>
+  ${stamp?'':`<div class="col-sm-6"><div class="d-flex align-items-center gap-2 flex-wrap"><label class="form-check mb-0"><input type="checkbox" class="form-check-input" id="cu-keep" checked><span class="form-check-label small">Keep original ink colour</span></label><span id="cu-inks" class="align-items-center gap-2" style="display:none">${INKS.map(c=>`<button type="button" class="sd-ink cu-ink" data-c="${c}" style="background:${c}" aria-label="Ink ${c}"></button>`).join('')}</span></div></div>`}</div>
+ <div class="small text-muted mt-1" id="cu-hint"></div>`;
+ const q=id=>host.querySelector('#'+id);pv=q('cu-pv');
+ const opt=()=>({kind,remove:q('cu-rm').checked,thr:+q('cu-thr').value,ink,keep:stamp||!q('cu-keep')||q('cu-keep').checked,mode:mode==='pick'?'pick':'auto',pick,tol:+q('cu-tol').value});
+ const hints={auto:'The paper is removed automatically, even with shadows. Move Strength until the signature is clean.',pick:pick?'Click the preview again to choose a different background colour.':'Click the background on the preview to make that colour transparent.',erase:'Drag over stray marks, lines or smudges to wipe them out.'};
+ const paint=()=>{if(!src)return;const o=opt(),k=JSON.stringify([o,pick,src.width]);if(k!==key||!base){base=cutBase(src,o);key=k}const out=withErase(base,erase);pv.width=out.width;pv.height=out.height;pv.getContext('2d').drawImage(out,0,0)};
+ const ui=()=>{host.querySelectorAll('#cu-mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===mode));q('cu-s1').hidden=mode!=='auto';q('cu-s2').hidden=mode!=='pick';q('cu-s3').hidden=mode!=='erase';q('cu-hint').textContent=hints[mode];pv.style.cursor=mode==='erase'?'cell':mode==='pick'?'crosshair':'default';
+  const ki=q('cu-inks');if(ki){ki.style.display=q('cu-keep').checked?'none':'flex';ki.querySelectorAll('.cu-ink').forEach(b=>b.classList.toggle('on',b.dataset.c===ink))}};
+ host.querySelectorAll('#cu-mode button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;if(mode==='pick'&&!q('cu-rm').checked)q('cu-rm').checked=true;ui();paint()});
+ ['cu-rm','cu-thr','cu-tol','cu-keep'].forEach(id=>{const e=q(id);if(e)e.oninput=e.onchange=()=>{ui();paint()}});
+ host.querySelectorAll('.cu-ink').forEach(b=>b.onclick=()=>{ink=b.dataset.c;ui();paint()});
+ const pos=e=>{const r=pv.getBoundingClientRect();return{x:(e.clientX-r.left)*pv.width/r.width,y:(e.clientY-r.top)*pv.height/r.height}};
+ pv.onpointerdown=e=>{if(!src)return;const p=pos(e);
+  if(mode==='pick'){const c=src.getContext('2d').getImageData(Math.round(clamp(p.x,0,src.width-1)),Math.round(clamp(p.y,0,src.height-1)),1,1).data;pick=[c[0],c[1],c[2]];q('cu-rm').checked=true;ui();paint();return}
+  if(mode==='erase'){e.preventDefault();pv.setPointerCapture(e.pointerId);painting=true;last=p;if(!erase){erase=document.createElement('canvas');erase.width=src.width;erase.height=src.height}dot(p,p)}};
+ const dot=(a,b)=>{const x=erase.getContext('2d');x.strokeStyle=x.fillStyle='#000';x.lineWidth=+q('cu-br').value;x.lineCap=x.lineJoin='round';x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke();paint()};
+ pv.onpointermove=e=>{if(!painting)return;const p=pos(e);dot(last,p);last=p};pv.onpointerup=pv.onpointercancel=()=>{painting=false};
+ return{
+  async take(file){const img=await loadImage(URL.createObjectURL(file));src=srcCanvas(img);erase=null;base=null;pick=null;key='';ui();paint();host.hidden=false},
+  has:()=>!!src,
+  removed:()=>q('cu-rm').checked,
+  erased:()=>!!erase,
+  result:()=>src?withErase(cutBase(src,opt()),erase):null,
+  original:()=>src}}
+SD.mountCutout=mountCutout;SD.cutTrim=(cv,pad)=>trim(cv,pad);
+
+// Image tool: choose a picture, optionally remove its background, then place it on the page
+SD.imageDialog=(file,onDone)=>{
+ const el=modal('Add an image',`<div id="im-cut"></div>`,'Place on the page',async()=>{
+  if(!cut.has())throw new Error('Choose an image first');
+  const changed=cut.removed()||cut.erased(),cv=changed?cut.result():cut.original();
+  const out=cut.removed()?trim(cv,4)||cv:cv;
+  onDone({url:out.toDataURL(changed?'image/png':'image/jpeg',.92),w:out.width,h:out.height})},'lg');
+ const cut=mountCutout(el.querySelector('#im-cut'),{kind:'image',removeDefault:false});
+ cut.take(file).catch(()=>{toast('That image could not be read. Try a JPG or PNG.','error')});return el};
 
 SD.signatureDialog=({kind='signature',onSaved}={})=>{
  const stamp=kind==='stamp',tabs=stamp?[['up','Upload image','bx-upload'],['cam','Camera','bx-camera'],['draw','Draw','bx-pen']]:[['draw','Draw','bx-pen'],['type','Type','bx-text'],['up','Upload image','bx-upload'],['cam','Camera','bx-camera']];
- let tab=tabs[0][0],ink=INKS[1],thick=4,font=HAND[0][0],photo=null,drew=false;
+ let tab=tabs[0][0],ink=INKS[1],thick=4,font=HAND[0][0],photo=false,drew=false;
  const el=modal(stamp?'Add your company stamp':'Create your signature',`<ul class="nav nav-tabs mb-3">${tabs.map(([k,l,ic])=>`<li class="nav-item"><button type="button" class="nav-link ${k===tab?'active':''}" data-tab="${k}"><i class="bx ${ic} me-1"></i>${l}</button></li>`).join('')}</ul>
  <div data-p="draw" ${tab==='draw'?'':'hidden'}><div class="sd-pad"><canvas id="sg-cv"></canvas><div style="position:absolute;left:40px;right:40px;bottom:46px;border-top:1.5px solid #c5cde0;pointer-events:none"></div><div class="small text-muted" style="position:absolute;left:14px;bottom:10px;pointer-events:none">Draw with your mouse, finger or stylus</div><button type="button" class="btn btn-sm btn-light" id="sg-clear" style="position:absolute;right:10px;bottom:8px"><i class="bx bx-undo me-1"></i>Clear</button></div>
   <div class="d-flex flex-wrap align-items-center gap-3 mt-3"><div class="d-flex align-items-center gap-2"><span class="small fw-medium">Ink</span>${INKS.map(c=>`<button type="button" class="sd-ink sg-ink" data-c="${c}" style="background:${c}" aria-label="Ink ${c}"></button>`).join('')}</div><label class="d-flex align-items-center gap-2 ms-auto mb-0"><span class="small fw-medium">Pen thickness</span><input type="range" id="sg-th" min="1" max="8" value="4" style="width:140px"></label></div></div>
  <div data-p="type" hidden><input id="sg-text" class="form-control mb-2" placeholder="Type your name" maxlength="40"><div id="sg-fonts" class="d-flex flex-column gap-2"></div><div class="d-flex align-items-center gap-2 mt-3"><span class="small fw-medium">Ink</span>${INKS.map(c=>`<button type="button" class="sd-ink sg-ink" data-c="${c}" style="background:${c}" aria-label="Ink ${c}"></button>`).join('')}</div></div>
- <div data-p="up" hidden><div class="sd-drop" id="sg-upd"><i class="bx bx-upload font-size-24 text-primary"></i><div class="fw-medium">Choose an image of your ${stamp?'stamp':'signature'}</div><div class="small text-muted">PNG or JPG. Photograph it on plain white paper in good light.</div></div><input type="file" id="sg-upf" accept="image/*" hidden></div>
+ <div data-p="up" hidden><div class="sd-drop" id="sg-upd"><i class="bx bx-upload font-size-24 text-primary"></i><div class="fw-medium">Choose an image of your ${stamp?'stamp':'signature'}</div><div class="small text-muted">PNG or JPG. The background is removed for you, and you can fine-tune it.</div></div><input type="file" id="sg-upf" accept="image/*" hidden></div>
  <div data-p="cam" hidden><div class="sd-drop" id="sg-camd"><i class="bx bx-camera font-size-24 text-primary"></i><div class="fw-medium">Take a photo</div><div class="small text-muted">Use the back camera on a phone or tablet.</div></div><input type="file" id="sg-camf" accept="image/*" capture="environment" hidden></div>
- <div id="sg-photo" hidden class="mt-3"><div class="border rounded-3 p-2 text-center" style="background:repeating-conic-gradient(#f4f6fb 0 25%,#fff 0 50%) 0 0/12px 12px"><canvas id="sg-pv" style="max-width:100%;max-height:200px"></canvas></div>
-  <div class="d-flex flex-wrap align-items-center gap-3 mt-2"><label class="form-check mb-0"><input type="checkbox" class="form-check-input" id="sg-rm" checked><span class="form-check-label">Remove the white background</span></label>${stamp?'':`<label class="d-flex align-items-center gap-2 mb-0"><span class="small">Strength</span><input type="range" id="sg-thr" min="110" max="235" value="190" style="width:120px"></label>`}</div></div>
+ <div id="sg-photo" hidden class="mt-3"></div>
  <div class="row g-2 mt-3 align-items-end"><div class="col-sm-7"><label class="form-label small mb-1">Name</label><input id="sg-name" class="form-control" value="${stamp?'Company stamp':ST.sigs.some(s=>s.kind==='signature')?'Initials':'Full signature'}" maxlength="60"></div>${stamp?'':`<div class="col-sm-5"><label class="form-check mb-2"><input type="checkbox" class="form-check-input" id="sg-def" ${ST.sigs.some(s=>s.is_default)?'':'checked'}><span class="form-check-label">Make this my default</span></label></div>`}</div>
  <div class="d-flex gap-2 align-items-start rounded-3 p-2 mt-3 small" style="background:#eef1ff;color:#2b3a96"><i class="bx bx-lock-alt mt-1"></i><div>Saved privately to your account. Only you can place it, and every use is written to the audit log. A placed signature is a visual signature, not a cryptographic one.</div></div>`,
  'Save and use',async m=>{
   let cv=null;
   if(tab==='draw'){if(!drew)throw new Error('Draw your '+(stamp?'stamp':'signature')+' first');cv=g('sg-cv')}
   else if(tab==='type'){const t=g('sg-text').value.trim();if(!t)throw new Error('Type your name first');cv=await typed(t)}
-  else{if(!photo)throw new Error('Choose or take a photo first');cv=photoToCanvas(photo,opt())}
+  else{if(!cut.has())throw new Error('Choose or take a photo first');cv=cut.result()}
   const out=trim(cv);if(!out)throw new Error('Nothing to save yet');
   const blob=await new Promise(r=>out.toBlob(r,'image/png'));if(!blob)throw new Error('Could not save the image');
   const fd=new FormData();fd.append('file',blob,'signature.png');fd.append('name',g('sg-name').value.trim());fd.append('kind',kind);const df=g('sg-def');if(df&&df.checked)fd.append('isDefault','1');
   const r=await api('/me/signatures',{body:fd});toast((stamp?'Stamp':'Signature')+' saved','success',2500);if(onSaved)await onSaved(r)});
  el.querySelector('.modal-dialog').classList.add('modal-lg');
- const opt=()=>({kind,remove:g('sg-rm').checked,thr:+(g('sg-thr')||{value:190}).value,ink});
  const paintInk=()=>el.querySelectorAll('.sg-ink').forEach(b=>b.classList.toggle('on',b.dataset.c===ink));paintInk();
  // draw pad
  const cv=g('sg-cv'),ctx=cv.getContext('2d');let drawing=false,last=null;
@@ -60,7 +122,7 @@ SD.signatureDialog=({kind='signature',onSaved}={})=>{
  // tabs
  const show=k=>{tab=k;el.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===k));el.querySelectorAll('[data-p]').forEach(p=>p.hidden=p.dataset.p!==k);g('sg-photo').hidden=!((k==='up'||k==='cam')&&photo);if(k==='type')fonts();if(k==='draw')setTimeout(fit,50)};
  el.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>show(b.dataset.tab));
- el.querySelectorAll('.sg-ink').forEach(b=>b.onclick=()=>{ink=b.dataset.c;paintInk();if(tab==='type')fonts();if(photo)repaint()});
+ el.querySelectorAll('.sg-ink').forEach(b=>b.onclick=()=>{ink=b.dataset.c;paintInk();if(tab==='type')fonts()});
  // type
  let gf=false;
  const fonts=()=>{
@@ -71,11 +133,10 @@ SD.signatureDialog=({kind='signature',onSaved}={})=>{
  g('sg-text').oninput=fonts;
  const typed=async t=>{try{await document.fonts.load(`64px "${font}"`,t)}catch{}const c=document.createElement('canvas'),x=c.getContext('2d');x.font=`64px "${font}", cursive`;const w=Math.ceil(x.measureText(t).width)+40;c.width=w;c.height=130;x.font=`64px "${font}", cursive`;x.fillStyle=ink;x.textBaseline='middle';x.fillText(t,20,68);return c};
  // photo
- const repaint=()=>{if(!photo)return;const c=photoToCanvas(photo,opt()),pv=g('sg-pv');pv.width=c.width;pv.height=c.height;pv.getContext('2d').drawImage(c,0,0);g('sg-photo').hidden=false};
- const take=async f=>{if(!f)return;try{photo=await loadImage(URL.createObjectURL(f));repaint()}catch{toast('That image could not be read. Try a JPG or PNG.','error')}};
+ const cut=mountCutout(g('sg-photo'),{kind});g('sg-photo').hidden=true;
+ const take=async f=>{if(!f)return;try{await cut.take(f);photo=true;g('sg-photo').hidden=false}catch{toast('That image could not be read. Try a JPG or PNG.','error')}};
  g('sg-upd').onclick=()=>g('sg-upf').click();g('sg-camd').onclick=()=>g('sg-camf').click();
  g('sg-upf').onchange=e=>take(e.target.files[0]);g('sg-camf').onchange=e=>take(e.target.files[0]);
- g('sg-rm').onchange=repaint;const thr=g('sg-thr');if(thr)thr.oninput=repaint;
  show(tab)};
 
 // ======================================================= images to PDF
