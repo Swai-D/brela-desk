@@ -125,6 +125,19 @@ Directors:
  ok('filling a template still works without the AI',(await call('POST',`/cases/${c.id}/ai/generate`,{template_id:t1,mode:'fill'})).j.mode==='fill');
  await call('PUT','/ai/settings',{clear_key:true});
  ok('no key: AI generation and smart fill explain what to do; learning falls back to automatic mode',(await call('POST',`/cases/${c.id}/ai/generate`,{template_id:t1,mode:'ai'})).s===400&&(await call('POST',`/cases/${c.id}/ai/extract`,{text:'some long enough client message text'})).s===400&&(await call('POST',`/cases/${c.id}/ai/learn`,{text:finalText,template_id:t1})).j.ai_used===false);
+ // ================= Word / PDF view of a template
+ await as('boss@test.co',AP);
+ {const raw=async(m,u,b,h)=>{const r=await fetch(B+u,{method:m,headers:{cookie:ck,...(h||{})},body:b});return {s:r.status,buf:Buffer.from(await r.arrayBuffer()),h:r.headers}};
+  const g=await raw('GET',`/templates/${t1}/docx`);const gt=(await mammoth.extractRawText({buffer:g.buf})).value;
+  ok('a template opens as a Word file built like the real output; field names show as gaps',g.s===200&&/wordprocessingml/.test(g.h.get('content-type'))&&/MEMORANDUM/.test(gt)&&/\[\[company_name\]\]/.test(gt)&&!/\{\{/.test(gt),gt.slice(0,200));
+  ok('download=1 sends it as an attachment',/attachment/.test((await raw('GET',`/templates/${t1}/docx?download=1`)).h.get('content-disposition')));
+  const rd=await raw('POST','/templates/render-docx',JSON.stringify({body:'# Live preview\nHello {{client_name|friend}}',title:'x'}),{'Content-Type':'application/json'});
+  ok('unsaved text renders to Word for the live view',rd.s===200&&/Live preview/.test((await mammoth.extractRawText({buffer:rd.buf})).value));
+  ok('an unknown template gives 404',(await raw('GET','/templates/99999/docx')).s===404);
+  const fd2=()=>{const f=new FormData();f.append('file',new Blob([g.buf]),'edited.docx');return f};
+  const h2=await raw('POST','/templates/docx-to-html',fd2());ok('an edited Word file is read back into HTML',h2.s===200&&/MEMORANDUM/.test(JSON.parse(h2.buf).html));
+  ok('a text template has no official form to replace',(await raw('POST',`/templates/${t1}/upload-docx`,fd2())).s===400);
+  await as('juma@test.co',UP);ok('staff can view but not upload',(await raw('GET',`/templates/${t1}/docx`)).s===200&&(await raw('POST','/templates/docx-to-html',fd2())).s===403);await as('boss@test.co',AP)}
  // ================= deleting
  await as('sia@test.co',UP);ok('a senior cannot delete a template; a Manager can (and it is audited)',(await call('DELETE','/templates/'+t2)).s===403);
  await as('boss@test.co',AP);ok('manager deletes',(await call('DELETE','/templates/'+t2)).s===200&&(await call('GET','/templates/'+t2)).s===404&&(await call('GET','/audit?size=100')).j.items.some(x=>x.action==='template.delete'&&/Director consent/.test(x.details))&&(await call('GET','/audit?size=100')).j.items.some(x=>x.action==='template.approve'));

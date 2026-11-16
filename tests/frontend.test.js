@@ -59,5 +59,10 @@ ok('long client names truncate inside the clients list cards (min-w-0 is defined
 const stJs=fs.readFileSync(path.join(pub,'assets/js/studio.js'),'utf8'),stTools=fs.readFileSync(path.join(pub,'assets/js/studio-tools.js'),'utf8');
 ok('Doc Studio can edit existing PDF text in place (text lines are read, covered with a sampled whiteout and retyped)',/\['edittext','bx-edit-alt','Edit text'\]/.test(stJs)&&/function buildSegs\(/.test(stJs)&&/getTextContent\(\)/.test(stJs)&&/function editSeg\(/.test(stJs)&&/fill:c\.bg/.test(stJs)&&/it\.fill\|\|'#ffffff'/.test(stJs));
 ok('Doc Studio removes backgrounds from uploaded signature photos and placed images (shadow-proof, pick colour, eraser, keep ink colour)',/function bgMap\(/.test(stTools)&&/mode==='pick'/.test(stTools)&&/id="cu-mode"/.test(stTools)&&/id="cu-keep"/.test(stTools)&&/SD\.imageDialog=/.test(stTools)&&/window\.SD\.imageDialog\(file/.test(stJs));
+{const tv=fs.readFileSync(path.join(pub,'assets/js/tpview.js'),'utf8'),tp=fs.readFileSync(path.join(pub,'templates.html'),'utf8'),br=fs.readFileSync(path.join(pub,'assets/js/brela.js'),'utf8');
+ ok('templates page loads docx viewer + template views',/docx-preview\.min\.js/.test(tp)&&/jszip\.min\.js/.test(tp)&&/tpview\.js/.test(tp));
+ ok('template views: text, page editor, Word / PDF',/data-v="text"/.test(tv)&&/data-v="page"/.test(tv)&&/data-v="word"/.test(tv)&&/window\.TPV=/.test(tv));
+ ok('template editor mounts the views and routes field chips to the page',/TPV\.mount\(el/.test(br)&&/_tpInsert/.test(br));
+ ok('word view uses server docx endpoints',/\/templates\/\$\{id\}\/docx/.test(tv)&&/render-docx/.test(tv)&&/upload-docx/.test(tv)&&/docx-to-html/.test(tv))}
 ok('Doc Studio has page tools to rotate, delete, reorder and add blank pages, rebuilt through pdf-lib so deleted pages are really removed',/id="sd-pages"/.test(stJs)&&/async function pagesDialog\(/.test(stJs)&&/async function applyPages\(/.test(stJs)&&/copyPages\(/.test(stJs)&&/E\.pagesChanged/.test(stJs));
 process.exit(fails?(console.log('\n'+fails+' FAILED'),1):(console.log('\nall passed'),0));

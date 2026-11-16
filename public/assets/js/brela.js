@@ -298,7 +298,9 @@ async function templateEditor(id,done){
   el.querySelector('#te-fsum').textContent=plain.length||loops.length?`Fields in this template (${plain.length+loops.length})`:'Fields in this template';
   const w=b.value.trim()?b.value.trim().split(/\s+/).length:0;el.querySelector('#te-count').textContent=`${w} word${w===1?'':'s'}`};
  b.addEventListener('input',()=>{dirty=true;fl()});fl();
- el.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{const s=b.selectionStart,e=b.selectionEnd;b.value=b.value.slice(0,s)+c.dataset.ins+b.value.slice(e);b.focus();b.selectionStart=b.selectionEnd=s+c.dataset.ins.length;dirty=true;fl()});
+ const reopen0=()=>{bootstrap.Modal.getInstance(el).hide();done(id);setTimeout(()=>templateEditor(id,done),400)};
+ if(window.TPV)TPV.mount(el,{id,t,can,b,changed:()=>{dirty=true;fl()},reopen:reopen0});
+ el.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{if(el._tpInsert&&el._tpInsert(c.dataset.ins)){fl();return}const s=b.selectionStart,e=b.selectionEnd;b.value=b.value.slice(0,s)+c.dataset.ins+b.value.slice(e);b.focus();b.selectionStart=b.selectionEnd=s+c.dataset.ins.length;dirty=true;fl()});
  const fs=el.querySelector('#te-fs');if(fs)fs.oninput=()=>{const v=fs.value.trim().toLowerCase().replace(/\s+/g,'_');let n=0;el.querySelectorAll('#te-flist .chip').forEach(c=>{const hit=!v||c.dataset.k.replace(/\s+/g,'_').includes(v);c.classList.toggle('d-none',!hit);if(hit)n++});el.querySelectorAll('.tp-fg').forEach(g=>g.classList.toggle('d-none',!g.querySelector('.chip:not(.d-none)')));el.querySelector('#te-fnone').classList.toggle('d-none',n>0)};
  const reopen=async()=>{bootstrap.Modal.getInstance(el).hide();await done(id);setTimeout(()=>templateEditor(id,done),400)};
  const ap=el.querySelector('#te-ap');if(ap)ap.onclick=async()=>{if(dirty)return alert('Save your changes first, then approve.');try{await api(`/templates/${id}/approve`,{body:{approved:t.status!=='APPROVED'}});await reopen()}catch(e){alert(e.message)}};
