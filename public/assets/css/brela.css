@@ -316,3 +316,12 @@ td.text-end{white-space:nowrap}
 .stepper .step .avatar-xs{width:28px;height:28px;margin-bottom:6px!important}
 .stepper .step:not(:last-child):after{top:13px}
 .stepper .step:nth-child(n+1):not(.on) .avatar-title{color:#7a84a0}
+
+/* ===== Reports ===== */
+.rp-month{display:flex;align-items:center;gap:8px;margin-bottom:16px}.rp-month #mo{width:auto;min-width:170px}
+.rp-kpi .card-body{padding:16px}.rp-v{font-size:26px;font-weight:600;color:#2b3452;line-height:1.1;margin-top:12px}.rp-t{color:#7a84a0;font-size:13px;margin:2px 0 4px}.rp-d small{font-size:12px}
+.rp-card .card-header{background:#fff;border-bottom:1px solid #eef0f6;padding:14px 18px;border-radius:14px 14px 0 0}
+.rp-card .card-header small{display:block;margin-top:2px}
+.rp-gauge{border:1px solid #e9ecf3;border-radius:12px;box-shadow:none;background:#fafbfe}
+#report .card{border-radius:14px}
+@media print{.rp-card,.rp-kpi{break-inside:avoid;box-shadow:none}}
