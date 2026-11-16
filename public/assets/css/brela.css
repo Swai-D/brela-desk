@@ -234,6 +234,34 @@ td.text-end{white-space:nowrap}
 .st-det{border:1px solid #e3e7f0;border-radius:10px;padding:12px 14px;margin:14px 0}.st-det summary{cursor:pointer;font-weight:600;font-size:14px}
 @media(max-width:767px){.st-t td,.st-t th{padding:10px 10px}.st-t .text-end{white-space:normal!important}}
 
+/* ===== Case board ===== */
+.bd-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.bd-board{display:flex;gap:14px;overflow-x:auto;padding-bottom:14px;align-items:flex-start;scroll-snap-type:x proximity}
+.bd-col{flex:1 0 270px;min-width:270px;max-width:340px;scroll-snap-align:start}
+.bd-head{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e9ecf3;border-top:3px solid #ccc;border-radius:12px 12px 0 0;padding:10px 12px}
+.bd-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.bd-n{font-size:12px;font-weight:600;background:#eef0f6;color:#5b6786;border-radius:10px;padding:2px 9px}
+.bd-late{font-size:11.5px;font-weight:600;background:#fdecec;color:#d64545;border-radius:10px;padding:2px 8px}
+.bd-drop{background:#eef0f6;border-radius:0 0 12px 12px;padding:8px;min-height:140px;display:flex;flex-direction:column;gap:8px}
+.bd-card{background:#fff;border:1px solid #e3e7f0;border-left:4px solid #dfe3ee;border-radius:10px;padding:12px;cursor:grab;transition:box-shadow .15s,transform .15s}
+.bd-card:hover{box-shadow:0 6px 16px rgba(40,60,140,.12)}
+.bd-card.is-late{border-left-color:#f46a6a}
+.bd-client{display:block;font-weight:600;color:#2b3452;line-height:1.3}.bd-client:hover{color:#3b4cb8}
+.bd-type{font-size:12.5px;color:#7a84a0;margin:2px 0 8px}
+.bd-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.bd-code{font-size:11.5px;background:#f1f3f9;color:#5b6786;border-radius:6px;padding:2px 7px;font-weight:500}
+.bd-foot{display:flex;align-items:center;gap:10px;margin-top:6px}.bd-foot .mw-docs{flex:1;margin-top:0;max-width:none;min-width:0}
+.bd-foot .dx-due{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.bd-empty{border:2px dashed #d5dae8;border-radius:10px;color:#9aa3bb;text-align:center;padding:26px 8px;font-size:13px}
+.bd-more{border:0;background:transparent;color:#3b4cb8;font-size:13px;font-weight:600;padding:6px;border-radius:8px}.bd-more:hover{background:#e5ebff}
+.gu-mirror{position:fixed!important;margin:0!important;z-index:9999!important;opacity:.9;transform:rotate(2deg);box-shadow:0 14px 30px rgba(30,40,90,.25)}
+.gu-transit{opacity:.35}
+.bd-drop:has(.gu-transit){outline:2px dashed #3b4cb8;outline-offset:-4px}
+@media(max-width:575px){.bd-col{flex-basis:84%;min-width:84%}.bd-bar .tp-search{flex:1 1 100%}.bd-bar .form-select{flex:1}}
+.bd-card{min-width:0;overflow:hidden}
+.bd-foot .mw-docs{display:flex;align-items:center;gap:8px}.bd-foot .mw-docs .progress{height:5px;flex:1;background:#e9ecf3}.bd-foot .mw-docs span{font-size:11.5px;color:#7a84a0;white-space:nowrap}
+.bd-card .mw-note{margin:0 0 6px;font-size:12.5px;color:#c33c3c;background:#fdecec;border-radius:6px;padding:3px 8px;display:block;overflow-wrap:anywhere}
+.bd-search-fix,.bd-bar .tp-search{min-width:240px}
 /* ===== Clients ===== */
 .cl-side{position:sticky;top:90px}
 .cl-list{display:flex;flex-direction:column;gap:6px}

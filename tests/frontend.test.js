@@ -47,4 +47,6 @@ const profileHeader=profileJs.slice(profileJs.indexOf('id="profile-avatar"'),pro
 ok('the profile header shows the full name and one role line only',/>\$\{esc\(ME\.name\)\}<\/h5>/.test(profileHeader)&&/>\$\{esc\(RN\(ME\.role\)\)\}<\/p>/.test(profileHeader)&&!/LV_N\[role\?\.level\]/.test(profileHeader));
 const detJs=js.slice(js.indexOf('async detail()'),js.indexOf('async inbox()'));
 ok('Case detail has a hero header with meta strip, a track number form, the BRELA correction banner and document rows',/class="card cd-hero"/.test(detJs)&&/cd-meta/.test(detJs)&&/id="tnForm"/.test(detJs)&&/cd-return/.test(detJs)&&/cd-doc /.test(detJs)&&/class="form-check-input dk"/.test(detJs));
+const boardJs=js.slice(js.indexOf('async board()'),js.indexOf('async clients()'));
+ok('the case board has lanes, quick filters, overdue counts and keeps drag-and-drop with the BRELA reason prompt',/bd-col/.test(boardJs)&&/bd-card/.test(boardJs)&&/bd-flt/.test(boardJs)&&/dragula\(/.test(boardJs)&&/askText\('BRELA returned this case'/.test(boardJs)&&/\/move`/.test(boardJs));
 process.exit(fails?(console.log('\n'+fails+' FAILED'),1):(console.log('\nall passed'),0));
