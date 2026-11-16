@@ -100,7 +100,7 @@ async function openEditor(o){
  let pdf;try{pdf=await pdfjsLib.getDocument({data:o.bytes.slice()}).promise}catch(e){toast(e&&e.name==='PasswordException'?'This PDF is password-protected. Remove the password first.':'This file could not be opened as a PDF.','error');return home()}
  if(pdf.numPages>80){toast('This PDF has '+pdf.numPages+' pages. Doc Studio handles up to 80 pages.','error');return home()}
  try{await PDFLib.PDFDocument.load(o.bytes)}catch{toast('This PDF is protected or damaged, so it cannot be edited here.','error');return home()}
- E={...o,pdf,items:[],imgs:{},sel:null,tool:'select',armed:null,undo:[],redo:[],zoom:1,pg:[],saved:false,changed:false,font:'helv',color:'#1b1f2a',size:12,mode:'new'};
+ E={...o,origBytes:o.bytes,pagesChanged:false,pdf,items:[],imgs:{},sel:null,tool:'select',armed:null,undo:[],redo:[],zoom:1,pg:[],saved:false,changed:false,font:'helv',color:'#1b1f2a',size:12,mode:'new'};
  ST.view='sign';ST.dirty=()=>E&&E.changed;
  shell();await renderPages();
  if(!ST.sigs.length)toast('Create your signature first (right side), then click the page to place it.','info',6000)}
@@ -117,7 +117,7 @@ function shell(){
   </div></div></div>
   <div class="sd-main"><div class="card mb-0"><div class="sd-bar" id="sd-bar">
     ${[['select','bx-pointer','Select'],['text','mdi mdi-format-text','Text'],['edittext','bx-edit-alt','Edit text'],['sign','mdi mdi-draw','Sign'],['stamp','mdi mdi-stamper','Stamp'],['date','bx-calendar','Date'],['whiteout','bx-square','Whiteout'],['hl','bx-highlight','Highlight'],['image','bx-image','Image']].map(([k,ic,l])=>`<button type="button" class="sd-tool ${k==='select'?'on':''}" data-t="${k}"><i class="${ic.includes(' ')?ic:'bx '+ic}"></i>${l}</button>`).join('')}
-    <span class="sd-sep"></span><button type="button" class="sd-tool" id="sd-undo" aria-label="Undo" disabled><i class="bx bx-undo"></i>Undo</button><button type="button" class="sd-tool" id="sd-redo" aria-label="Redo" disabled><i class="bx bx-redo"></i>Redo</button>
+    <span class="sd-sep"></span><button type="button" class="sd-tool" id="sd-undo" aria-label="Undo" disabled><i class="bx bx-undo"></i>Undo</button><button type="button" class="sd-tool" id="sd-redo" aria-label="Redo" disabled><i class="bx bx-redo"></i>Redo</button><button type="button" class="sd-tool" id="sd-pages" aria-label="Page tools: rotate, delete, reorder, add pages"><i class="bx bx-layout"></i>Pages</button>
     <span class="flex-grow-1"></span><button type="button" class="sd-tool" id="sd-zo" aria-label="Zoom out" style="min-width:36px"><i class="bx bx-zoom-out"></i></button><span class="small fw-medium text-center" id="sd-zl" style="min-width:42px">100%</span><button type="button" class="sd-tool" id="sd-zi" aria-label="Zoom in" style="min-width:36px"><i class="bx bx-zoom-in"></i></button></div>
    <div class="sd-stage" id="sd-stage"><div class="text-center text-muted py-5"><i class="bx bx-loader-alt bx-spin font-size-24"></i></div></div></div></div>
   <div class="sd-right">
@@ -136,7 +136,8 @@ function shell(){
   </div></div>`;
  g('sd-back').onclick=async e=>{e.preventDefault();if(await leave())home()};
  g('sd-dl').onclick=()=>run(g('sd-dl'),async()=>{const b=await build();saveBlob(new Blob([b],{type:'application/pdf'}),`${baseName(E.name)} (signed).pdf`);toast('Downloaded','success',2500)});
- g('sd-discard').onclick=async()=>{if(!E.items.length)return toast('Nothing to discard','info',2000);if(await ask('Remove everything you added to this document?',{danger:true,ok:'Yes, discard',title:'Discard changes'})){push();E.items=[];E.sel=null;E.changed=false;drawItems();props();dirty()}};
+ g('sd-pages').onclick=pagesDialog;
+ g('sd-discard').onclick=async()=>{if(!E.items.length&&!E.pagesChanged)return toast('Nothing to discard','info',2000);if(await ask(E.pagesChanged?'Remove everything you added and undo all page changes (rotate, delete, reorder, new pages)?':'Remove everything you added to this document?',{danger:true,ok:'Yes, discard',title:'Discard changes'})){if(E.pagesChanged){E.bytes=E.origBytes;E.pdf=await pdfjsLib.getDocument({data:E.bytes.slice()}).promise;E.pagesChanged=false;E.undo=[];E.redo=[];E.items=[];E.sel=null;E.changed=false;await renderPages();props();dirty();btns();return}push();E.items=[];E.sel=null;E.changed=false;drawItems();props();dirty()}};
  g('sd-bar').querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>tool(b.dataset.t));
  g('sd-undo').onclick=undo;g('sd-redo').onclick=redo;
  g('sd-zi').onclick=()=>zoom(.15);g('sd-zo').onclick=()=>zoom(-.15);
@@ -234,6 +235,46 @@ function editSeg(pi,sg){
  const txt={id:uid(),t:'text',p:pi,x:(sg.x-1)/p.pw,y:(sg.base-sg.size*.98)/p.ph,w:.2,h:.03,text:sg.str,size:Math.round(sg.size*10)/10,color:c.ink,font:sg.font,orig:sg.str};
  E.items.push(rect,txt);E.changed=true;E.sel=txt.id;drawItems();props();dirty();
  setTimeout(()=>{const t=g('sd-ptext');if(t){t.focus();t.select()}},30)}
+
+// ---- page tools: rotate, delete, reorder and add blank pages
+async function pagesDialog(){
+ if(!E)return;
+ const n0=E.pdf.numPages,thumbs=[],N=E.pdf.numPages;
+ const used=new Set(E.items.map(i=>i.p));
+ let st=Array.from({length:n0},(_,i)=>({src:i,rot:0,del:false}));
+ const el=modal('Pages',`<p class="text-muted small mb-3">Rotate, delete, reorder or add blank pages. Nothing changes until you press <b>Apply</b>. After applying, use <b>Discard changes</b> to go back to the original.</p><div id="pg-grid" class="sd-pgrid"></div>`,'Apply page changes',async()=>{
+  const keep=st.filter(x=>!x.del);if(!keep.length)throw new Error('Keep at least one page');
+  const lost=E.items.filter(i=>!i.all&&st.some(x=>x.src===i.p&&x.del)).length;
+  if(!st.some(x=>x.src===null||x.del||x.rot)&&st.every((x,i)=>x.src===i))throw new Error('No page changes to apply');
+  if(lost&&!await ask(`Deleting these pages also removes ${lost} item${lost===1?'':'s'} you placed on them.`,{danger:true,ok:'Yes, apply',title:'Delete pages'}))throw new Error('Cancelled');
+  await applyPages(st)},'xl');
+ const grid=el.querySelector('#pg-grid');
+ const draw=()=>{grid.innerHTML=st.map((x,i)=>{const rot=((x.rot%360)+360)%360,bl=x.src===null,has=!bl&&used.has(x.src)&&E.items.some(it=>!it.all&&it.p===x.src);
+  return`<div class="sd-pcard ${x.del?'is-del':''}" data-i="${i}"><div class="sd-pth"><div class="sd-pth-in" style="transform:rotate(${rot}deg)">${bl?'<div class="sd-pblank">Blank page</div>':`<canvas data-src="${x.src}"></canvas>`}</div>${x.del?'<div class="sd-pdel"><i class="bx bx-trash"></i>Will be deleted</div>':''}</div>
+   <div class="sd-pnum">${x.del?'—':st.slice(0,i+1).filter(y=>!y.del).length}${bl?' (new)':''}</div>
+   <div class="sd-pact"><button type="button" data-a="l" title="${has?'Remove the items on this page first':'Rotate left'}" ${has?'disabled':''}><i class="bx bx-rotate-left"></i></button><button type="button" data-a="r" title="${has?'Remove the items on this page first':'Rotate right'}" ${has?'disabled':''}><i class="bx bx-rotate-right"></i></button><button type="button" data-a="u" title="Move earlier" ${i===0?'disabled':''}><i class="bx bx-left-arrow-alt"></i></button><button type="button" data-a="d" title="Move later" ${i===st.length-1?'disabled':''}><i class="bx bx-right-arrow-alt"></i></button><button type="button" data-a="x" class="text-danger" title="${x.del?'Keep this page':'Delete this page'}"><i class="bx ${x.del?'bx-undo':'bx-trash'}"></i></button></div>
+   <button type="button" class="sd-padd" data-a="b" title="Add a blank page after this one"><i class="bx bx-plus"></i>Blank page</button></div>`}).join('');
+  grid.querySelectorAll('canvas[data-src]').forEach(cv=>{const t=thumbs[+cv.dataset.src];if(t){cv.width=t.width;cv.height=t.height;cv.getContext('2d').drawImage(t,0,0)}});
+  grid.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{const i=+b.closest('.sd-pcard').dataset.i,a=b.dataset.a,x=st[i];
+   if(a==='l')x.rot-=90;else if(a==='r')x.rot+=90;else if(a==='x')x.del=!x.del;
+   else if(a==='u'&&i>0){[st[i-1],st[i]]=[st[i],st[i-1]]}else if(a==='d'&&i<st.length-1){[st[i+1],st[i]]=[st[i],st[i+1]]}
+   else if(a==='b'){if(st.length>=80)return toast('Doc Studio handles up to 80 pages','warn');st.splice(i+1,0,{src:null,rot:0,del:false,ref:x.src===null?st.find(y=>y.src!==null).src:x.src})}
+   draw()})};
+ draw();
+ for(let i=0;i<N;i++){try{const page=await E.pdf.getPage(i+1),v=page.getViewport({scale:1}),sc=130/v.width,vp=page.getViewport({scale:sc}),cv=document.createElement('canvas');cv.width=Math.floor(vp.width);cv.height=Math.floor(vp.height);await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;thumbs[i]=cv;const live=grid.querySelector(`canvas[data-src="${i}"]`);if(live){live.width=cv.width;live.height=cv.height;live.getContext('2d').drawImage(cv,0,0)}}catch{}}
+}
+async function applyPages(st){
+ const {PDFDocument,degrees}=PDFLib,src=await PDFDocument.load(E.bytes),out=await PDFDocument.create(),keep=st.filter(x=>!x.del);
+ const srcIdx=[...new Set(keep.filter(x=>x.src!==null).map(x=>x.src))],copied=await out.copyPages(src,srcIdx),by=new Map(srcIdx.map((s,i)=>[s,i]));const used=new Map();
+ for(const x of keep){
+  let page;
+  if(x.src===null){const ref=src.getPage(x.ref||0),sz=ref.getSize(),r=((ref.getRotation().angle%360)+360)%360;page=out.addPage([sz.width,sz.height]);if(r)page.setRotation(degrees(r))}
+  else{const idx=by.get(x.src);let p=copied[idx];if(used.has(x.src)){[p]=await out.copyPages(src,[x.src])}used.set(x.src,1);page=out.addPage(p)}
+  if(x.rot)page.setRotation(degrees((((page.getRotation().angle+x.rot)%360)+360)%360))}
+ const bytes=await out.save(),map=new Map();keep.forEach((x,i)=>{if(x.src!==null&&!map.has(x.src))map.set(x.src,i)});
+ E.items=E.items.filter(i=>i.all||map.has(i.p)).map(i=>{const np=map.has(i.p)?map.get(i.p):0;if(i.seg)i.seg=i.seg.replace(/^s\d+-/,'s'+np+'-');i.p=np;return i});
+ E.bytes=bytes;E.pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;E.pagesChanged=true;E.changed=true;E.undo=[];E.redo=[];E.sel=null;
+ await renderPages();props();dirty();btns();toast('Page changes applied. The undo history was reset.','success',3500)}
 
 // ---- items
 const snap=()=>JSON.stringify(E.items);
@@ -354,7 +395,7 @@ async function build(){
  return await doc.save()}
 
 async function saveToCase(){
- if(!E.items.length)throw new Error('Add a signature, stamp or text first.');
+ if(!E.items.length&&!E.pagesChanged)throw new Error('Add a signature, stamp, text or page change first.');
  const bytes=await build();if(bytes.length>15*1024*1024)throw new Error('The result is over 15 MB, which the app cannot store.');
  const c=ST.ctx,mode=(document.querySelector('input[name="sd-mode"]:checked')||{}).value||'new',docSel=g('sd-doc'),doc=docSel?docSel.value:'',nm=g('sd-name').value.trim()||baseName(E.name)+' (signed).pdf';
  if(mode==='replace'&&!await ask('The original file will be overwritten with the signed version. This cannot be undone.',{danger:true,ok:'Replace it',title:'Replace the original?'}))return;

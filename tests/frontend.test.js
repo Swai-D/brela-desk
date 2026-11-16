@@ -64,4 +64,5 @@ ok('Doc Studio removes backgrounds from uploaded signature photos and placed ima
  ok('template views: text, page editor, Word / PDF',/data-v="text"/.test(tv)&&/data-v="page"/.test(tv)&&/data-v="word"/.test(tv)&&/window\.TPV=/.test(tv));
  ok('template editor mounts the views and routes field chips to the page',/TPV\.mount\(el/.test(br)&&/_tpInsert/.test(br));
  ok('word view uses server docx endpoints',/\/templates\/\$\{id\}\/docx/.test(tv)&&/render-docx/.test(tv)&&/upload-docx/.test(tv)&&/docx-to-html/.test(tv))}
+ok('Doc Studio has page tools to rotate, delete, reorder and add blank pages, rebuilt through pdf-lib so deleted pages are really removed',/id="sd-pages"/.test(stJs)&&/async function pagesDialog\(/.test(stJs)&&/async function applyPages\(/.test(stJs)&&/copyPages\(/.test(stJs)&&/E\.pagesChanged/.test(stJs));
 process.exit(fails?(console.log('\n'+fails+' FAILED'),1):(console.log('\nall passed'),0));
