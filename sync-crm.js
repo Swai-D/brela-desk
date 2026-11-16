@@ -36,7 +36,7 @@ const git = (args, opts = {}) => {
   const r = spawnSync('git', args, {cwd: ROOT, encoding: 'utf8', ...opts});
   if (r.status !== 0 && !opts.allowFail)
     die(`git ${args.join(' ')} failed:\n${(r.stderr || r.stdout || '').trim()}`);
-  return (r.stdout || '').trim();
+  return (r.stdout || '').replace(/\r\n/g, '\n').trim();
 };
 const gitAllowFail = args => git(args, {allowFail: true});
 
@@ -206,9 +206,9 @@ const suites = FULL
   // 7. mirror feature branches ------------------------------------------------------
   log('Mirror unmerged feature branches to crm');
   const originBranches = git('for-each-ref refs/remotes/origin --format=%(refname:short)')
-    .split('\n').filter(b => b && b !== 'origin/HEAD').map(b => b.replace(/^origin\//, ''));
+    .split('\n').filter(b => b && b !== 'origin/HEAD' && b !== 'origin').map(b => b.replace(/^origin\//, ''));
   const crmBranches = new Set(git('for-each-ref refs/remotes/crm --format=%(refname:short)')
-    .split('\n').filter(b => b && b !== 'crm/HEAD').map(b => b.replace(/^crm\//, '')));
+    .split('\n').filter(b => b && b !== 'crm/HEAD' && b !== 'crm').map(b => b.replace(/^crm\//, '')));
   let mirrored = 0;
   for (const b of originBranches) {
     if (crmBranches.has(b) || b === 'main') continue;
