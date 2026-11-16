@@ -343,3 +343,10 @@ td.text-end{white-space:nowrap}
 .pb-role{background:#fff;border:1px solid #e9ecf3;border-radius:14px;padding:18px;height:100%;box-shadow:0 1px 3px rgba(30,40,90,.05)}.pb-role.is-me{border-color:#b9c6f7}
 .pb-ppl{display:flex;align-items:center;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid #eef0f6;flex-wrap:wrap}
 @media(max-width:575px){.pb-stage{gap:10px}.pb-rail{width:28px}.pb-num{width:28px;height:28px;font-size:13px}.pb-body{padding:14px}}
+/* clients list: long names must truncate inside the card */
+.min-w-0{min-width:0!important}
+.cl-item{min-width:0;overflow:hidden;max-width:100%}
+.cl-item>.flex-grow-1{min-width:0;overflow:hidden}
+.cl-item .text-truncate{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl-list,.cl-side{min-width:0}
+.cl-head h4,.cd-hero h4,.bd-client,.mw-row .fw-semibold{overflow-wrap:anywhere}
