@@ -372,3 +372,12 @@ td.text-end{white-space:nowrap}
 .cl-item .text-truncate{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cl-list,.cl-side{min-width:0}
 .cl-head h4,.cd-hero h4,.bd-client,.mw-row .fw-semibold{overflow-wrap:anywhere}
+
+/* ===== Doc Studio: background removal + edit text ===== */
+.sd-cut-pv{border:1px solid #e3e7f0;border-radius:12px;padding:8px;text-align:center;background:repeating-conic-gradient(#eef1f8 0 25%,#fff 0 50%) 0 0/14px 14px}
+.sd-cut-pv canvas{max-width:100%;max-height:280px;touch-action:none}
+.sd-segbtn{display:inline-flex;border:1px solid #d5dbea;border-radius:10px;overflow:hidden}
+.sd-segbtn button{border:0;border-left:1px solid #d5dbea;background:#fff;color:#4b587a;font-size:13px;padding:6px 12px;font-weight:500}.sd-segbtn button:first-child{border-left:0}
+.sd-segbtn button.on{background:#e5ebff;color:#3b4cb8}
+.sd-tx{position:absolute;box-sizing:border-box;cursor:text;border-radius:2px;outline:1px dashed rgba(91,115,232,.35);background:rgba(91,115,232,.06)}
+.sd-tx:hover{outline:2px solid #5b73e8;background:rgba(91,115,232,.16)}
