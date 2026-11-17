@@ -429,3 +429,12 @@ td.text-end{white-space:nowrap}
 .ib-note{margin-top:4px;font-size:13px;color:#667191;font-style:italic}
 .ib-act{flex:none;display:flex;gap:6px;align-items:center}
 @media(max-width:575px){.ib-row{flex-wrap:wrap}.ib-act{width:100%;justify-content:flex-end}.ib-bar .tp-search{flex:1 1 100%}}
+
+/* ===== Doc Studio: collapsible side panels ===== */
+.sd-colh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.sd-col-btn{border:0;background:#f1f3f9;color:#5b6786;border-radius:8px;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.sd-col-btn:hover{background:#e5ebff;color:#3b4cb8}
+
+.sd-left.off{width:52px}.sd-left.off .card-body{padding:10px 8px}.sd-left.off .sd-colb,.sd-left.off .sd-eyebrow{display:none}.sd-left.off .sd-colh{justify-content:center;margin:0}
+.sd-closed .sd-colh{margin-bottom:0}
+@media(max-width:991px){.sd-left.off{width:100%}.sd-left.off .sd-colh{justify-content:space-between}.sd-left.off .sd-eyebrow{display:block}}
