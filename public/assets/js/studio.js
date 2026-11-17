@@ -111,9 +111,9 @@ function shell(){
  g('studio').innerHTML=`<div class="d-flex flex-wrap align-items-center gap-2 mb-3"><div class="flex-grow-1 min-w-0"><div class="small text-muted"><a href="#" id="sd-back">Doc Studio</a>${has?` / ${esc(c.client.client.name)}${cs?' / '+esc(cs.code):''}`:''}</div><div class="d-flex align-items-center gap-2"><h5 class="mb-0 text-truncate">${esc(E.name)}</h5><span class="badge bg-warning-subtle text-warning" id="sd-dirty" style="display:none">Unsaved changes</span></div></div><button type="button" class="btn btn-outline-secondary" id="sd-dl"><i class="bx bx-download me-1"></i>Download copy</button><button type="button" class="btn btn-light text-danger" id="sd-discard">Discard changes</button></div>
  <div class="sd-shell">
   <div class="sd-left"><div class="card mb-0"><div class="card-body">
-   <div class="sd-eyebrow mb-2">Working in</div>${ctxBar()}
+   <div class="sd-colh"><div class="sd-eyebrow">Working in</div><button type="button" class="sd-col-btn" id="sd-col-l" aria-expanded="true" aria-label="Hide this panel" title="Hide this panel for more room"><i class="bx bx-chevrons-left"></i></button></div><div class="sd-colb">${ctxBar()}
    ${c.case?`<div class="d-flex justify-content-between align-items-center mt-3 mb-1"><div class="sd-eyebrow">Case documents</div><span class="badge bg-light text-body">${ready} of ${docs.length} ready</span></div>${opts(docs,d=>`<div class="mb-1"><div class="d-flex align-items-center gap-2 px-1"><span class="sd-dot ${d.done?'':'todo'}">${d.done?'<i class="bx bx-check"></i>':''}</span><span class="fw-medium small flex-grow-1">${esc(d.name)}</span></div>${opts(d.files.filter(f=>PV_OK(f.mime)),f=>`<div class="sd-doc ${f.id===E.fileId?'on':''} ms-3 sd-sw" data-id="${f.id}" data-pdf="${isPdfMime(f.mime)?1:0}"><i class="bx ${isPdfMime(f.mime)?'bx-file':'bx-image'} text-muted"></i><span class="small flex-grow-1 text-truncate">${esc(f.filename)}</span>${f.id===E.fileId?'<span class="badge bg-primary-subtle text-primary">Editing</span>':`<span class="small text-primary">${isPdfMime(f.mime)?'Open':'To PDF'}</span>`}</div>`)}</div>`)}`:''}
-   ${has?`<div class="sd-eyebrow mt-3 mb-1">Other files in the client folder</div>${opts(ctxFiles().filter(f=>PV_OK(f.mime)&&!(c.case&&c.case.docs.some(d=>d.files.some(x=>x.id===f.id)))).slice(0,12),f=>`<div class="sd-doc sd-sw" data-id="${f.id}" data-pdf="${isPdfMime(f.mime)?1:0}"><i class="bx ${isPdfMime(f.mime)?'bx-file':'bx-image'} text-muted"></i><span class="small flex-grow-1 text-truncate">${esc(f.filename)}</span><span class="small text-muted">${sz(f.size)}</span></div>`)||'<div class="small text-muted">None.</div>'}`:''}
+   ${has?`<div class="sd-eyebrow mt-3 mb-1">Other files in the client folder</div>${opts(ctxFiles().filter(f=>PV_OK(f.mime)&&!(c.case&&c.case.docs.some(d=>d.files.some(x=>x.id===f.id)))).slice(0,12),f=>`<div class="sd-doc sd-sw" data-id="${f.id}" data-pdf="${isPdfMime(f.mime)?1:0}"><i class="bx ${isPdfMime(f.mime)?'bx-file':'bx-image'} text-muted"></i><span class="small flex-grow-1 text-truncate">${esc(f.filename)}</span><span class="small text-muted">${sz(f.size)}</span></div>`)||'<div class="small text-muted">None.</div>'}`:''}</div>
   </div></div></div>
   <div class="sd-main"><div class="card mb-0"><div class="sd-bar" id="sd-bar">
     ${[['select','bx-pointer','Select'],['text','mdi mdi-format-text','Text'],['edittext','bx-edit-alt','Edit text'],['sign','mdi mdi-draw','Sign'],['stamp','mdi mdi-stamper','Stamp'],['date','bx-calendar','Date'],['whiteout','bx-square','Whiteout'],['hl','bx-highlight','Highlight'],['image','bx-image','Image']].map(([k,ic,l])=>`<button type="button" class="sd-tool ${k==='select'?'on':''}" data-t="${k}"><i class="${ic.includes(' ')?ic:'bx '+ic}"></i>${l}</button>`).join('')}
@@ -121,7 +121,7 @@ function shell(){
     <span class="flex-grow-1"></span><button type="button" class="sd-tool" id="sd-zo" aria-label="Zoom out" style="min-width:36px"><i class="bx bx-zoom-out"></i></button><span class="small fw-medium text-center" id="sd-zl" style="min-width:42px">100%</span><button type="button" class="sd-tool" id="sd-zi" aria-label="Zoom in" style="min-width:36px"><i class="bx bx-zoom-in"></i></button></div>
    <div class="sd-stage" id="sd-stage"><div class="text-center text-muted py-5"><i class="bx bx-loader-alt bx-spin font-size-24"></i></div></div></div></div>
   <div class="sd-right">
-   <div class="card mb-0"><div class="card-body"><div class="d-flex justify-content-between align-items-center mb-2"><div class="sd-eyebrow">My signatures &amp; stamps</div><small class="text-muted"><i class="bx bx-lock-alt"></i> Only you</small></div><div id="sd-sigs"></div><div class="d-flex gap-2 mt-2"><button type="button" class="btn btn-outline-secondary flex-fill" id="sd-newsig" style="border-style:dashed"><i class="bx bx-plus me-1"></i>Signature</button><button type="button" class="btn btn-outline-secondary flex-fill" id="sd-newstamp" style="border-style:dashed"><i class="bx bx-plus me-1"></i>Stamp</button></div></div></div>
+   <div class="card mb-0"><div class="card-body"><div class="d-flex justify-content-between align-items-center mb-2"><div class="sd-eyebrow">My signatures &amp; stamps</div><span class="d-flex align-items-center gap-2"><small class="text-muted sd-only"><i class="bx bx-lock-alt"></i> Only you</small><button type="button" class="sd-col-btn" id="sd-col-s" aria-expanded="true" aria-label="Hide signatures and stamps" title="Hide for more room"><i class="bx bx-chevron-up"></i></button></span></div><div class="sd-colb" id="sd-sigbox"><div id="sd-sigs"></div><div class="d-flex gap-2 mt-2"><button type="button" class="btn btn-outline-secondary flex-fill" id="sd-newsig" style="border-style:dashed"><i class="bx bx-plus me-1"></i>Signature</button><button type="button" class="btn btn-outline-secondary flex-fill" id="sd-newstamp" style="border-style:dashed"><i class="bx bx-plus me-1"></i>Stamp</button></div></div></div></div>
    <div class="card mb-0"><div class="card-body" id="sd-props"></div></div>
    <div class="card mb-0 flex-grow-1"><div class="card-body d-flex flex-column gap-2 h-100"><div class="sd-eyebrow">Save to the case</div>
     ${has?`<div class="small">${esc(c.client.client.name)}${cs?` › ${esc(cs.code)}`:''}</div>
@@ -142,6 +142,14 @@ function shell(){
  g('sd-undo').onclick=undo;g('sd-redo').onclick=redo;
  g('sd-zi').onclick=()=>zoom(.15);g('sd-zo').onclick=()=>zoom(-.15);
  g('studio').querySelectorAll('.sd-sw').forEach(d=>d.onclick=async()=>{if(!await leave())return;d.dataset.pdf==='1'?openFile(+d.dataset.id):window.SD.openImages({preselect:+d.dataset.id})});
+ // collapsible side panels: more room for the page; the choice is remembered
+ {const LS={get:k=>{try{return localStorage.getItem(k)==='1'}catch{return false}},set:(k,v)=>{try{localStorage.setItem(k,v?'1':'0')}catch{}}};
+  const left=document.querySelector('.sd-left'),box=g('sd-sigbox');
+  const setL=(off,keep)=>{left.classList.toggle('off',off);E.wide=off;const b=g('sd-col-l');b.setAttribute('aria-expanded',String(!off));b.title=off?'Show documents':'Hide this panel for more room';b.setAttribute('aria-label',b.title);b.firstElementChild.className='bx '+(off?'bx-chevrons-right':'bx-chevrons-left');if(!keep){LS.set('sd-l-off',off);renderPages()}};
+  const setS=off=>{box.classList.toggle('d-none',off);g('sd-col-s').closest('.card-body').classList.toggle('sd-closed',off);const b=g('sd-col-s');b.setAttribute('aria-expanded',String(!off));b.title=off?'Show signatures and stamps':'Hide for more room';b.setAttribute('aria-label',b.title);b.firstElementChild.className='bx '+(off?'bx-chevron-down':'bx-chevron-up');LS.set('sd-s-off',off)};
+  g('sd-col-l').onclick=()=>setL(!left.classList.contains('off'));
+  g('sd-col-s').onclick=()=>setS(!box.classList.contains('d-none'));
+  if(LS.get('sd-l-off'))setL(true,true);if(LS.get('sd-s-off'))setS(true)}
  g('sd-newsig').onclick=()=>window.SD.signatureDialog({kind:'signature',onSaved:async()=>{await loadSigs();sigList()}});
  g('sd-newstamp').onclick=()=>window.SD.signatureDialog({kind:'stamp',onSaved:async()=>{await loadSigs();sigList()}});
  const sv=g('sd-save');if(sv)sv.onclick=()=>run(sv,saveToCase);
@@ -179,7 +187,7 @@ function setTool(t){E.tool=t;if(t!=='select')select(null);g('sd-bar').querySelec
 // ---- pages
 async function renderPages(){
  const stage=g('sd-stage');if(!stage)return;stage.innerHTML='';E.pg=[];
- const dispW=clamp(stage.clientWidth-36,300,860)*E.zoom,dpr=Math.min(2,window.devicePixelRatio||1);
+ const dispW=clamp(stage.clientWidth-36,300,E.wide?1100:860)*E.zoom,dpr=Math.min(2,window.devicePixelRatio||1);
  for(let i=1;i<=E.pdf.numPages;i++){
   const page=await E.pdf.getPage(i),v1=page.getViewport({scale:1}),sc=dispW/v1.width,vp=page.getViewport({scale:sc});
   const wrap=document.createElement('div');wrap.className='sd-page';wrap.style.width=vp.width+'px';wrap.style.height=vp.height+'px';
