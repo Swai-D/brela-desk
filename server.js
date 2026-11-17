@@ -182,7 +182,7 @@ const CASE_SQL=`SELECT c.id,c.code,c.track_number,c.status,c.completed_at,c.due:
  FROM cases c JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id`;
 app.get('/api/bootstrap',wrap(async(req,res)=>{
   const [users,types,docs,clients,cases,recent,inbox,guide,notifs,roles,performers]=await Promise.all([
-   q('SELECT id,name,role,active'+(req.user.level==='MANAGER'?',email,phone,wa_opt_in':'')+',avatar_at::text AS avatar FROM users ORDER BY id'),q('SELECT id,name,active,sop FROM case_types ORDER BY name'),
+   q('SELECT id,name,role,active'+(req.user.level==='MANAGER'?',email,phone,wa_opt_in':'')+',avatar_at::text AS avatar FROM users ORDER BY id'),q('SELECT id,name,active,sop,options FROM case_types ORDER BY name'),
    q('SELECT case_type_id,name FROM case_type_docs ORDER BY position,id'),q('SELECT id,name,phone,email,track_number FROM clients ORDER BY name'),
    q(CASE_SQL+' ORDER BY c.id DESC'),
    q('SELECT a.text,a.created_at,a.user_id,a.case_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id]),one('SELECT count(*)::int AS n FROM notifs WHERE user_id=$1 AND NOT read',[req.user.id]),q(`SELECT key,name,level,team_queue FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`),q(`SELECT user_id,count(*)::int AS completed FROM activity WHERE created_at>=now()-interval '7 days' AND text LIKE 'moved % → done' GROUP BY user_id ORDER BY completed DESC,user_id`)]);
@@ -227,13 +227,28 @@ app.delete('/api/users/:id',need('MANAGER'),wrap(async(req,res)=>{
   await q('DELETE FROM users WHERE id=$1',[id]);await audit(req,'user.delete',`${u.name} <${u.email}>`);res.json({ok:1})}));
 // ---- case types (flexible: add/edit any time)
 const saveDocs=async(id,docs)=>{await q('DELETE FROM case_type_docs WHERE case_type_id=$1',[id]);let i=0;for(const n of docs.map(s=>String(s).trim()).filter(Boolean))await q('INSERT INTO case_type_docs(case_type_id,name,position) VALUES($1,$2,$3)',[id,n,i++])};
+// "What kind of change?" options of a case type: [{name, docs:[], actions:[{name, docs:[]}]}]. A case copies the checklist of what was ticked.
+const cleanList=a=>(Array.isArray(a)?a:String(a||'').split('\n')).map(x=>String(x).trim().slice(0,200)).filter(Boolean).slice(0,40);
+const cleanOptions=o=>{if(!Array.isArray(o))return[];const seen=new Set();return o.slice(0,40).map(x=>({name:String((x&&x.name)||'').trim().slice(0,80),docs:cleanList(x&&x.docs),actions:(Array.isArray(x&&x.actions)?x.actions:[]).slice(0,12).map(a=>({name:String((a&&a.name)||'').trim().slice(0,80),docs:cleanList(a&&a.docs)})).filter(a=>a.name)})).filter(x=>{if(!x.name||seen.has(x.name.toLowerCase()))return false;seen.add(x.name.toLowerCase());return true})};
+// checklist items for the chosen options; throws when a choice is missing or unknown
+const chosenDocs=(type,sel)=>{const opts=type.options||[],out=[],chosen=[];
+ if(!opts.length)return{docs:[],chosen:[]};
+ if(!Array.isArray(sel)||!sel.length)fail(400,'Choose what kind of change this is');
+ for(const s of sel){const o=opts.find(x=>x.name===(s&&s.name));if(!o)fail(400,`"${s&&s.name}" is not an option of this case type`);
+  const acts=[];
+  if(o.actions.length){const names=Array.isArray(s.actions)?s.actions:[];if(!names.length)fail(400,`Choose what to do for ${o.name}: ${o.actions.map(a=>a.name).join(', ')}`);
+   for(const an of names){const a=o.actions.find(x=>x.name===an);if(!a)fail(400,`"${an}" is not an action of ${o.name}`);acts.push(a)}}
+  o.docs.forEach(n=>out.push({name:n,grp:o.name}));acts.forEach(a=>a.docs.forEach(n=>out.push({name:n,grp:`${o.name} · ${a.name}`})));
+  chosen.push({name:o.name,actions:acts.map(a=>a.name)})}
+ return{docs:out,chosen}};
 app.post('/api/case-types',need('MANAGER'),wrap(async(req,res)=>{
   const name=String(req.body.name||'').trim();if(!name)fail(400,'Name required');
-  try{const t=await one('INSERT INTO case_types(name,sop) VALUES($1,$2) RETURNING id',[name,String(req.body.sop||'').trim()||null]);await saveDocs(t.id,req.body.docs||[]);res.json(t)}catch(e){if(e.status)throw e;fail(400,'A case type with this name already exists')}}));
+  try{const t=await one('INSERT INTO case_types(name,sop,options) VALUES($1,$2,$3::jsonb) RETURNING id',[name,String(req.body.sop||'').trim()||null,JSON.stringify(cleanOptions(req.body.options))]);await saveDocs(t.id,req.body.docs||[]);res.json(t)}catch(e){if(e.status)throw e;fail(400,'A case type with this name already exists')}}));
 app.put('/api/case-types/:id',need('MANAGER'),wrap(async(req,res)=>{
   const id=+req.params.id;if(req.body.name)await q('UPDATE case_types SET name=$1 WHERE id=$2',[req.body.name.trim(),id]);
   if(typeof req.body.active==='boolean')await q('UPDATE case_types SET active=$1 WHERE id=$2',[req.body.active,id]);
   if(req.body.sop!==undefined)await q('UPDATE case_types SET sop=$1 WHERE id=$2',[String(req.body.sop).trim()||null,id]);
+  if(req.body.options!==undefined)await q('UPDATE case_types SET options=$1::jsonb WHERE id=$2',[JSON.stringify(cleanOptions(req.body.options)),id]);
   if(req.body.docs)await saveDocs(id,req.body.docs);res.json({ok:1})}));
 app.delete('/api/case-types/:id',need('MANAGER'),wrap(async(req,res)=>{
   const id=+req.params.id,t=await one('SELECT name FROM case_types WHERE id=$1',[id]);if(!t)fail(404,'Not found');
@@ -382,23 +397,26 @@ app.post('/api/credentials/:id/reveal',wrap(async(req,res)=>{
   res.json({username:c.username,password:dec(c.secret_enc)})}));
 // ---- cases
 app.post('/api/cases',wrap(async(req,res)=>{
-  const {clientId,clientName,caseTypeId,assigneeId,due}=req.body;
+  const {clientId,clientName,caseTypeId,assigneeId,due,options}=req.body;
   let cid=+clientId;if(!cid){const n=String(clientName||'').trim();if(!n)fail(400,'Client required');cid=(await one('INSERT INTO clients(name) VALUES($1) ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id',[n])).id}
-  const t=await one('SELECT id,name FROM case_types WHERE id=$1 AND active',[+caseTypeId]);if(!t)fail(400,'Pick a case type');
+  const t=await one('SELECT id,name,options FROM case_types WHERE id=$1 AND active',[+caseTypeId]);if(!t)fail(400,'Pick a case type');const pick=chosenDocs(t,options);
   const c=await one(`INSERT INTO cases(code,client_id,case_type_id,assignee_id,due,created_by) VALUES('BR-'||nextval('case_code_seq'),$1,$2,$3,$4,$5) RETURNING id,code`,[cid,t.id,+assigneeId||req.user.id,due||null,req.user.id]);
+  await q('UPDATE cases SET options=$1::jsonb WHERE id=$2',[JSON.stringify(pick.chosen),c.id]);
   await q('INSERT INTO case_assignments(case_id,user_id) VALUES($1,$2)',[c.id,+assigneeId||req.user.id]);
   await q('INSERT INTO case_docs(case_id,name) SELECT $1,name FROM case_type_docs WHERE case_type_id=$2 ORDER BY position,id',[c.id,t.id]);
-  await log(c.id,req.user.id,`created this case (${t.name})`);
+  for(const d of pick.docs)await q('INSERT INTO case_docs(case_id,name,grp) VALUES($1,$2,$3)',[c.id,d.name,d.grp]);
+  await log(c.id,req.user.id,`created this case (${t.name}${pick.chosen.length?': '+pick.chosen.map(x=>x.name+(x.actions.length?' ('+x.actions.join(', ')+')':'')).join('; '):''})`);
   const ci=await caseInfo(c.id);if(ci.who&&ci.who!==req.user.id)WA.notify([ci.who],'brela_case_assigned',[ci.code,ci.client,ci.type,ci.due||'not set']);
   res.json(c)}));
 app.get('/api/cases/:id',wrap(async(req,res)=>{
   const id=+req.params.id,c=await one(CASE_SQL+' WHERE c.id=$1',[id]);if(!c)fail(404,'Case not found');
-  const [docs,files,comments,activity,creds]=await Promise.all([q('SELECT id,name,done FROM case_docs WHERE case_id=$1 ORDER BY id',[id]),q(FILES+' WHERE f.case_id=$1 ORDER BY f.id',[id]),
+  const [docs,files,comments,activity,creds]=await Promise.all([q('SELECT id,name,done,grp FROM case_docs WHERE case_id=$1 ORDER BY id',[id]),q(FILES+' WHERE f.case_id=$1 ORDER BY f.id',[id]),
    q('SELECT * FROM (SELECT m.id,m.body,m.created_at,m.edited_at,m.user_id FROM comments m WHERE m.case_id=$1 ORDER BY m.id DESC LIMIT 10) x ORDER BY id',[id]),q('SELECT text,created_at,user_id FROM activity WHERE case_id=$1 ORDER BY id DESC LIMIT 10',[id]),
    q('SELECT id,label,username FROM credentials WHERE client_id=$1 ORDER BY id',[c.client_id])]);
   docs.forEach(d=>d.files=files.filter(f=>f.case_doc_id===d.id));
   const activity_total=(await one('SELECT count(*)::int AS n FROM activity WHERE case_id=$1',[id])).n,comments_total=(await one('SELECT count(*)::int AS n FROM comments WHERE case_id=$1',[id])).n,steps=await q('SELECT stage,idx FROM case_steps WHERE case_id=$1',[id]),sop=(await one('SELECT sop FROM case_types WHERE id=$1',[c.case_type_id])).sop;
-  res.json({case:c,docs,comments,comments_total,activity,activity_total,creds,steps,sop})}));
+  const copt=await one('SELECT options FROM cases WHERE id=$1',[id]),topt=await one('SELECT options FROM case_types WHERE id=$1',[c.case_type_id]);
+  res.json({case:c,docs,comments,comments_total,activity,activity_total,creds,steps,sop,options:copt.options,type_options:topt.options})}));
 // Paginated comments of one case: page 1 is the newest; items inside a page are in reading order (oldest first)
 app.get('/api/cases/:id/comments',wrap(async(req,res)=>{
   const id=+req.params.id;if(!await one('SELECT 1 FROM cases WHERE id=$1',[id]))fail(404,'Case not found');
@@ -432,6 +450,15 @@ app.delete('/api/cases/:id',need('MANAGER'),wrap(async(req,res)=>{
 app.post('/api/cases/:id/docs',wrap(async(req,res)=>{
   const n=String(req.body.name||'').trim();if(!n)fail(400,'Name required');
   res.json(await one('INSERT INTO case_docs(case_id,name) VALUES($1,$2) RETURNING id',[+req.params.id,n]))}));
+// add another change to an existing case: its checklist is added, nothing already there is touched
+app.post('/api/cases/:id/options',wrap(async(req,res)=>{
+  const id=+req.params.id,c=await one('SELECT c.id,c.options,t.options AS topts,t.name AS tname FROM cases c JOIN case_types t ON t.id=c.case_type_id WHERE c.id=$1',[id]);if(!c)fail(404,'Case not found');
+  const pick=chosenDocs({options:c.topts},req.body.options);const have=await q('SELECT name,grp FROM case_docs WHERE case_id=$1',[id]);
+  let added=0;for(const d of pick.docs)if(!have.some(h=>h.name===d.name&&h.grp===d.grp)){await q('INSERT INTO case_docs(case_id,name,grp) VALUES($1,$2,$3)',[id,d.name,d.grp]);added++}
+  const cur=[...(c.options||[])];for(const p of pick.chosen){const e=cur.find(x=>x.name===p.name);if(e)e.actions=[...new Set([...(e.actions||[]),...p.actions])];else cur.push(p)}
+  await q('UPDATE cases SET options=$1::jsonb WHERE id=$2',[JSON.stringify(cur),id]);
+  await log(id,req.user.id,`added to this case: ${pick.chosen.map(x=>x.name+(x.actions.length?' ('+x.actions.join(', ')+')':'')).join('; ')}`);
+  res.json({ok:1,added,options:cur})}));
 app.patch('/api/case-docs/:id',wrap(async(req,res)=>{const id=+req.params.id;
   if(req.body.name!==undefined){if(!['MANAGER','SENIOR'].includes(req.user.level))fail(403,'Only a Senior or Manager can rename items');const n=String(req.body.name).trim();if(!n)fail(400,'Name required');await q('UPDATE case_docs SET name=$1 WHERE id=$2',[n,id])}
   if(req.body.done!==undefined)await q('UPDATE case_docs SET done=$1 WHERE id=$2',[!!req.body.done,id]);res.json({ok:1})}));
@@ -606,6 +633,22 @@ const STARTER={'Business Name Registration':['Client ID / passport copy','Passpo
  'Annual Return':['Previous annual return / certificate','Financial statements','Shareholders & directors details','Signed client authorization'],
  'Change of Directors':['New director ID / passport copy','Resignation letter (if any)','Board / shareholders resolution','Signed client authorization'],
  'Beneficial Ownership Update':['Beneficial owners ID / passport copies','Ownership structure / percentages','Signed client authorization']};
+// Starter choices for "Change of Particulars" (editable in Settings: the team adjusts them to how BRELA is asking today)
+const PARTICULARS_DOCS=['Signed client authorization','Copy of the Certificate of Incorporation'];
+const PARTICULARS_OPTIONS=[
+ {name:'Company name',docs:['Proposed new company names (2-3)','Members\' special resolution approving the change of name','Notice of change of name'],actions:[]},
+ {name:'Registered office',docs:['Resolution approving the new registered office','Proof of the new address (lease, utility bill)','Notice of change of registered office'],actions:[]},
+ {name:'Objects',docs:['Members\' special resolution altering the objects','Amended objects clause or Memorandum'],actions:[]},
+ {name:'Share capital',docs:['Members\' resolution changing the share capital','Notice of change of share capital','Amended Memorandum and Articles (if the capital clause changes)'],actions:[]},
+ {name:'Share distribution',docs:['Directors\' resolution (allotment or transfer of shares)','Form 57a - Return of allotment of shares (for new shares)','Share transfer form signed by both sides (for a transfer)','ID / passport copies of the new shareholders','Updated register of members'],actions:[]},
+ {name:'Directors',docs:[],actions:[
+  {name:'Add',docs:['Form 213a - Appointment of director','ID / passport copy of the new director','Signed consent to act as director','Members\' resolution appointing the director']},
+  {name:'Remove',docs:['Form 213b - Termination of appointment','Resignation letter or removal resolution','Directors\' or members\' resolution accepting it']},
+  {name:'Update details',docs:['Proof of the changed details (new ID, address or name)','Written notice of the change signed by the director']}]},
+ {name:'Secretary',docs:[],actions:[
+  {name:'Add',docs:['Form 213a - Appointment of secretary','ID / passport copy of the new secretary','Signed consent to act as secretary','Directors\' resolution appointing the secretary']},
+  {name:'Remove',docs:['Form 213b - Termination of appointment','Resignation letter or removal resolution','Directors\' resolution accepting it']},
+  {name:'Update details',docs:['Proof of the changed details (new ID, address or name)','Written notice of the change signed by the secretary']}]}];
 async function init(){
   await pool.query(fs.readFileSync(path.join(__dirname,'schema.sql'),'utf8'));
   await q('DELETE FROM lock_screen_content WHERE day<$1',[eastAfricaDay()]);
@@ -626,6 +669,12 @@ async function init(){
     console.log(`First Manager created: ${email}${process.env.ADMIN_PASSWORD?'':' / temporary password: '+pw}`)}
   if(!(await one('SELECT 1 FROM stage_playbook LIMIT 1')))for(const [st,[o,steps,dw]] of Object.entries(DEFAULT_STAGES))await q('INSERT INTO stage_playbook(stage,owner_roles,steps,done_when) VALUES($1,$2::jsonb,$3::jsonb,$4)',[st,JSON.stringify(o),JSON.stringify(steps),dw]);
   if(!(await one('SELECT 1 FROM case_types LIMIT 1')))for(const [n,d] of Object.entries(STARTER)){const t=await one('INSERT INTO case_types(name) VALUES($1) RETURNING id',[n]);await saveDocs(t.id,d)}
+  // once: give "Change of Particulars" its starter choices (created on a fresh install; an existing one of that name only gets choices if it has none)
+  if(!(await one("SELECT 1 FROM kv WHERE key='particulars_options_seeded'"))){
+   const ex=await one("SELECT id,options FROM case_types WHERE name ILIKE 'change of particulars%' ORDER BY id LIMIT 1");
+   if(ex){if(!(ex.options||[]).length)await q('UPDATE case_types SET options=$1::jsonb WHERE id=$2',[JSON.stringify(PARTICULARS_OPTIONS),ex.id])}
+   else if(!(await one('SELECT 1 FROM cases LIMIT 1'))){const t=await one('INSERT INTO case_types(name,options) VALUES($1,$2::jsonb) RETURNING id',['Change of Particulars',JSON.stringify(PARTICULARS_OPTIONS)]);await saveDocs(t.id,PARTICULARS_DOCS)}
+   await q("INSERT INTO kv(key,value) VALUES('particulars_options_seeded','1') ON CONFLICT DO NOTHING")}
   WA.startScheduler();
   if(lockScreenConfigured()&&process.env.NODE_ENV!=='test'){
     const refresh=()=>getLockScreenContent().catch(e=>console.error('lock-screen content refresh failed:',e.message));

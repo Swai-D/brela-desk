@@ -451,3 +451,14 @@ td.text-end{white-space:nowrap}
 .ri-p{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid #e9ecf3;border-radius:10px;margin-bottom:8px}
 .ri-empty{display:flex;gap:14px;align-items:flex-start;background:#f5f7fd;border:1px dashed #c9d3fa;border-radius:12px;padding:16px;grid-column:1/-1}.ri-empty>i{font-size:28px;color:#3b4cb8}
 @media(max-width:575px){.ri-r{flex-wrap:wrap}.ri-k{flex-basis:100%}.ri-sum{grid-template-columns:1fr}}
+
+/* ===== Case choices (what kind of change) ===== */
+.op-list{display:grid;gap:8px;margin-bottom:6px}
+.op-item{border:1px solid #e3e7f0;border-radius:10px;padding:10px 12px;background:#fff}.op-item:has(.op-c:checked){border-color:#aebbf5;background:#f5f7ff}
+.op-main{display:flex;align-items:center;gap:10px;margin:0;font-weight:600;color:#2b3452;cursor:pointer}.op-main input,.op-act input{width:17px;height:17px;flex:none}
+.op-acts{display:flex;flex-wrap:wrap;gap:8px 18px;margin:10px 0 0 27px}.op-act{display:flex;align-items:center;gap:7px;margin:0;font-size:13.5px;color:#4a5578;cursor:pointer}
+.cd-opts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.cd-opt{display:inline-flex;align-items:center;gap:6px;background:#eef1ff;color:#3b4cb8;border-radius:8px;padding:3px 10px;font-size:12.5px;font-weight:600}.cd-opt small{font-weight:500;color:#6b78b8}
+.cd-grp{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6b7592;margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid #eef0f6}.cd-grp:first-child{margin-top:0}
+.to-opt{border:1px solid #e3e7f0;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafbff}
+.to-acts{margin:8px 0 0 14px;padding-left:12px;border-left:3px solid #dfe5fb}.to-act{margin-bottom:10px}
