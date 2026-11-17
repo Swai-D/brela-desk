@@ -65,4 +65,6 @@ ok('Doc Studio removes backgrounds from uploaded signature photos and placed ima
  ok('template editor mounts the views and routes field chips to the page',/TPV\.mount\(el/.test(br)&&/_tpInsert/.test(br));
  ok('word view uses server docx endpoints',/\/templates\/\$\{id\}\/docx/.test(tv)&&/render-docx/.test(tv)&&/upload-docx/.test(tv)&&/docx-to-html/.test(tv))}
 ok('Doc Studio has page tools to rotate, delete, reorder and add blank pages, rebuilt through pdf-lib so deleted pages are really removed',/id="sd-pages"/.test(stJs)&&/async function pagesDialog\(/.test(stJs)&&/async function applyPages\(/.test(stJs)&&/copyPages\(/.test(stJs)&&/E\.pagesChanged/.test(stJs));
+{const bad2=fs.readdirSync(pub).filter(f=>f.endsWith('.html')&&!/^(login|auth-)/.test(f)).filter(f=>{const h=fs.readFileSync(path.join(pub,f),'utf8');return !/<header id="page-topbar"><\/header>/.test(h)||!/assets\/js\/topbar\.js/.test(h)||!/studio\.html/.test(h)});
+ ok('every app page uses the shared navbar and full sidebar',!bad2.length,bad2)}
 process.exit(fails?(console.log('\n'+fails+' FAILED'),1):(console.log('\nall passed'),0));
