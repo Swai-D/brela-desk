@@ -462,3 +462,10 @@ td.text-end{white-space:nowrap}
 .cd-grp{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6b7592;margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid #eef0f6}.cd-grp:first-child{margin-top:0}
 .to-opt{border:1px solid #e3e7f0;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafbff}
 .to-acts{margin:8px 0 0 14px;padding-left:12px;border-left:3px solid #dfe5fb}.to-act{margin-bottom:10px}
+
+/* ===== Doc Studio: text style buttons ===== */
+.sd-fmts{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.sd-fmt{min-width:34px;height:32px;border:1px solid #e3e7f0;border-radius:8px;background:#fff;color:#3b4a6b;font-size:14px;display:inline-flex;align-items:center;justify-content:center;padding:0 8px}
+.sd-fmt:hover{background:#eef1ff;color:#3b4cb8}.sd-fmt.on{background:#e5ebff;border-color:#aebbf5;color:#3b4cb8}.sd-fmt i{font-size:17px}
+.sd-fsep{width:1px;height:20px;background:#e3e7f0;margin:0 4px}
+.sd-float button.on{background:rgba(255,255,255,.28)}.sd-fl-bold{font-weight:800}.sd-fl-italic{font-style:italic;font-family:Georgia,serif}.sd-fl-underline{text-decoration:underline}
