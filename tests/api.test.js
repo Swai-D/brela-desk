@@ -9,7 +9,7 @@ const ok=(n,c)=>{if(!c)fails++;console.log(c?'PASS':'FAIL',n)};
  ok('activity keeps session valid',(await call('POST','/session/activity',{})).s===200);
  ok('manual lock invalidates session',(await call('POST','/session/lock',{})).s===200&&(await call('GET','/bootstrap')).s===401);
  ok('login unlocks with a new session',(await call('POST','/login',{email:'boss@test.co',password:'Secret123!'})).s===200);
- let bs=(await call('GET','/bootstrap')).j;ok('starter types seeded',bs.types.length===5&&bs.types[0].docs.length>0);
+ let bs=(await call('GET','/bootstrap')).j;ok('starter types seeded',bs.types.length===6&&bs.types[0].docs.length>0&&bs.types.find(t=>t.name==='Change of Particulars').options.length===7);
  const jun=(await call('POST','/users',{name:'Juma',email:'juma@test.co',role:'JUNIOR',password:'Junior123!'})).j;ok('create user',jun.id>0);
  const profileMgrCookie=ck;ck='';await call('POST','/login',{email:'juma@test.co',password:'Junior123!'});
  const me=(await call('GET','/bootstrap')).j.me;ok('profile includes own contact details',me.email==='juma@test.co'&&me.phone===null);
