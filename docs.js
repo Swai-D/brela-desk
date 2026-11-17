@@ -127,13 +127,19 @@ async function docxFill(buf,values,{acceptClauses=false}={}){
  return{buffer,missing:[...missing],filled,clauses}}
 
 // Map the app context (client, case data, people) to the UPPER_SNAKE values a package template needs.
+const MON={january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12};
+const dmy=t=>{const s=String(t||'').trim();let m;if(m=s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/)){const mo=MON[m[2].toLowerCase()];if(mo)return `${String(+m[1]).padStart(2,'0')}/${String(mo).padStart(2,'0')}/${m[3]}`}if(m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/))return `${m[3]}/${m[2]}/${m[1]}`;return s};
+// BRELA forms are filled in CAPITALS
+const CAPS=/^(COMPANY_NAME(_LINE_[12])?|COMPANY_TYPE|REGISTERED_OFFICE|PRINCIPAL_ACTIVITIES|SHARE_CLASS|SECRETARY_(NAME|ADDRESS)|SIGNING_DIRECTOR_NAME|CHAIRMAN_NAME|DIRECTOR_\d+_(NAME|ADDRESS|NATIONALITY)|MEMBER_\d+_NAME|NEW_DIRECTOR_\d+_NAME|NATIONALITY)$/;
 function packageValues(ctx){
  const v={};for(const [k,x] of Object.entries(ctx.values||{}))if(String(x??'').trim()!=='')v[k.toUpperCase()]=String(x);
  const lists=ctx.lists||{},dirs=lists.directors||[],secs=lists.secretaries||[],mem=lists.shareholders&&lists.shareholders.length?lists.shareholders:dirs;
- if(!v.CHAIRMAN_NAME&&dirs.length)v.CHAIRMAN_NAME=dirs[0].name;
- if(!v.SECRETARY_NAME&&secs.length)v.SECRETARY_NAME=secs[0].name;
- dirs.forEach((p,i)=>{const n=i+1;v['ATTENDEE_'+n+'_NAME']=p.name||'';if(!v['MEMBER_'+n+'_NAME'])v['MEMBER_'+n+'_NAME']=p.name||''});
- mem.forEach((p,i)=>{const n=i+1;if(!v['MEMBER_'+n+'_NAME'])v['MEMBER_'+n+'_NAME']=p.name||''});
+ const nm=p=>String((p&&(p.full_name||p.name))||'').trim(),set=(k,x)=>{if(x!==undefined&&x!==null&&String(x).trim()!==''&&!v[k])v[k]=String(x).trim()};
+ set('CHAIRMAN_NAME',nm(dirs[0]));set('SIGNING_DIRECTOR_NAME',nm(dirs[0]));set('SECRETARY_NAME',nm(secs[0]));set('SECRETARY_ADDRESS',secs[0]&&secs[0].address);
+ dirs.forEach((p,i)=>{const n=i+1;set('ATTENDEE_'+n+'_NAME',nm(p));set(`DIRECTOR_${n}_NAME`,nm(p));set(`DIRECTOR_${n}_NATIONALITY`,p.nationality);set(`DIRECTOR_${n}_ADDRESS`,p.address);set(`DIRECTOR_${n}_DOB`,dmy(p.dob))});
+ mem.forEach((p,i)=>{const n=i+1;set('MEMBER_'+n+'_NAME',nm(p));if(p.shares&&/^[\d,]+$/.test(String(p.shares).trim()))set('MEMBER_'+n+'_SHARES',Number(String(p.shares).replace(/,/g,'')).toLocaleString('en-US'))});
+ if(v.REGISTERED_OFFICE&&!/\.$/.test(v.REGISTERED_OFFICE))v.REGISTERED_OFFICE+='.';
+ for(const k of Object.keys(v))if(CAPS.test(k))v[k]=v[k].toUpperCase();
  return v}
 
 // Convert an extracted .docx text back into a template body: [LABEL] -> {{key}}, using the label->key map of the package.

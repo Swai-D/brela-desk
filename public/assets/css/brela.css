@@ -438,3 +438,16 @@ td.text-end{white-space:nowrap}
 .sd-left.off{width:52px}.sd-left.off .card-body{padding:10px 8px}.sd-left.off .sd-colb,.sd-left.off .sd-eyebrow{display:none}.sd-left.off .sd-colh{justify-content:center;margin:0}
 .sd-closed .sd-colh{margin-bottom:0}
 @media(max-width:991px){.sd-left.off{width:100%}.sd-left.off .sd-colh{justify-content:space-between}.sd-left.off .sd-eyebrow{display:block}}
+
+/* ===== BRELA registry import ===== */
+.ri-steps{display:grid;gap:8px;margin-bottom:14px}.ri-steps>div{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:#4a5578}
+.ri-steps b{flex:none;width:24px;height:24px;border-radius:50%;background:#e5ebff;color:#3b4cb8;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px}
+.ri-steps kbd{background:#f1f3f9;color:#333f54;border:1px solid #dfe3ee;border-radius:5px;padding:0 5px;font-size:12px}
+.ri-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}.ri-sum>div{background:#f5f7fd;border-radius:10px;padding:10px 14px}.ri-sum b{display:block;font-size:20px;color:#2b3452}.ri-sum span{font-size:12.5px;color:#7a84a0}
+.ri-h{font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#5b6475;margin-bottom:8px}
+.ri-tab{border:1px solid #e9ecf3;border-radius:10px;overflow:hidden}
+.ri-r{display:flex;gap:12px;align-items:flex-start;padding:8px 12px;border-bottom:1px solid #f0f2f8;font-size:13.5px}.ri-r:last-child{border-bottom:0}
+.ri-r.same{opacity:.6}.ri-k{flex:0 0 190px;color:#7a84a0}.ri-v{flex:1;min-width:0;overflow-wrap:anywhere;color:#2b3452}
+.ri-p{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid #e9ecf3;border-radius:10px;margin-bottom:8px}
+.ri-empty{display:flex;gap:14px;align-items:flex-start;background:#f5f7fd;border:1px dashed #c9d3fa;border-radius:12px;padding:16px;grid-column:1/-1}.ri-empty>i{font-size:28px;color:#3b4cb8}
+@media(max-width:575px){.ri-r{flex-wrap:wrap}.ri-k{flex-basis:100%}.ri-sum{grid-template-columns:1fr}}

@@ -1,0 +1,174 @@
+Company Details
+Company
+Details
+COMPANY INFORMATION
+Tracking Number:	G000001-0001	Incorporation Number:	100000001	Company Name:	DEMOTOP ENTERPRISES COMPANY LIMITED
+Company Type:	Private company Limited by shares	Date Of Incorporation:	1/22/2015 12:00:00 AM	Originated From:	Normal
+Accounting Date:	31	Accounting Month:	12
+Registered Address
+Country:Tanzania   Region:Dar Es Salaam   District:Kinondoni   Ward:Kinondoni   Subward:   Street:togo street   Block Number:40   Plot Number:336   Phone:0700000001   Email:juma@example.com   P.o.Box:71863   Post Code:14110
+
+BUSINESS ACTIVITIES
+Activity Name	Code	Main
+ Construction of other civil engineering projects	4290	Yes
+Water collection, treatment and supply	3600	No
+Construction of buildings	4100	No
+Plumbing, heat and air-conditioning installation	4322	No
+Electric power generation, transmission and distribution	3510	No
+Manufacture of gas; distribution of gaseous fuels through mains	3520	No
+Steam and air conditioning supply	3530	No
+Treatment and disposal of hazardous waste	3822	No
+Freight transport by road	4923	No
+Inland freight water transport	5022	No
+Manufacture of starches and starch products	1062	No
+Retail sale of electrical household appliances, furniture, lighting equipment and other household articles in specialized stores	4759	No
+Short term accommodation activities	5510	No
+Other food service activities	5629	No
+Real estate activities with own or leased property	6810	No
+Support activities for other mining and quarrying	0990	No
+Support activities for crop production	0161	No
+Maintenance and repair of motor vehicles	4520	No
+Retail sale of hardware, paints and glass in specialized stores	4752	No
+Manufacture of pharmaceuticals, medicinal chemical and botanical products	2100	No
+Photocopying, document preparation and other specialized office support activities	8219	No
+Travel agency activities	7911	No
+Tour operator activities	7912	No
+Other human health activities	8690	No
+Educational support activities	8550	No
+Other sports activities	9319	No
+Freshwater fishing	0312	No
+Marine fishing	0311	No
+DIRECTORS Total: 2
+Director #
+Individual
+JUMA HASSAN MREMA
+Personal Information
+Identification:
+NIN: 19700101141110000111
+Gender:
+Male
+Date of Birth:
+1964-03-22
+Nationality:
+Contact Information
+Mobile Phone:
+0700000001
+Email:
+ juma@example.com
+Address:
+Country:Tanzania   Region:Dar Es Salaam   District:Kinondoni   Ward:Msasani   Subward:   P.o.Box:TZ  Street:buzwagi street  Road:haile selaise road   Email:juma@example.com   Phone:0700000001   Post Code:14111  Area:  Land Mark:--   Block Number:4   Plot Number:1770   House Number:448
+
+Director #
+Individual
+SALMA JUMA MREMA
+Personal Information
+Identification:
+NIN: 19951001141110000222
+Gender:
+Male
+Date of Birth:
+1996-10-01
+Nationality:
+Contact Information
+Mobile Phone:
+0700000002
+Email:
+ salma@example.com
+Address:
+Country:Tanzania   Region:Dar Es Salaam   District:Kinondoni   Ward:Msasani   Subward:   P.o.Box:TZ  Street:buzwagi  Road:haile selaise road   Email:salma@example.com   Phone:0700000002   Post Code:14111  Area:  Land Mark:--   Block Number:4   Plot Number:1770   House Number:448
+
+COMPANY SECRETARY
+Individual Secretary
+SALMA JUMA MREMA
+Personal Information
+Identification:
+NIN: 19951001141110000222
+Full Name:
+SALMA JUMA MREMA
+Gender:
+Male
+Date of Birth:
+1996-10-01
+Nationality:
+TZ
+Contact Information
+Mobile Phone:
+0700000002
+Email:
+ salma@example.com
+Address:
+Country:Tanzania   Region:Dar Es Salaam   District:Kinondoni   Ward:Msasani   Subward:   P.o.Box:TZ  Street:buzwagi street  Road:haile selaise   Email:salma@example.com   Phone:0700000002   Post Code:14111  Area:  Land Mark:--   Block Number:4   Plot Number:1770   House Number:448
+
+AUTHORISED SHARE CAPITAL
+Class of Shares	Number of Shares	Value per Share	Share taken	Currency
+Ordinary	1000	30000	950	TZS
+Share Capital:		TSh 30,000,000.00	Total Number of Shares:	1000
+ SHAREHOLDERS Total: 3
+Shareholder #1
+Individual
+Direct Ownership
+JUMA HASSAN MREMA
+Personal Information
+Identification:
+NIN: 19700101141110000111
+Full Name:
+JUMA HASSAN MREMA
+Gender:
+Male
+Date of Birth:
+1964-03-22
+Class Name	Number of Share	Value of Share
+Ordinary	750	30000.0000
+Contact Information
+Mobile Phone:
+0700000001
+Email:
+ juma.mrema@example.com
+Address:
+Country:Tanzania   Region:Dar Es Salaam   District:Kinondoni   Ward:Msasani   Subward:   P.o.Box:TZ  Street:buzwagi street  Road:haile selaise road   Email:juma.mrema@example.com   Phone:0700000001   Post Code:14111  Area:No Data  Land Mark:No Data   Block Number:4   Plot Number: 1770   House Number:448
+
+Shareholder #2
+Individual
+Direct Ownership
+SALMA JUMA MREMA
+Personal Information
+Identification:
+NIN: 19951001141110000222
+Full Name:
+SALMA JUMA MREMA
+Gender:
+Male
+Date of Birth:
+1996-10-01
+Class Name	Number of Share	Value of Share
+Ordinary	100	30000.0000
+Contact Information
+Mobile Phone:
+0700000002
+Email:
+ salma@example.com
+Address:
+Country:Tanzania   Region:Dar Es Salaam   District:Kinondoni   Ward:Msasani   Subward:   P.o.Box:TZ  Street:buzwagi street  Road:haile selaise   Email:salma@example.com   Phone:0700000002   Post Code:14111  Area:No Data  Land Mark:No Data   Block Number:4   Plot Number:1770   House Number:448
+
+Shareholder #3
+Individual
+Direct Ownership
+OMARI JUMA MREMA
+Personal Information
+Identification:
+NIN: 19941014141110000333
+Full Name:
+OMARI JUMA MREMA
+Gender:
+Male
+Date of Birth:
+1994-10-14
+Class Name	Number of Share	Value of Share
+Ordinary	100	30000.0000
+Contact Information
+Mobile Phone:
+0700000003
+Email:
+ omari@example.com
+Address:
+Country:Tanzania   Region:Dar Es Salaam   District:Kinondoni   Ward:Kinondoni   Subward:   P.o.Box:TZ  Street:togo street  Road:kinondoni road   Email:omari@example.com   Phone:0700000003   Post Code:14110  Area:  Land Mark:--   Block Number:40   Plot Number:336   House Number:154
