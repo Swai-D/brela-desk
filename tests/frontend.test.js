@@ -65,4 +65,5 @@ ok('Doc Studio removes backgrounds from uploaded signature photos and placed ima
  ok('template editor mounts the views and routes field chips to the page',/TPV\.mount\(el/.test(br)&&/_tpInsert/.test(br));
  ok('word view uses server docx endpoints',/\/templates\/\$\{id\}\/docx/.test(tv)&&/render-docx/.test(tv)&&/upload-docx/.test(tv)&&/docx-to-html/.test(tv))}
 ok('Doc Studio has page tools to rotate, delete, reorder and add blank pages, rebuilt through pdf-lib so deleted pages are really removed',/id="sd-pages"/.test(stJs)&&/async function pagesDialog\(/.test(stJs)&&/async function applyPages\(/.test(stJs)&&/copyPages\(/.test(stJs)&&/E\.pagesChanged/.test(stJs));
+ok('inbox redesign: stats, search, filters, file rows',/class="ib-stats"/.test(fs.readFileSync(path.join(pub,'inbox.html'),'utf8'))&&/ib-row/.test(fs.readFileSync(path.join(pub,'assets/js/brela.js'),'utf8'))&&/id="ib-flt"/.test(fs.readFileSync(path.join(pub,'inbox.html'),'utf8')));
 process.exit(fails?(console.log('\n'+fails+' FAILED'),1):(console.log('\nall passed'),0));
