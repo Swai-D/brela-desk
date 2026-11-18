@@ -2,7 +2,7 @@
 // Pure functions (no database): easy to test and safe to reuse.
 const KEY='[a-z][a-z0-9_]*';
 const ROLE_LISTS={directors:'director',shareholders:'shareholder',secretaries:'secretary',beneficial_owners:'beneficial_owner'};
-const PERSON_FIELDS=['name','full_name','nationality','id_type','id_number','dob','address','phone','email','shares','roles'];
+const PERSON_FIELDS=['name','full_name','first_names','surname','nationality','id_type','id_number','dob','gender','address','phone','email','shares','share_class','share_value','occupation','previous_names','other_directorships','roles'];
 const SENSITIVE_KEY=/(^|_)(id|ids|passport|nida|tin|dob|birth|phone|mobile|email|bank|account|iban|swift|password|pin|tax)(_|$)/;
 const SENSITIVE_PERSON=['id_type','id_number','dob','phone','email'];
 
@@ -11,7 +11,8 @@ const fields=body=>{const keys=new Set(),lists={};let rest=String(body||'');
  for(const m of rest.matchAll(new RegExp(`\\{\\{\\s*(${KEY})`,'g')))keys.add(m[1]);
  return{keys:[...keys],lists}};
 
-const personScope=(p,i,n)=>({index:String(i+1),count:String(n),name:p.full_name||'',full_name:p.full_name||'',nationality:p.nationality||'',id_type:p.id_type||'',id_number:p.id_number||'',dob:p.dob||'',address:p.address||'',phone:p.phone||'',email:p.email||'',shares:p.shares||'',roles:(p.roles||[]).join(', ')});
+const splitName=n=>{const w=String(n||'').trim().split(/\s+/).filter(Boolean);return w.length<2?{first:'',last:w[0]||''}:{first:w.slice(0,-1).join(' '),last:w[w.length-1]}};
+const personScope=(p,i,n)=>({index:String(i+1),count:String(n),name:p.full_name||'',full_name:p.full_name||'',first_names:splitName(p.full_name).first,surname:splitName(p.full_name).last,nationality:p.nationality||'',id_type:p.id_type||'',id_number:p.id_number||'',dob:p.dob||'',gender:p.gender||'',address:p.address||'',phone:p.phone||'',email:p.email||'',shares:p.shares||'',share_class:p.share_class||'',share_value:p.share_value||'',occupation:p.occupation||'',previous_names:p.previous_names||'',other_directorships:p.other_directorships||'',roles:(p.roles||[]).join(', ')});
 
 function render(body,ctx){
  const values=ctx.values||{},lists=ctx.lists||{},missing=new Set();
@@ -45,6 +46,8 @@ function buildContext({client={},caseRow={},assignee='',profile={},data={},peopl
   case_code:caseRow.code||'',case_type:caseRow.type||'',case_track_number:caseRow.track_number||'',track_number:caseRow.track_number||client.track_number||'',
   due_date:caseRow.due?fmtDate(caseRow.due):'',assignee_name:assignee||'',today:fmtDate(Date.now()),today_iso:new Date(Date.now()+3*3600e3).toISOString().slice(0,10),year:String(new Date(Date.now()+3*3600e3).getUTCFullYear())};
  Object.assign(v,profile,data);
+ const acts=Array.isArray(client.activities)?client.activities:[];
+ if(acts.length&&!v.business_activities){v.business_activities=acts.map(a=>`${a.code}  ${a.name}${a.main?' (main)':''}`).join('\n');v.activities_count=String(acts.length)}
  const ordered=[...people].sort((a,b)=>(a.position||0)-(b.position||0)||(a.id||0)-(b.id||0));
  const lists={people:ordered};for(const [name,role] of Object.entries(ROLE_LISTS))lists[name]=ordered.filter(p=>(p.roles||[]).includes(role));
  ordered.forEach((p,i)=>{const s=personScope(p,i,ordered.length);for(const f of PERSON_FIELDS)if(s[f])v[`person_${i+1}_${f}`]=s[f]});
@@ -131,6 +134,14 @@ const MON={january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,sep
 const dmy=t=>{const s=String(t||'').trim();let m;if(m=s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/)){const mo=MON[m[2].toLowerCase()];if(mo)return `${String(+m[1]).padStart(2,'0')}/${String(mo).padStart(2,'0')}/${m[3]}`}if(m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/))return `${m[3]}/${m[2]}/${m[1]}`;return s};
 // BRELA forms are filled in CAPITALS
 const CAPS=/^(COMPANY_NAME(_LINE_[12])?|COMPANY_TYPE|REGISTERED_OFFICE|PRINCIPAL_ACTIVITIES|SHARE_CLASS|SECRETARY_(NAME|ADDRESS)|SIGNING_DIRECTOR_NAME|CHAIRMAN_NAME|DIRECTOR_\d+_(NAME|ADDRESS|NATIONALITY)|MEMBER_\d+_NAME|NEW_DIRECTOR_\d+_NAME|NATIONALITY)$/;
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const longDate=t=>{const s=String(t||'').trim(),m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?`${+m[3]} ${MONTHS[+m[2]-1]} ${m[1]}`:s};
+// a residential address as up to 3 lines (street / area, ward and district, region and country with P.O. Box)
+function addrLines(p){
+ const a=p&&p.addr&&typeof p.addr==='object'?p.addr:{},has=Object.keys(a).length;
+ if(!has){const parts=String((p&&p.address)||'').split(',').map(x=>x.trim()).filter(Boolean);if(parts.length<=3)return[parts[0]||'',parts[1]||'',parts[2]||''];const n=Math.ceil(parts.length/3);return[parts.slice(0,n).join(', '),parts.slice(n,2*n).join(', '),parts.slice(2*n).join(', ')]}
+ const j=(...x)=>x.filter(Boolean).join(', '),street=j(a.house&&`House ${a.house}`,a.plot&&`Plot ${a.plot}`,a.block&&`Block ${a.block}`,a.street,a.road,a.unsurveyed,a.landmark);
+ return street?[street,j(a.subward,a.ward,a.district),j(a.pobox&&`P.O. Box ${a.pobox}`,a.region,a.country)]:[j(a.subward,a.ward),j(a.district,a.pobox&&`P.O. Box ${a.pobox}`),j(a.region,a.country)]}
 function packageValues(ctx){
  const v={};for(const [k,x] of Object.entries(ctx.values||{}))if(String(x??'').trim()!=='')v[k.toUpperCase()]=String(x);
  const lists=ctx.lists||{},dirs=lists.directors||[],secs=lists.secretaries||[],mem=lists.shareholders&&lists.shareholders.length?lists.shareholders:dirs;
@@ -138,6 +149,30 @@ function packageValues(ctx){
  set('CHAIRMAN_NAME',nm(dirs[0]));set('SIGNING_DIRECTOR_NAME',nm(dirs[0]));set('SECRETARY_NAME',nm(secs[0]));set('SECRETARY_ADDRESS',secs[0]&&secs[0].address);
  dirs.forEach((p,i)=>{const n=i+1;set('ATTENDEE_'+n+'_NAME',nm(p));set(`DIRECTOR_${n}_NAME`,nm(p));set(`DIRECTOR_${n}_NATIONALITY`,p.nationality);set(`DIRECTOR_${n}_ADDRESS`,p.address);set(`DIRECTOR_${n}_DOB`,dmy(p.dob))});
  mem.forEach((p,i)=>{const n=i+1;set('MEMBER_'+n+'_NAME',nm(p));if(p.shares&&/^[\d,]+$/.test(String(p.shares).trim()))set('MEMBER_'+n+'_SHARES',Number(String(p.shares).replace(/,/g,'')).toLocaleString('en-US'))});
+
+ // ---- Form 131 (annual return): anniversary, share totals, member list
+ const up=x=>String(x||'').toUpperCase(),fmt=n=>Number(n).toLocaleString('en-US'),numOf=x=>{const n=Number(String(x||'').replace(/[^0-9.]/g,''));return Number.isFinite(n)&&String(x||'').trim()?n:0};
+ const iso=String(ctx.values&&ctx.values.date_of_incorporation_iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+ if(iso&&!v.RETURN_DATE){const now=new Date(Date.now()+3*3600e3),ty=now.getUTCFullYear();let d=new Date(Date.UTC(ty,+iso[2]-1,+iso[3]));if(d>now)d=new Date(Date.UTC(ty-1,+iso[2]-1,+iso[3]));
+  if(d.getUTCFullYear()>+iso[1])v.RETURN_DATE=`${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`.toUpperCase()}
+ const nominal=numOf(ctx.values&&(ctx.values.share_value||ctx.values.nominal_value_per_share)),issuedN=numOf(ctx.values&&(ctx.values.shares_issued_total||ctx.values.shares_issued));
+ if(issuedN){v.SHARES_ISSUED_TOTAL=fmt(issuedN);if(!/,/.test(String(ctx.values&&ctx.values.share_class||'')))v.SHARES_ISSUED=fmt(issuedN)}
+ if(issuedN&&nominal){set('AGGREGATE_NOMINAL_VALUE_TOTAL',fmt(issuedN*nominal));set('AGGREGATE_NOMINAL_VALUE',fmt(issuedN*nominal))}
+ if(nominal)set('NOMINAL_VALUE_PER_SHARE_NUMERIC',fmt(nominal));
+ set('SHARE_TYPE',v.SHARE_CLASS?'Ordinary':'');set('SHARE_CLASS_IF_APPLICABLE','Not applicable');
+ [...(lists.shareholders||[])].filter(p=>nm(p)).sort((a,b)=>nm(a).localeCompare(nm(b))).forEach((p,i)=>{const n=i+1;set(`MEMBER_${n}_NAME_ADDRESS_OPT`,up(nm(p))+(p.address?' - '+up(p.address):''));const sh=numOf(p.shares);if(sh)set(`MEMBER_${n}_SHARES_HELD_OPT`,fmt(sh))});
+ // ---- Forms 213a / 213b: the person concerned = the one named in the case data (person_name), else the first director
+ const people=lists.people||[],want=up(v.PERSON_NAME||v.SUBJECT_NAME||v.DIRECTOR_NAME||''),subj=(want&&people.find(p=>up(nm(p))===want))||dirs[0]||secs[0];
+ if(subj){const sn=splitName(nm(subj)),ad=addrLines(subj);
+  set('FIRST_NAMES',up(sn.first||sn.last));set('SURNAME',sn.first?up(sn.last):'');set('DOB',up(longDate(subj.dob)));set('NATIONALITY',up(subj.nationality));set('OCCUPATION',up(subj.occupation));
+  set('PREVIOUS_NAMES_OPT',up(subj.previous_names));set('OTHER_DIRECTORSHIPS_OPT',subj.other_directorships);
+  set('ADDRESS_LINE_1',up(ad[0]));set('ADDRESS_LINE_2',up(ad[1]));set('ADDRESS_LINE_3_OPT',up(ad[2]));
+  const isSec=(subj.roles||[]).includes('secretary')&&!(subj.roles||[]).includes('director');set('ROLE_UPPER',isSec?'SECRETARY':'DIRECTOR');set('ROLE_LOWER',isSec?'secretary':'director')}
+ set('SIGNING_DIRECTOR_ROLE','Director');set('SIGNING_DIRECTOR_ROLE_BRACKETED','(Director)');
+ // ---- people mentioned by name in the case data (allottees): fill their address and share class from the company's people records
+ for(let n=1;n<=10;n++){const nmv=v['ALLOTTEE_'+n+'_NAME'];if(!nmv)continue;const p=people.find(x=>up(nm(x))===up(nmv));if(p){set('ALLOTTEE_'+n+'_ADDRESS',up(p.address));set('ALLOTTEE_'+n+'_CLASS',p.share_class||(ctx.values&&ctx.values.share_class)||'')}}
+ secs[0]&&set('SECRETARY_PREVIOUS_NAMES_OPT',up(secs[0].previous_names));
+ dirs.forEach((p,i)=>{const n=i+1;set(`DIRECTOR_${n}_OCCUPATION`,up(p.occupation));set(`DIRECTOR_${n}_PREVIOUS_NAMES_OPT`,up(p.previous_names));set(`DIRECTOR_${n}_OTHER_DIRECTORSHIPS_OPT`,p.other_directorships)});
  if(v.REGISTERED_OFFICE&&!/\.$/.test(v.REGISTERED_OFFICE))v.REGISTERED_OFFICE+='.';
  for(const k of Object.keys(v))if(CAPS.test(k))v[k]=v[k].toUpperCase();
  return v}

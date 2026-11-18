@@ -291,7 +291,7 @@ app.get('/api/search',wrap(async(req,res)=>{
    ['MANAGER','SENIOR'].includes(req.user.level)?q(`SELECT cr.id,cr.label,cr.client_id,cl.name AS client FROM credentials cr JOIN clients cl ON cl.id=cr.client_id WHERE cr.label ILIKE $1 ORDER BY cr.id DESC LIMIT 4`,[like]):[]]);
   res.json({q:qs,clients,cases,files,comments,creds})}));
 app.get('/api/clients/:id',wrap(async(req,res)=>{
-  const id=+req.params.id,client=await one('SELECT id,name,phone,email,track_number,profile FROM clients WHERE id=$1',[id]);if(!client)fail(404,'Not found');
+  const id=+req.params.id,client=await one('SELECT id,name,phone,email,track_number,profile,activities FROM clients WHERE id=$1',[id]);if(!client)fail(404,'Not found');
   const [cases,files,creds]=await Promise.all([q(CASE_SQL+' WHERE c.client_id=$1 ORDER BY c.id DESC',[id]),
    q(FILES+' WHERE f.client_id=$1 AND NOT f.inbox ORDER BY f.id DESC',[id]),
    q(`SELECT c.id,c.label,c.username,(SELECT u.name||' · '||to_char(a.created_at,'DD Mon HH24:MI') FROM credential_access a JOIN users u ON u.id=a.user_id WHERE a.credential_id=c.id ORDER BY a.id DESC LIMIT 1) AS last_access FROM credentials c WHERE c.client_id=$1 ORDER BY c.id`,[id])]);

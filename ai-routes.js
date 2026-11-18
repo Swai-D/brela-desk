@@ -2,7 +2,7 @@
 const fs=require('fs'),path=require('path');
 const SR=['MANAGER','SENIOR'],KEY=/^[a-z][a-z0-9_]{0,40}$/,ROLES=['director','shareholder','secretary','beneficial_owner','other'];
 const COMMON_KEYS=['company_name','proposed_names','business_activity','registered_office','postal_address','share_capital','number_of_shares','share_value','date_of_incorporation','tin','financial_year_end','objects'];
-const {parseRegistry}=require('./registry-import');
+const {parseRegistry,composeAddress}=require('./registry-import');
 module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  const sr=u=>SR.includes(u.level);
  const clean=v=>String(v??'').replace(/\r/g,'').trim().slice(0,2000);
@@ -35,13 +35,18 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   await q(`UPDATE ${table} SET ${table==='cases'?'data':'profile'}=$1::jsonb WHERE id=$2`,[JSON.stringify(j),id]);return j};
  app.patch('/api/cases/:id/data',wrap(async(req,res)=>{const j=await patchJson('cases',+req.params.id,req.body||{});res.json({data:j})}));
  app.patch('/api/clients/:id/profile',wrap(async(req,res)=>{const j=await patchJson('clients',+req.params.id,req.body||{});res.json({profile:j})}));
- const PERSON=['full_name','nationality','id_type','id_number','dob','address','phone','email','shares'];
- const personVals=b=>{const roles=(Array.isArray(b.roles)?b.roles:[]).filter(r=>ROLES.includes(r));if(!clean(b.full_name))fail(400,'Name is required');return[roles,...PERSON.map(k=>clean(b[k])||null)]};
+ const PERSON=['full_name','nationality','id_type','id_number','dob','address','phone','email','shares','gender','share_class','share_value','ownership','occupation','previous_names','other_directorships'];
+ const ADDR=['country','region','district','ward','subward','street','road','house','plot','block','pobox','postcode','unsurveyed','landmark'];
+ const cleanAddr=a=>{const o={};for(const k of ADDR){const v=clean((a||{})[k]);if(v)o[k]=v}return o};
+ const personVals=b=>{const roles=(Array.isArray(b.roles)?b.roles:[]).filter(r=>ROLES.includes(r));if(!clean(b.full_name))fail(400,'Name is required');
+  const addr=cleanAddr(b.addr);let address=clean(b.address);if(Object.keys(addr).length)address=composeAddress(addr)||address;
+  return{roles,addr,vals:PERSON.map(k=>k==='address'?(address||null):clean(b[k])||null)}};
  app.get('/api/clients/:id/people',wrap(async(req,res)=>res.json(await q('SELECT * FROM client_people WHERE client_id=$1 ORDER BY position,id',[+req.params.id]))));
  app.post('/api/clients/:id/people',wrap(async(req,res)=>{const v=personVals(req.body||{}),pos=(await one('SELECT coalesce(max(position),0)+1 AS n FROM client_people WHERE client_id=$1',[+req.params.id])).n;
-  res.json(await one(`INSERT INTO client_people(client_id,roles,${['full_name','nationality','id_type','id_number','dob','address','phone','email','shares'].join(',')},position) VALUES($1,$2::jsonb,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,[+req.params.id,JSON.stringify(v[0]),...v.slice(1),pos]))}));
+  const cols=['client_id','roles',...PERSON,'addr','position'];
+  res.json(await one(`INSERT INTO client_people(${cols.join(',')}) VALUES(${cols.map((c,i)=>'$'+(i+1)+(c==='roles'||c==='addr'?'::jsonb':'')).join(',')}) RETURNING *`,[+req.params.id,JSON.stringify(v.roles),...v.vals,JSON.stringify(v.addr),pos]))}));
  app.put('/api/people/:id',wrap(async(req,res)=>{const v=personVals(req.body||{});
-  const r=await one(`UPDATE client_people SET roles=$2::jsonb,full_name=$3,nationality=$4,id_type=$5,id_number=$6,dob=$7,address=$8,phone=$9,email=$10,shares=$11 WHERE id=$1 RETURNING *`,[+req.params.id,JSON.stringify(v[0]),...v.slice(1)]);if(!r)fail(404,'Not found');res.json(r)}));
+  const r=await one(`UPDATE client_people SET roles=$2::jsonb,addr=$3::jsonb,${PERSON.map((c,i)=>c+'=$'+(i+4)).join(',')} WHERE id=$1 RETURNING *`,[+req.params.id,JSON.stringify(v.roles),JSON.stringify(v.addr),...v.vals]);if(!r)fail(404,'Not found');res.json(r)}));
  app.delete('/api/people/:id',wrap(async(req,res)=>{if(!await one('SELECT 1 FROM client_people WHERE id=$1',[+req.params.id]))fail(404,'Not found');await q('DELETE FROM client_people WHERE id=$1',[+req.params.id]);res.json({ok:1})}));
  // ---------- import a pasted BRELA registry "Company Details" page: preview first, then save (no AI: the text is read by rules)
  app.post('/api/clients/:id/registry-import',wrap(async(req,res)=>{
@@ -55,7 +60,7 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const ppl=r.people.map(p=>{const h=match(p);const diff=h?PERSON.filter(f=>p[f]&&norm(h[f])!==norm(p[f])):[];const roles=h?[...new Set([...(h.roles||[]),...p.roles])]:p.roles;
    return{...p,existing_id:h?h.id:null,status:!h?'new':(diff.length||roles.length!==(h.roles||[]).length)?'update':'same',changes:diff}});
   const kept=have.filter(h=>!r.people.some(p=>match(p)===h)).map(h=>({id:h.id,full_name:h.full_name,roles:h.roles}));
-  const out={fields,people:ppl,kept,warnings:r.warnings,tracking:r.tracking||'',client_tracking:cl.track_number||'',company_name:r.values.company_name||'',client_name:cl.name};
+  const out={fields,people:ppl,kept,activities:{count:r.activities.length,main:(r.activities.find(a=>a.main)||r.activities[0]||{}).name||''},warnings:r.warnings,tracking:r.tracking||'',client_tracking:cl.track_number||'',company_name:r.values.company_name||'',client_name:cl.name};
   if(!(req.body||{}).apply)return res.json({...out,applied:false});
   // save: company details are set, people are added or updated (people not in the registry are never removed)
   const j={...prof};for(const [k,v] of Object.entries(r.values)){if(!KEY.test(k))continue;const t=clean(v);if(t)j[k]=t}
@@ -65,9 +70,11 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   let added=0,updated=0,pos=(await one('SELECT coalesce(max(position),0) AS n FROM client_people WHERE client_id=$1',[id])).n;
   for(const p of ppl){
    if(p.existing_id){const h=have.find(x=>x.id===p.existing_id);if(p.status==='same')continue;
-    const roles=[...new Set([...(h.roles||[]),...p.roles])].filter(x=>ROLES.includes(x));
-    await q('UPDATE client_people SET roles=$2::jsonb,nationality=$3,id_type=$4,id_number=$5,dob=$6,address=$7,phone=$8,email=$9,shares=$10 WHERE id=$1',[h.id,JSON.stringify(roles),...['nationality','id_type','id_number','dob','address','phone','email','shares'].map(f=>clean(p[f])||h[f]||null)]);updated++}
-   else{await q('INSERT INTO client_people(client_id,roles,full_name,nationality,id_type,id_number,dob,address,phone,email,shares,position) VALUES($1,$2::jsonb,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',[id,JSON.stringify(p.roles.filter(x=>ROLES.includes(x))),clean(p.full_name),...['nationality','id_type','id_number','dob','address','phone','email','shares'].map(f=>clean(p[f])||null),++pos]);added++}}
+    const roles=[...new Set([...(h.roles||[]),...p.roles])].filter(x=>ROLES.includes(x)),addr=Object.keys(p.addr||{}).length?cleanAddr(p.addr):(h.addr||{});
+    await q(`UPDATE client_people SET roles=$2::jsonb,addr=$3::jsonb,${PERSON.map((c,i)=>c+'=$'+(i+4)).join(',')} WHERE id=$1`,[h.id,JSON.stringify(roles),JSON.stringify(addr),...PERSON.map(f=>clean(p[f])||h[f]||null)]);updated++}
+   else{const cols=['client_id','roles',...PERSON,'addr','position'];
+    await q(`INSERT INTO client_people(${cols.join(',')}) VALUES(${cols.map((c,i)=>'$'+(i+1)+(c==='roles'||c==='addr'?'::jsonb':'')).join(',')})`,[id,JSON.stringify(p.roles.filter(x=>ROLES.includes(x))),...PERSON.map(f=>clean(p[f])||null),JSON.stringify(cleanAddr(p.addr)),++pos]);added++}}
+  if(r.activities.length)await q('UPDATE clients SET activities=$1::jsonb WHERE id=$2',[JSON.stringify(r.activities.slice(0,300).map(a=>({name:clean(a.name),code:clean(a.code),main:!!a.main}))),id]);
   await audit(req,'client.registry',`${cl.name}: company details imported from the BRELA registry (${fields.filter(f=>f.status!=='same').length} fields, ${added} people added, ${updated} updated)`);
   res.json({...out,applied:true,added,updated})}));
  const contextFor=async caseId=>{

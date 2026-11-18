@@ -1,0 +1,251 @@
+Company Details
+Company
+Details
+COMPANY INFORMATION
+Tracking Number:	G000002-0002	Incorporation Number:	100000002	Company Name:	DEMOMULTI SERVICES COMPANY LIMITED
+Company Type:	Private company Limited by shares	Date Of Incorporation:	8/15/2023 12:00:00 AM	Originated From:	Normal
+Accounting Date:	31	Accounting Month:	12
+Registered Address
+Country:Tanzania   Region:Dar Es Salaam   District:Temeke   Ward:Demoward   Subward:   Street:   Block Number:   Plot Number:   Phone:0700000002   Email:demo2@example.com   P.o.Box:47   Post Code:15000
+
+BUSINESS ACTIVITIES
+Activity Name	Code	Main
+Retail sale of books, newspapers and stationary in specialized stores	4761	No
+Wholesale of electronic and telecommunications equipment and parts	4652	No
+Wholesale of computers, computer peripheral equipment and software	4651	No
+Non-specialized wholesale trade	4690	No
+Warehousing and storage	5210	No
+Freight transport by road	4923	No
+Cargo handling	5224	No
+Other transportation support activities	5229	No
+Accounting, bookkeeping and auditing activities; tax consultancy	6920	No
+Other professional, scientific and technical activities n.e.c.	7490	No
+Activities of head offices	7010	No
+Management consultancy activities	7020	No
+Combined office administrative service activities	8211	No
+Other business support service activities n.e.c.	8299	No
+Support activities for other mining and quarrying	0990	No
+Quarrying of stone, sand and clay	0810	No
+Mining of iron ores	0710	No
+Mining of lignite	0520	No
+Extraction of crude petroleum	0610	No
+Extraction of natural gas	0620	No
+Mining of hard coal	0510	No
+Other mining and quarrying n.e.c.	0899	No
+Hospital activities	8610	No
+Medical and dental practice activities	8620	No
+Other human health activities	8690	No
+Retail sale of pharmaceutical and medical goods, cosmetic and toilet articles in specialized stores	4772	No
+Educational support activities	8550	No
+Travel agency activities	7911	No
+Pre-primary and primary education	8510	No
+Technical and vocational secondary education	8522	No
+General secondary education	8521	No
+Higher education	8530	No
+Mixed farming	0150	No
+Support activities for crop production	0161	No
+Marine fishing	0311	No
+Freshwater aquaculture	0322	No
+Construction of buildings	4100	No
+Other specialized construction activities	4390	No
+Retail sale of hardware, paints and glass in specialized stores	4752	No
+Tour operator activities	7912	No
+DIRECTORS Total: 3
+Director #
+Individual
+ALI OMARI KAZI
+Personal Information
+Identification:
+NIN: 19700101111110000001
+Gender:
+Male
+Date of Birth:
+1970-01-31
+Nationality:
+Contact Information
+Mobile Phone:
+0700000001
+Email:
+ demo1@example.com
+Address:
+Country:Tanzania   Region:Dar Es Salaam   District:Temeke   Ward:Demotown   Subward:   P.o.Box:TZ  Street:--  Road:--   Email:demo1@example.com   Phone:0700000001   Post Code:15001   Unsurveyed Area:Karibu na shule Demotown
+
+Director #
+Individual
+BAKARI JUMA LEO
+Personal Information
+Identification:
+NIN: 19700101111110000002
+Gender:
+Male
+Date of Birth:
+1980-06-18
+Nationality:
+Contact Information
+Mobile Phone:
+0700000002
+Email:
+ demo2@example.com
+Address:
+Country:Tanzania   Region:Dar Es Salaam   District:Kigamboni   Ward:Demovijiji   Subward:   P.o.Box:TZ  Street:--  Road:--   Email:demo2@example.com   Phone:0700000002   Post Code:17001   Unsurveyed Area:Karibu na hospitali
+
+Director #
+Individual
+CHAUSIKU SAID MWITA
+Personal Information
+Identification:
+NIN: 19700101111110000003
+Gender:
+Male
+Date of Birth:
+1955-03-15
+Nationality:
+Contact Information
+Mobile Phone:
+0700000002
+Email:
+ demo3@example.com
+Address:
+Country:Tanzania   Region:Pwani   District:Mafia   Ward:Demokilo   Subward:   P.o.Box:TZ  Street:--  Road:--   Email:demo3@example.com   Phone:0700000002   Post Code:61001   Unsurveyed Area:Majengo, Karibu na shule
+
+COMPANY SECRETARY
+Individual Secretary
+ALI OMARI KAZI
+Personal Information
+Identification:
+NIN: 19700101111110000001
+Full Name:
+ALI OMARI KAZI
+Gender:
+Male
+Date of Birth:
+1970-01-31
+Nationality:
+TZ
+Contact Information
+Mobile Phone:
+0700000001
+Email:
+ demo1@example.com
+Address:
+Country:Tanzania   Region:Dar Es Salaam   District:Temeke   Ward:Demotown   Subward:   P.o.Box:TZ  Street:--  Road:--   Email:demo1@example.com   Phone:0700000001   Post Code:15001   Unsurveyed Area:Karibu na shule Demotown
+
+AUTHORISED SHARE CAPITAL
+Class of Shares	Number of Shares	Value per Share	Share taken	Currency
+Ordinary	10000	5000	7120	TZS
+Share Capital:		TSh 50,000,000.00	Total Number of Shares:	10000
+ SHAREHOLDERS Total: 5
+Shareholder #
+Individual
+Direct Ownership
+ALI OMARI KAZI
+Personal Information
+Identification:
+NIN: 19700101111110000001
+Full Name:
+ALI OMARI KAZI
+Gender:
+Male
+Date of Birth:
+1970-01-31
+Class Name	Number of Share	Value of Share
+Ordinary	2000	5000
+Contact Information
+Mobile Phone:
+0700000001
+Email:
+ demo1@example.com
+Address:
+Country:Tanzania   Region:Dar Es Salaam   District:Temeke   Ward:Demotown   Subward:   P.o.Box:TZ  Street:--  Road:--   Email:demo1@example.com   Phone:0700000001   Post Code:15001   Unsurveyed Area:Karibu na shule Demotown
+
+Shareholder #
+Individual
+Direct Ownership
+DAUDI PETER NGOWI
+Personal Information
+Identification:
+NIN: 19700101111110000004
+Full Name:
+DAUDI PETER NGOWI
+Gender:
+Male
+Date of Birth:
+1990-03-29
+Class Name	Number of Share	Value of Share
+Ordinary	10	5000
+Contact Information
+Mobile Phone:
+0700000004
+Email:
+ demo4@example.com
+Address:
+Country:Tanzania   Region:Dar Es Salaam   District:Temeke   Ward:Demoward   Subward:   P.o.Box:TZ  Street:--  Road:--   Email:demo4@example.com   Phone:0700000004   Post Code:15000   Unsurveyed Area:DEMOWARD, NEAR BY BUS STOP
+
+Shareholder #
+Individual
+Direct Ownership
+EMMANUEL JOHN TARIMO
+Personal Information
+Identification:
+NIN: 19700101111110000005
+Full Name:
+EMMANUEL JOHN TARIMO
+Gender:
+Male
+Date of Birth:
+1991-02-08
+Class Name	Number of Share	Value of Share
+Ordinary	10	5000
+Contact Information
+Mobile Phone:
+0700000005
+Email:
+ demo5@example.com
+Address:
+Country:Tanzania   Region:Dar Es Salaam   District:Ubungo   Ward:Demosinza   Subward:   P.o.Box:TZ  Street:--  Road:--   Email:demo5@example.com   Phone:0700000005   Post Code:16001   Unsurveyed Area:Mtaa wa mfano, Karibu na kanisa
+
+Shareholder #
+Individual
+Direct Ownership
+BAKARI JUMA LEO
+Personal Information
+Identification:
+NIN: 19700101111110000002
+Full Name:
+BAKARI JUMA LEO
+Gender:
+Male
+Date of Birth:
+1980-06-18
+Class Name	Number of Share	Value of Share
+Ordinary	5000	5000
+Contact Information
+Mobile Phone:
+0700000002
+Email:
+ demo2@example.com
+Address:
+Country:Tanzania   Region:Dar Es Salaam   District:Kigamboni   Ward:Demovijiji   Subward:   P.o.Box:TZ  Street:--  Road:--   Email:demo2@example.com   Phone:0700000002   Post Code:17001   Unsurveyed Area:Karibu na hospitali
+
+Shareholder #
+Individual
+Direct Ownership
+CHAUSIKU SAID MWITA
+Personal Information
+Identification:
+NIN: 19700101111110000003
+Full Name:
+CHAUSIKU SAID MWITA
+Gender:
+Male
+Date of Birth:
+1955-03-15
+Class Name	Number of Share	Value of Share
+Ordinary	100	5000
+Contact Information
+Mobile Phone:
+0700000002
+Email:
+ demo3@example.com
+Address:
+Country:Tanzania   Region:Pwani   District:Mafia   Ward:Demokilo   Subward:   P.o.Box:TZ  Street:--  Road:--   Email:demo3@example.com   Phone:0700000002   Post Code:61001   Unsurveyed Area:Majengo, Karibu na shule
