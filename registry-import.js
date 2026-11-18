@@ -13,14 +13,18 @@ const dateOf=s=>{ // "1/22/2015 12:00:00 AM" (M/D/Y), "2015-01-22", "22/01/2015"
  if(m<1||m>12||d<1||d>31)return null;
  return{iso:`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`,text:`${d} ${MONTHS[m-1]} ${y}`}};
 
-const ADDR_KEYS=['Country','Region','District','Ward','Subward','Street','Road','Block Number','Plot Number','House Number','Phone','Email','P\\.o\\.Box','Post Code','Area','Land Mark'];
+const ADDR_KEYS=['Country','Region','District','Ward','Subward','Street','Road','Block Number','Plot Number','House Number','Phone','Email','P\\.o\\.Box','Post Code','Unsurveyed Area','Area','Land Mark'];
 const ADDR_RE=new RegExp(`(?:^|[ \\t])(${ADDR_KEYS.join('|')}):`,'gi');
+const PARTS=[['country','country'],['region','region'],['district','district'],['ward','ward'],['subward','subward'],['street','street'],['road','road'],['house','housenumber'],['plot','plotnumber'],['block','blocknumber'],['pobox','pobox'],['postcode','postcode'],['unsurveyed','unsurveyedarea'],['landmark','landmark']];
+// one address line from structured parts (house, plot, block, street, road, unsurveyed area, subward, ward, district, region, country)
+function composeAddress(p){
+ const g=k=>String((p&&p[k])||'').trim();
+ return[g('house')&&`House ${g('house')}`,g('plot')&&`Plot ${g('plot')}`,g('block')&&`Block ${g('block')}`,title(g('street')),title(g('road')),g('unsurveyed'),g('landmark'),title(g('subward')),g('ward'),g('district'),g('region'),g('country')].filter(Boolean).join(', ')}
 function parseAddress(line){
  const a={},str=String(line||''),ms=[...str.matchAll(ADDR_RE)];ms.forEach((m,i)=>{const from=m.index+m[0].length,to=i+1<ms.length?ms[i+1].index:str.length;a[m[1].toLowerCase().replace(/[^a-z]/g,'')]=NONE(str.slice(from,to))});
  if(/^tz$/i.test(a.pobox||''))a.pobox='';
- const g=k=>a[k]||'';
- const parts=[g('housenumber')&&`House ${g('housenumber')}`,g('plotnumber')&&`Plot ${g('plotnumber')}`,g('blocknumber')&&`Block ${g('blocknumber')}`,title(g('street')),title(g('road')),g('area'),g('ward'),g('district'),g('region'),g('country')].filter(Boolean);
- return{...a,text:parts.join(', '),box:g('pobox')?`P.O. Box ${g('pobox')}`:'',code:g('postcode')}}
+ const g=k=>a[k]||'',parts={};for(const [k,src] of PARTS)if(g(src)||(src==='landmark'&&g('area')))parts[k]=g(src)||g('area');
+ return{...a,parts,text:composeAddress(parts),box:g('pobox')?`P.O. Box ${g('pobox')}`:'',code:g('postcode')}}
 
 const lines=t=>String(t||'').replace(/\r/g,'').replace(/ /g,' ').split('\n').map(l=>l.replace(/[ \t]+$/,''));
 const HEAD=[['company',/^COMPANY INFORMATION\b/i],['regaddr',/^Registered Address\b/i],['activities',/^BUSINESS ACTIVITIES\b/i],['directors',/^DIRECTORS\b/i],['secretary',/^COMPANY SECRETAR(?:Y|IES)\b/i],['capital',/^(?:AUTHORI[SZ]ED|ISSUED)?\s*SHARE CAPITAL\b/i],['shareholders',/^SHAREHOLDERS\b/i],['other',/^(?:BENEFICIAL OWNERS?|CHARGES|MORTGAGES|PREVIOUS NAMES|SHARE ALLOTMENTS?|ANNUAL RETURNS?|DOCUMENTS|FILINGS|AUDITORS?)\b/i]];
@@ -59,11 +63,11 @@ function person(L){
  for(const l of L){const m=l.trim().match(/^(NIN|Passport(?: Number| No\.?)?|Driving Licen[sc]e(?: Number)?|Voter(?:'s)? ID|Registration Number|Incorporation Number):\s*(.+)$/i);if(m&&!idNo){idNo=NONE(m[2]);const k=m[1].toLowerCase();idType=k==='nin'?'NIDA':/passport/.test(k)?'Passport':/driving/.test(k)?'Driving licence':/voter/.test(k)?'Voter ID':'Registration number'}}
  const nat=after(L,'Nationality');
  const ai=L.findIndex(l=>/^Address:?$/i.test(l.trim())),addr=parseAddress(ai>=0?L.slice(ai+1).find(l=>/Country:/i.test(l))||'':(L.find(l=>/Country:/i.test(l))||''));
- let shares='',cls='';
+ let shares='',cls='',cval='';
  const ci=L.findIndex(l=>/^Class Name\b/i.test(l.trim()));
- if(ci>=0)for(let j=ci+1;j<L.length;j++){const m=L[j].trim().match(/^(.+?)[\t ]+(\d[\d,]*)[\t ]+([\d.,]+)$/);if(m){cls=m[1].trim();shares=String(num(m[2]));break}}
+ if(ci>=0)for(let j=ci+1;j<L.length;j++){const m=L[j].trim().match(/^(.+?)[\t ]+(\d[\d,]*)[\t ]+([\d.,]+)$/);if(m){cls=m[1].trim();shares=String(num(m[2]));cval=String(num(m[3]));break}}
  return{full_name:name,nationality:/^(tz|tza|tanzania|tanzanian)$/i.test(nat)?'Tanzanian':nat,id_type:idType,id_number:idNo,dob:(dateOf(after(L,'Date of Birth'))||{}).text||after(L,'Date of Birth'),
-  address:addr.text,phone:after(L,'Mobile Phone')||addr.phone||'',email:after(L,'Email')||addr.email||'',shares,share_class:cls,gender:after(L,'Gender')||(L.find(l=>/^(Male|Female)$/i.test(l.trim()))||'').trim(),corporate}}
+  address:addr.text,phone:after(L,'Mobile Phone')||addr.phone||'',email:after(L,'Email')||addr.email||'',shares,share_class:cls,share_value:cval,ownership:((L.find(l=>/^(Direct|Indirect) Ownership$/i.test(l.trim()))||'').match(/^\s*(Direct|Indirect)/i)||[,''])[1],addr:addr.parts,gender:after(L,'Gender')||(L.find(l=>/^(Male|Female)$/i.test(l.trim()))||'').trim(),corporate}}
 
 function blocks(L,re){const out=[];let cur=null;for(const l of L){if(re.test(l.trim())){cur=[];out.push(cur)}else if(cur)cur.push(l)}return out}
 
@@ -83,16 +87,15 @@ function parseRegistry(raw){
  // ---- registered address
  const ra=parseAddress((S.regaddr||[]).find(l=>/Country:/i.test(l))||'');
  if(ra.text){set('registered_office',ra.text);
-  set('company_address_line_1',[ra.plotnumber&&`Plot ${ra.plotnumber}`,ra.blocknumber&&`Block ${ra.blocknumber}`,title(ra.street||''),ra.ward].filter(Boolean).join(', '));
+  set('company_address_line_1',[ra.plotnumber&&`Plot ${ra.plotnumber}`,ra.blocknumber&&`Block ${ra.blocknumber}`,title(ra.street||''),ra.unsurveyedarea,ra.ward].filter(Boolean).join(', '));
   set('company_address_line_2',[ra.box,ra.region,ra.country].filter(Boolean).join(', '))}
  set('postal_address',[ra.box,ra.region].filter(Boolean).join(', '));set('postal_code',ra.code);set('company_phone',ra.phone);set('company_email',ra.email);
- set('registered_region',ra.region);set('registered_district',ra.district);set('registered_ward',ra.ward);set('registered_street',title(ra.street||''));set('registered_plot',ra.plotnumber);set('registered_block',ra.blocknumber);
+ set('registered_region',ra.region);set('registered_district',ra.district);set('registered_ward',ra.ward);set('registered_street',title(ra.street||''));set('registered_plot',ra.plotnumber);set('registered_block',ra.blocknumber);set('registered_country',ra.country);set('registered_subward',title(ra.subward||''));set('registered_road',title(ra.road||''));set('registered_house',ra.housenumber);set('registered_unsurveyed_area',ra.unsurveyedarea);set('registered_po_box',ra.pobox);
  // ---- business activities
  const acts=[];for(const l of S.activities||[]){const m=l.trim().match(/^(.*?)[\t ]+(\d{4})[\t ]+(Yes|No)$/i);if(m)acts.push({name:m[1].trim(),code:m[2],main:/^yes$/i.test(m[3])})}
  if(acts.length){const main=acts.find(a=>a.main)||acts[0];
   values.business_activity=main.name;values.principal_activities=main.name;values.main_activity_code=main.code;
-  let list='',n=0;for(const a of acts){const row=`${a.code}  ${a.name}${a.main?' (main)':''}`;if((list+'\n'+row).length>1900)break;list+=(list?'\n':'')+row;n++}
-  values.business_activities=list;if(n<acts.length)warnings.push(`Only the first ${n} of ${acts.length} business activities fit in one field.`)}
+  if(!acts.some(x=>x.main))warnings.push('No activity is marked as Main in the registry, so the first one listed is used as the main activity.')}
  else if(S.activities)warnings.push('No business activities could be read.');
  // ---- share capital
  const cap=S.capital||[];let issued=0,authorised=0,cur='',val=0;const classes=[];
@@ -112,11 +115,12 @@ function parseRegistry(raw){
   if(!p.full_name)return;
   const key=p.id_number?'id:'+p.id_number:'n:'+p.full_name.toUpperCase();
   let e=people.find(x=>x._key===key||(!p.id_number&&x.full_name.toUpperCase()===p.full_name.toUpperCase()));
-  if(!e){e={_key:key,roles:[],order,full_name:p.full_name,nationality:'',id_type:'',id_number:'',dob:'',address:'',phone:'',email:'',shares:'',gender:'',corporate:p.corporate};people.push(e)}
+  if(!e){e={_key:key,roles:[],order,full_name:p.full_name,nationality:'',id_type:'',id_number:'',dob:'',address:'',phone:'',email:'',shares:'',gender:'',share_class:'',share_value:'',ownership:'',addr:{},corporate:p.corporate};people.push(e)}
   if(!e.roles.includes(role))e.roles.push(role);
+  if(!Object.keys(e.addr).length&&p.addr)e.addr=p.addr;
   for(const f of ['nationality','id_type','id_number','dob','address','phone','email','gender'])if(!e[f]&&p[f])e[f]=p[f];
   else if(e[f]&&p[f]&&e[f]!==p[f]&&(f==='email'||f==='phone'))warnings.push(`${e.full_name} has two different ${f==='email'?'email addresses':'phone numbers'} in the registry (${e[f]} and ${p[f]}). The first was kept.`);
-  if(role==='shareholder'&&p.shares)e.shares=p.shares};
+  if(role==='shareholder'){if(p.shares)e.shares=p.shares;for(const f of ['share_class','share_value','ownership'])if(p[f])e[f]=p[f]}};
  const dirB=blocks(S.directors||[],/^Director\s*#/i);dirB.forEach(b=>add(person(b),'director',1));
  const dt=(S.directors||[]).join('\n').match(/Total:\s*(\d+)/i)||[];
  const head=(text.match(/^DIRECTORS\b.*$/im)||[''])[0].match(/Total:\s*(\d+)/i);
@@ -131,6 +135,6 @@ function parseRegistry(raw){
  people.sort((a,b)=>a.order-b.order);
  people.forEach(p=>{delete p._key;delete p.corporate});
  if(!Object.keys(values).length&&!people.length)return{ok:false,error:'Nothing could be read from that text. Paste the whole BRELA Company Details page.'};
- return{ok:true,values,people,tracking,warnings:[...new Set(warnings)],counts:{activities:acts.length,directors:dirB.length,shareholders:shB.length}}}
+ return{ok:true,values,people,activities:acts,tracking,warnings:[...new Set(warnings)],counts:{activities:acts.length,directors:dirB.length,shareholders:shB.length}}}
 
-module.exports={parseRegistry,parseAddress,dateOf};
+module.exports={parseRegistry,parseAddress,composeAddress,dateOf};
