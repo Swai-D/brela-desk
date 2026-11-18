@@ -76,4 +76,6 @@ ok('Company tab can import a pasted BRELA Company Details page',/function regist
  ok('Company tab shows the main activity with a "+N more" list, the shareholding table and full person cards',/Main business activity/.test(js)&&/id="cp-acts"/.test(js)&&/function activitiesModal/.test(js)&&/class="sh-t"/.test(js)&&/const personCard=/.test(js));
  ok('the person form keeps every field: gender, address parts incl. unsurveyed area, P.O. box, share class and value',/ADDR_FIELDS=\[\['country'/.test(js)&&/'unsurveyed','Unsurveyed area/.test(js)&&/pp-occ/.test(js)&&/pp-sc/.test(js)&&/pp-sv/.test(js)&&/pp-g/.test(js));
  ok('import dialog step numbers no longer style the inline bold text',/\.ri-steps>div>b\{/.test(css)&&!/\.ri-steps b\{/.test(css));}
+{const js=fs.readFileSync(path.join(pub,'assets/js/brela.js'),'utf8');
+ ok('case page: Prepare documents card and a wizard that asks the questions, adds new people and generates everything',/function scenarioCard/.test(js)&&/async function scenarioModal/.test(js)&&/class="sc-b/.test(js)&&/sc-newp/.test(js)&&/scenarios\/\$\{sid\}\/generate/.test(js)&&/bindScenarios\(\$\('detail'\)/.test(js))}
 process.exit(fails?(console.log('\n'+fails+' FAILED'),1):(console.log('\nall passed'),0));
