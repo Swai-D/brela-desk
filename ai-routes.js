@@ -3,6 +3,7 @@ const fs=require('fs'),path=require('path');
 const SR=['MANAGER','SENIOR'],KEY=/^[a-z][a-z0-9_]{0,40}$/,ROLES=['director','shareholder','secretary','beneficial_owner','other'];
 const COMMON_KEYS=['company_name','proposed_names','business_activity','registered_office','postal_address','share_capital','number_of_shares','share_value','date_of_incorporation','tin','financial_year_end','objects'];
 const {parseRegistry,composeAddress}=require('./registry-import');
+const SC=require('./scenarios');
 module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  const sr=u=>SR.includes(u.level);
  const clean=v=>String(v??'').replace(/\r/g,'').trim().slice(0,2000);
@@ -77,10 +78,18 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   if(r.activities.length)await q('UPDATE clients SET activities=$1::jsonb WHERE id=$2',[JSON.stringify(r.activities.slice(0,300).map(a=>({name:clean(a.name),code:clean(a.code),main:!!a.main}))),id]);
   await audit(req,'client.registry',`${cl.name}: company details imported from the BRELA registry (${fields.filter(f=>f.status!=='same').length} fields, ${added} people added, ${updated} updated)`);
   res.json({...out,applied:true,added,updated})}));
- const contextFor=async caseId=>{
+ const contextFor=async(caseId,opt={})=>{
   const c=await caseInfo(caseId);if(!c)fail(404,'Case not found');
   const [client,cd,people,who]=await Promise.all([one('SELECT * FROM clients WHERE id=$1',[c.client_id]),one('SELECT data FROM cases WHERE id=$1',[caseId]),q('SELECT * FROM client_people WHERE client_id=$1 ORDER BY position,id',[c.client_id]),c.who?one('SELECT name FROM users WHERE id=$1',[c.who]):null]);
-  return{c,client,cd:cd.data,people,ctx:E.buildContext({client,caseRow:c,assignee:who&&who.name,profile:client.profile,data:cd.data,people})}};
+  const mk=(profile,data)=>E.buildContext({client,caseRow:c,assignee:who&&who.name,profile,data,people});
+  let ctx=mk(client.profile,{...cd.data,...(opt.over||{})}),blanks=[];
+  if(opt.sid){ // a scenario: worked-out wording, dates and amounts sit between the company's details and anything typed by hand on the case
+   const s=SC.byId(opt.sid),a=opt.answers||{},{V,B}=s.derive(a,SC.companyView(ctx)),prof={...client.profile};
+   for(const [k,def] of SC.ARTICLE_KEYS.map(x=>[x[0],x[2]]))prof[k]=a['art_'+k]||prof[k]||def;
+   for(const [k,v] of Object.entries(V))if(String(v)!=='')prof[k]=String(v);
+   blanks=[...B,...Object.entries(V).filter(([k,v])=>/_opt$/.test(k)&&String(v)==='').map(([k])=>k.toUpperCase())];
+   ctx=mk(prof,{...cd.data,...(opt.over||{})})}
+  return{c,client,cd:cd.data,people,ctx,blanks}};
  app.get('/api/cases/:id/context',wrap(async(req,res)=>{const x=await contextFor(+req.params.id);res.json({values:x.ctx.values,data:x.cd,profile:x.client.profile,people:x.people,keys:[...new Set([...COMMON_KEYS,...Object.keys(x.client.profile),...Object.keys(x.cd)])]})}));
 
  // ---------- templates
@@ -257,6 +266,13 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   if(created.length)await audit(req,'template.import',`${created.length} template(s) from the Word template package`);
   res.json({created,skipped})}));
 
+ const saveDocx=async(req,x,t,r,name,item)=>{
+  const id=x.c.id,f=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'template') RETURNING id,filename`,
+   [x.c.client_id,id,item?item.id:null,`${name}.docx`,'application/vnd.openxmlformats-officedocument.wordprocessingml.document',r.buffer.length,r.buffer,req.user.id]);
+  if(item&&!r.missing.length)await q('UPDATE case_docs SET done=TRUE WHERE id=$1',[item.id]);
+  await AI.record({userId:req.user.id,caseId:id,templateId:t.id,kind:'fill',mode:'docx',output:`filled ${r.filled}, ${r.missing.length} missing`});
+  await log(id,req.user.id,`filled official Word template "${t.name}"${item?` for "${item.name}"`:''} (${r.filled} detail${r.filled===1?'':'s'} placed${r.missing.length?`, ${r.missing.length} still missing`:''})`);
+  await q('UPDATE templates SET uses=uses+1 WHERE id=$1',[t.id]);return f};
  // fill an original Word template (exact layout) from the case details
  app.post('/api/cases/:id/ai/generate-docx',wrap(async(req,res)=>{
   const id=+req.params.id,b=req.body||{},x=await contextFor(id);
@@ -266,11 +282,54 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const values={...(t.docx_defaults||{}),...E.packageValues(x.ctx)};
   let r;try{r=await E.docxFill(t.docx_data,values)}catch(e){fail(400,'Could not fill this Word template: '+e.message)}
   const name=(item?item.name:t.name).replace(/[\\/:*?"<>|]+/g,' ').trim()||'Document';
-  const f=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'template') RETURNING id,filename`,
-   [x.c.client_id,id,item?item.id:null,`${name}.docx`,'application/vnd.openxmlformats-officedocument.wordprocessingml.document',r.buffer.length,r.buffer,req.user.id]);
-  if(item&&!r.missing.length)await q('UPDATE case_docs SET done=TRUE WHERE id=$1',[item.id]);
-  await AI.record({userId:req.user.id,caseId:id,templateId:t.id,kind:'fill',mode:'docx',output:`filled ${r.filled}, ${r.missing.length} missing`});
-  await log(id,req.user.id,`filled official Word template "${t.name}"${item?` for "${item.name}"`:''} (${r.filled} detail${r.filled===1?'':'s'} placed${r.missing.length?`, ${r.missing.length} still missing`:''})`);
-  await q('UPDATE templates SET uses=uses+1 WHERE id=$1',[t.id]);
+  const f=await saveDocx(req,x,t,r,name,item);
   res.json({file:f,missing:r.missing,clauses:r.clauses,filled:r.filled})}));
+
+ // ---------- case scenarios: a few questions -> every document of the case, filled
+ const FORMKEY={F01:'213a',F02:'213b',F03:'57a',F04:'57b',F05:'131'};
+ const cleanAnswers=(s,raw)=>{const o={};for(const f of s.fields){let v=clean((raw||{})[f.key]);if(f.type==='bool')v=v==='yes'?'yes':'';if(f.type==='people'||f.type==='person')v=v.split('|').map(x=>x.trim()).filter(Boolean).slice(0,f.max||1).join('|');if(v)o[f.key]=v}return o};
+ const savedAnswers=async(caseId,sid)=>((await one('SELECT scn FROM cases WHERE id=$1',[caseId])).scn||{})[sid]||{};
+ const saveAnswers=async(caseId,s,answers,clientId)=>{
+  const art={};for(const f of s.fields)if(f.article&&answers[f.key])art[f.key.slice(4)]=answers[f.key];
+  if(Object.keys(art).length){const cl=await one('SELECT profile FROM clients WHERE id=$1',[clientId]),j={...cl.profile,...art};await q('UPDATE clients SET profile=$1::jsonb WHERE id=$2',[JSON.stringify(j),clientId])}
+  const row=await one('SELECT scn FROM cases WHERE id=$1',[caseId]),scn={...(row.scn||{}),[s.id]:answers};await q('UPDATE cases SET scn=$1::jsonb WHERE id=$2',[JSON.stringify(scn),caseId])};
+ const tplFor=tid=>one(`SELECT id,name,docx_data,docx_defaults FROM templates WHERE docx_data IS NOT NULL AND keywords LIKE $1 ORDER BY id LIMIT 1`,[tid.toLowerCase()+' %']);
+ // work out (and optionally save) every document of a scenario
+ const runScenario=async(req,caseId,s,answers,generate)=>{
+  const base=await contextFor(caseId,{sid:s.id,answers}),cv=SC.companyView(base.ctx),jobs=s.jobs(answers,cv),warnings=s.warn(answers,cv),out=[];
+  for(const j of jobs){
+   const t=await tplFor(j.tid),row={tid:j.tid,name:j.name,who:j.who||'',title:j.who?`${j.name}: ${SC.tc(j.who)}`:j.name};
+   if(!t){out.push({...row,error:'The official Word templates are not imported yet (open Templates and press Import).'});continue}
+   const x=await contextFor(caseId,{sid:s.id,answers,over:j.over}),values={...(t.docx_defaults||{}),...E.packageValues(x.ctx)};
+   for(const k of x.blanks)if(values[k]===undefined||values[k]===null)values[k]='';
+   let r;try{r=await E.docxFill(t.docx_data,values)}catch(e){out.push({...row,error:'Could not fill this template: '+e.message});continue}
+   row.missing=r.missing.filter(m=>!/^\?/.test(m)).map(m=>E.labelFromKey(m));row.filled=r.filled;
+   if(generate){
+    const fn=row.title.replace(/[\\/:*?"<>|]+/g,' ').trim(),item=FORMKEY[j.tid]?await one(`SELECT id,name FROM case_docs WHERE case_id=$1 AND name ILIKE $2 ORDER BY done,id LIMIT 1`,[caseId,'%'+FORMKEY[j.tid]+'%']):null;
+    await q(`DELETE FROM files WHERE case_id=$1 AND source='template' AND filename=$2`,[caseId,fn+'.docx']);
+    const f=await saveDocx(req,x,t,r,fn,item);row.file={id:f.id,filename:f.filename}}
+   out.push(row)}
+  // people whose details a form needs
+  const ppl=[];for(const n of s.people(answers,cv)){const p=base.people.find(q=>SC.tc(q.full_name)===SC.tc(n.name));
+   if(!p)ppl.push({name:n.name,why:n.why,missing:['not saved yet']});else{const m=n.need.filter(k=>!String(p[k]||'').trim());if(m.length)ppl.push({id:p.id,name:p.full_name,why:n.why,missing:m})}}
+  return{jobs:out,warnings,people:ppl}};
+ const loadScenario=async(req,res)=>{const id=+req.params.id,s=SC.byId(req.params.sid);if(!s)fail(404,'Unknown scenario');return{id,s,c:await caseInfo(id)}};
+ app.get('/api/cases/:id/scenarios',wrap(async(req,res)=>{
+  const id=+req.params.id,c=await caseInfo(id);if(!c)fail(404,'Case not found');
+  const row=await one('SELECT scn,options FROM cases WHERE id=$1',[id]),opts=JSON.stringify(row.options||[])+' '+(c.type||''),ready=!!(await one(`SELECT 1 FROM templates WHERE docx_data IS NOT NULL AND keywords LIKE 't01 %'`));
+  res.json({ready,items:SC.SCENARIOS.map(s=>({id:s.id,title:s.title,icon:s.icon,desc:s.desc,saved:Object.keys((row.scn||{})[s.id]||{}).length>0,suggested:s.match.test(opts)}))})}));
+ app.get('/api/cases/:id/scenarios/:sid',wrap(async(req,res)=>{
+  const {id,s,c}=await loadScenario(req);if(!c)fail(404,'Case not found');
+  const x=await contextFor(id),answers=await savedAnswers(id,s.id);
+  res.json({def:SC.publicDef(s,x.ctx,x.client.profile),answers,people:x.people.map(p=>({id:p.id,full_name:p.full_name,roles:p.roles,shares:p.shares})),client_id:c.client_id})}));
+ app.put('/api/cases/:id/scenarios/:sid',wrap(async(req,res)=>{
+  const {id,s,c}=await loadScenario(req);if(!c)fail(404,'Case not found');
+  const answers=cleanAnswers(s,(req.body||{}).answers);await saveAnswers(id,s,answers,c.client_id);
+  res.json({answers,...await runScenario(req,id,s,answers,false)})}));
+ app.post('/api/cases/:id/scenarios/:sid/generate',wrap(async(req,res)=>{
+  const {id,s,c}=await loadScenario(req);if(!c)fail(404,'Case not found');
+  const answers=cleanAnswers(s,(req.body||{}).answers);await saveAnswers(id,s,answers,c.client_id);
+  const r=await runScenario(req,id,s,answers,true),made=r.jobs.filter(j=>j.file).length;
+  await log(id,req.user.id,`prepared ${made} document${made===1?'':'s'} for "${s.title}"`);
+  res.json({answers,...r})}));
 };
