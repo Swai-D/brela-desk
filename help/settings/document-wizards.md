@@ -1,29 +1,36 @@
 ---
-title: Edit the document wizards
-summary: Add or change the questions, documents, formulas and warnings of Prepare documents, without a developer.
-keywords: wizard, builder, question, placeholder, formula, check, new wizard, custom, template, document, reset, scalable
-order: 3
+title: Document wizards: overview (Manager)
+summary: Where the wizards are managed, what a Manager can change, and how the editor is organised.
+keywords: wizard, builder, document wizards, new wizard, edit wizard, custom, scalable, built in, reset, turn off, eye icon, list
+order: 7
 role: MANAGER
 ---
-**Settings → Document wizards** lists every wizard that appears on a case. Change them any time.
+**Settings → Document wizards** lists every wizard that appears on a case. You can change them at any time, without a developer.
 
-## Change a built-in wizard
+## The list
 
-Press **Edit**. You can reword questions, add new ones, add documents, formulas and warnings. The original questions are marked with a lock because the official forms depend on them: you can reword them but not remove them. The reset button returns the wizard to the original.
+Each card shows the icon, name, description, a **Built in** or **Custom** badge, the number of questions and **added documents**, and **Off** when hidden. Buttons:
 
-## Create a new wizard
+| Button | What it does |
+|---|---|
+| **Edit** (pencil) | Opens the editor |
+| **Turn off / Turn on** (eye) | Hides the wizard from cases without losing it |
+| **Reset to the original** (built-in) / **Delete** (custom) | Built-in: returns to the original questions. Custom: deletes it after confirmation. |
+| **New wizard** | Creates a custom wizard |
 
-1. Press **New wizard** and give it a name and an icon.
-2. **Basics:** in "match words" write words (separated by commas) that suggest the wizard on a case, for example `company name, name change`.
-3. **Questions:** add each question and choose its type (text, number, money, date, yes/no, choice, one person, several people). Under **More** you can set the field name, a hint, when to show it, and **Fills placeholder**: the name of a field in a Word template, with an optional format (date, ordinal date, capitals, money, in words).
-4. **Documents:** add each template to produce. Give the file a name, an optional condition (only if a yes/no question is ticked), or **one per person**.
-5. **Formulas and checks:** a formula works out a value from the answers and the company's details and puts it into a placeholder, for example `upper(concat(new_name, " LIMITED"))`. A check is a warning shown on the case when its formula is true.
-6. **Save**. The wizard is on every case straight away.
+## The editor has four tabs
 
-> The "Names and functions you can use" list at the bottom of the Formulas tab shows what you can write. Formulas cannot run code. A wrong formula is rejected when you save.
+| Tab | Guide |
+|---|---|
+| **Basics:** name, icon, description, suggest-on words | [Basics and match words](help:settings/wizard-built-in-vs-custom) |
+| **Questions** | [Questions](help:settings/wizard-questions) |
+| **Documents** | [Documents and placeholders](help:settings/wizard-documents-and-placeholders) |
+| **Formulas and checks** | [Formulas](help:settings/wizard-formulas), [Checks](help:settings/wizard-checks) |
 
-## Turn off or delete
+A complete example: [Build a new wizard step by step](help:settings/wizard-recipe-new-wizard).
 
-The eye icon hides a wizard from cases without losing it. Custom wizards can be deleted; built-in ones can only be reset.
+## Built-in or custom
 
-Only Managers see this page, and each change is written to the audit log.
+Built-in wizards keep their **core questions** (marked with a lock) because the official forms depend on them. You can reword them, add questions, documents, formulas and checks, and reset. Custom wizards are fully yours ([Built-in vs custom](help:settings/wizard-built-in-vs-custom)).
+
+Only Managers see the pane. Every change is written to the [audit log](help:settings/audit-log).
