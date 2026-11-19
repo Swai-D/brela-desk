@@ -1,14 +1,34 @@
 ---
-title: Templates
-summary: Word templates, fields, versions and approval.
-keywords: template, placeholder, field, docx, import, approve, draft, version, official, package
-order: 2
+title: Templates: the list and how to use it
+summary: The Templates page: search, status badges, the Word package, creating and deleting templates.
+keywords: templates, template list, search templates, approved, ready to approve, draft, word file, brela form, new template, delete template, hide guide, times used, clean runs
+order: 8
 ---
-**Templates** are the Word files documents are made from. The official BRELA forms and resolutions are imported once (Senior or Manager: **Templates → Import**).
+**Templates** holds every document layout the app can fill.
 
-- A **field** such as `{{company_name}}` is replaced with the company's detail. Details that are not on file stay as **gaps** for a person to fill.
-- `{{#directors}} … {{/directors}}` repeats a block for each director (also shareholders, secretaries, beneficial owners).
-- Each template keeps a **version history**. Editing an approved template sends it back to **draft** and needs a new approval.
-- **Smart fill** reads a message pasted from a client and suggests details. Nothing is saved until you press **Apply**.
+## The list
 
-> The wizards use the imported templates. If **Prepare documents** says the templates are not imported, import them first.
+Each row shows the template name, a badge and some numbers:
+
+| Badge or number | Meaning |
+|---|---|
+| **Word file / BRELA form** | The exact Word file is attached; it is filled directly and keeps its formatting |
+| **Draft** | Still being perfected; the AI may be used when you prepare a document |
+| **Ready to approve** | It came out clean three times in a row (hover for "N of 3 clean runs in a row") |
+| **Approved** | Fills instantly, no AI, no cost |
+| **Times used** | How many documents were made from it |
+
+Use **Search templates** to filter. **Clear search and filter** resets.
+
+## Buttons
+
+- **Import Word package:** loads the official forms ([Import](help:documents/import-official-templates)).
+- **New template:** write one by hand ([Template editor](help:documents/template-editor)).
+- **From an accepted document:** create one from a document BRELA already accepted ([From an accepted document](help:documents/template-from-document)).
+- The pencil **Edit template** (Senior, Manager) or **View template** (Staff); the bin **Delete template** (Senior, Manager).
+
+## Who can do what
+
+Everyone can read and fill templates. **Seniors and Managers** create, edit, approve, teach and delete.
+
+See also: [Template fields](help:documents/template-fields-syntax), [Versions and approval](help:documents/template-versions-and-approval).

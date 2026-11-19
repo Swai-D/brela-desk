@@ -18,6 +18,28 @@ const pub=path.join(__dirname,'..','public');
  const pages=fs.readdirSync(pub).filter(f=>/\.html$/.test(f)&&/id="side-menu"/.test(fs.readFileSync(path.join(pub,f),'utf8')));
  ok('every page with the side menu has the Help item',pages.length>5&&pages.every(f=>/href="help\.html"/.test(fs.readFileSync(path.join(pub,f),'utf8'))),pages.filter(f=>!/href="help\.html"/.test(fs.readFileSync(path.join(pub,f),'utf8'))));
  ok('the top bar has a ? icon and the Help page script is wired',/id="help-link"/.test(fs.readFileSync(path.join(pub,'assets/js/topbar.js'),'utf8'))&&/PAGES\.help=/.test(fs.readFileSync(path.join(pub,'assets/js/brela.js'),'utf8'))&&/assets\/js\/help\.js/.test(fs.readFileSync(path.join(pub,'help.html'),'utf8')));
+
+ // ---- coverage: every page, wizard, stage, settings pane and tool has a guide, and every guide is real documentation
+ const has=k=>all.some(a=>a.category+'/'+a.slug===k),SC=require('../scenarios.js');
+ const PAGE_GUIDE={'index.html':'daily-work/dashboard','my-work.html':'daily-work/my-work','playbook.html':'daily-work/playbook','cases-board.html':'daily-work/case-board','clients.html':'clients/find-a-client','case-detail.html':'cases/case-page','templates.html':'documents/templates','inbox.html':'whatsapp/inbox','studio.html':'studio/doc-studio','reports.html':'daily-work/reports','settings.html':'settings/team-and-roles','profile.html':'account/profile','search.html':'daily-work/search'};
+ const topbarJs=fs.readFileSync(path.join(pub,'assets/js/topbar.js'),'utf8');
+ ok('every app page has a guide and the ? icon opens it',Object.entries(PAGE_GUIDE).every(([f,g])=>fs.existsSync(path.join(pub,f))&&has(g)&&topbarJs.includes("'"+f+"':'"+g+"'")),Object.entries(PAGE_GUIDE).filter(([f,g])=>!has(g)));
+ const pagesInApp=fs.readdirSync(pub).filter(f=>/\.html$/.test(f)&&!/^(auth-|login|help)/.test(f));
+ ok('no app page was added without a help mapping',pagesInApp.every(f=>PAGE_GUIDE[f]),pagesInApp.filter(f=>!PAGE_GUIDE[f]));
+ ok('every built-in wizard has its own guide',SC.BUILTIN.every(b=>all.some(a=>a.category==='documents'&&a.slug.startsWith('wizard-')&&new RegExp(b.id==='directors'?'directors':b.id==='secretary'?'secretary':b.id==='shares'?'shares':'annual').test(a.slug))),SC.BUILTIN.map(b=>b.id));
+ const mention=(txt,words)=>words.filter(w=>!all.some(a=>(a.title+' '+a.keywords+' '+a.body).toLowerCase().includes(w.toLowerCase())));
+ ok('every stage of a case is explained',mention('',['Gathering Docs','Ready to Submit','Submitted to BRELA','Returned (Correction)','Completed','BRELA round']).length===0);
+ ok('every Settings pane and wizard-builder part is explained',['team-and-roles','roles-and-access-levels','case-types','whatsapp-settings','ai-settings','audit-log','document-wizards','wizard-questions','wizard-documents-and-placeholders','wizard-formulas','wizard-checks','wizard-built-in-vs-custom','wizard-recipe-new-wizard'].every(s=>has('settings/'+s)));
+ const WD=require('../wizard-dsl.js'),fx=all.find(a=>a.slug==='wizard-formulas');
+ ok('every formula function is in the formulas reference',WD.docs().every(d=>fx.body.includes('`'+d.name+'(')||fx.body.includes(d.name+'(')||fx.body.includes('`'+d.name+'`')||fx.body.includes(d.name)),WD.docs().filter(d=>!fx.body.includes(d.name)).map(d=>d.name));
+ const fm=all.find(a=>a.slug==='wizard-documents-and-placeholders');
+ ok('every answer format is described',WD.FMT.every(f=>fm.body.toLowerCase().includes(f[1].split(':')[0].toLowerCase())),WD.FMT.map(f=>f[1]));
+ ok('every Doc Studio tool and the whole account area are covered',['sign-a-pdf','edit-pdf-text','pages-tool','photos-to-pdf'].every(s=>has('studio/'+s))&&['profile','sign-in-and-sign-out','first-sign-in','forgot-password','change-password','lock-screen','notifications','weekly-performance'].every(s=>has('account/'+s)));
+ ok('every error the app shows to users has an entry in the error list',['Complete all documents in the checklist first.','Only a Senior or Manager can do this step.','Write what BRELA asked to correct.','Wrong email or password','Too many attempts','Current password is incorrect','This client has cases','Cases already use this type','At least one active Manager must remain'].every(m=>all.some(a=>a.body.includes(m))),'');
+ const thin=all.filter(a=>a.body.split(/\s+/).length<80&&!['audit-log','history'].includes(a.slug));
+ ok('no guide is a stub (80+ words), every guide has keywords and a summary',thin.length===0&&all.every(a=>a.keywords.split(',').length>=3&&a.summary.length>20),thin.map(a=>a.slug));
+ ok('the FAQ has 30 or more questions and the glossary the key BRELA terms',(all.find(a=>a.slug==='faq').body.match(/^\*\*/gm)||[]).length>=30&&['Form 213a','Form 57b','Forfeiture','MEMARTS','Track number'].every(t=>all.find(a=>a.slug==='glossary').body.includes(t)));
+ ok('the Help has 80+ guides',all.length>=80,all.length);
  // API
  ok('guides need a sign-in',(await call('GET','/help')).s===401);
  await call('POST','/login',{email:'boss@test.co',password:AP});

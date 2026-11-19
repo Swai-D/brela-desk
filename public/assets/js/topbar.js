@@ -57,3 +57,7 @@ document.getElementById('sidebar-menu')?.addEventListener('click', event => {
         document.body.setAttribute('data-sidebar-size', 'sm');
     }
 });
+
+// The ? icon opens the guide that matches the page you are on
+(()=>{const P={'index.html':'daily-work/dashboard','my-work.html':'daily-work/my-work','playbook.html':'daily-work/playbook','cases-board.html':'daily-work/case-board','clients.html':'clients/find-a-client','case-detail.html':'cases/case-page','templates.html':'documents/templates','inbox.html':'whatsapp/inbox','studio.html':'studio/doc-studio','reports.html':'daily-work/reports','settings.html':'settings/team-and-roles','profile.html':'account/profile','search.html':'daily-work/search'};
+ const f=location.pathname.split('/').pop()||'index.html',a=document.getElementById('help-link');if(a&&P[f])a.href='help.html#'+P[f]})();

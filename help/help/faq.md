@@ -1,0 +1,97 @@
+---
+title: Frequently asked questions
+summary: Short answers to the questions people ask most, each linking to the full guide.
+keywords: faq, questions, how do I, can I, why, where, common questions, quick answers
+order: 21
+---
+## Getting started
+
+**What is the quickest way to start a new company file?** Create the client, open the Company tab, and press **Import from BRELA** with the registry page pasted ([Import](help:clients/import-from-brela)).
+
+**Where do I see what is waiting for me?** [My Work](help:daily-work/my-work).
+
+**Who can do what?** [Roles and access](help:getting-started/roles-and-access).
+
+**How many stages does a case have?** Six: New, Gathering Docs, Ready to Submit, Submitted to BRELA, Returned (Correction), Completed ([How a case flows](help:getting-started/how-a-case-flows)).
+
+## Clients and company data
+
+**Why does it say a client already exists?** The name is taken; search for it ([Add a client](help:clients/add-a-client)).
+
+**Can I import a company twice?** Yes. It updates the company and matches people by name ([Import](help:clients/import-from-brela)).
+
+**A person is missing their date of birth. Where do I add it?** Company tab → the person's **Edit** ([People](help:clients/people)).
+
+**Can I store a client's BRELA password?** Yes, in the **Vault**, encrypted ([Vault](help:clients/vault)).
+
+**Who can open the vault?** Seniors and Managers, and Staff with an open case of that client assigned to them.
+
+**What is the difference between client documents and case documents?** Client documents are reused (IDs, certificates); case documents answer a checklist item ([Client documents](help:clients/client-documents)).
+
+## Cases
+
+**How do I add another change to a case?** **Add another change** above the checklist ([Create a case](help:cases/create-a-case)).
+
+**Why can't I move a case forward?** Probably an unticked checklist item or a Senior-only step ([Case cannot move](help:help/case-cannot-move-stage)).
+
+**How do I record that BRELA returned a case?** **BRELA returned ↺** and write the reason ([Submit and track](help:cases/submit-and-track)).
+
+**Where do I type the BRELA track number?** At the top of the case ([Case page](help:cases/case-page)).
+
+**Can I delete a case?** Only a Manager, by typing the case code ([Edit a case](help:cases/edit-a-case)).
+
+**Can I change who a case is assigned to?** Seniors and Managers, with **Edit case**.
+
+**Can I edit my comment?** Yes, your own ([Comments](help:cases/comments)).
+
+## Documents and wizards
+
+**Do the wizards use AI?** No ([The AI assistant](help:documents/ai-assistant)).
+
+**Which wizard do I use to appoint a director?** [Change of directors](help:documents/wizard-change-of-directors).
+
+**What if the wizard needs a person who is not saved?** Use **Add a new person** in the wizard ([People](help:clients/people)).
+
+**I generated twice. Are there two files?** No, the second replaces the first ([Prepare documents](help:documents/prepare-documents)).
+
+**Why are there gaps in the document?** Missing company or person details ([Template not filling](help:help/template-not-filling)).
+
+**Can I edit the generated Word file?** Yes, but edits are lost when you generate again; correct the data instead ([Wrong company data](help:help/wrong-company-data)).
+
+**A form is not covered by any wizard. What now?** A Manager can add a wizard ([Document wizards](help:settings/document-wizards)), or fill the template with the robot icon ([Fill a template](help:documents/fill-a-template-on-a-case)).
+
+**What is an approved template?** One that fills instantly with no AI ([Versions and approval](help:documents/template-versions-and-approval)).
+
+## Doc Studio and files
+
+**How do I turn photos into a PDF?** [Photos to PDF](help:studio/photos-to-pdf).
+
+**How do I add my signature?** [Sign a PDF](help:studio/sign-a-pdf).
+
+**What is the file size limit?** 15 MB per file ([File too big](help:help/file-too-big)).
+
+**Where do WhatsApp documents go?** The [WhatsApp Inbox](help:whatsapp/inbox).
+
+## Account and alerts
+
+**I forgot my password.** Ask a Manager to reset it ([Sign in](help:account/sign-in-and-sign-out)).
+
+**Why did the app lock?** 15 minutes without activity ([Lock screen](help:account/lock-screen)).
+
+**Why don't I get WhatsApp alerts?** Phone saved? Templates approved? ([Alerts and digest](help:whatsapp/alerts-and-digest)).
+
+**How do I change my picture or phone?** [Your profile](help:account/profile).
+
+## Managers
+
+**How do I add a person to the team?** [Team members](help:settings/team-and-roles).
+
+**How do I change the documents a case type needs?** [Case types](help:settings/case-types).
+
+**How do I add a question to a wizard?** [Wizard questions](help:settings/wizard-questions).
+
+**Where do I see who deleted something?** [Audit log](help:settings/audit-log).
+
+**Where is the monthly report?** [Reports](help:daily-work/reports).
+
+**How do I set up the AI?** [AI settings](help:settings/ai-settings).

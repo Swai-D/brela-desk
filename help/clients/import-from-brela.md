@@ -1,29 +1,42 @@
 ---
 title: Import the company from BRELA
-summary: Paste the BRELA Company Details page and the app fills the company, its people and activities.
-keywords: import, registry, paste, company details, brela page, shareholders, directors, activities, address, surveyed, unsurveyed, fill company
-order: 2
+summary: Paste the BRELA Company Details page and the app fills the company, its people and activities, with a preview first.
+keywords: import, registry, paste, company details, brela page, shareholders, directors, activities, address, surveyed, unsurveyed, fill company, copy paste, warnings, apply, re-import, update
+order: 5
 ---
-Instead of typing the company by hand, paste the page you see on the BRELA registry.
+Instead of typing the company by hand, paste the page you see on the BRELA registry. No AI is used: the app reads the page with fixed rules, so the same page always gives the same result.
 
 ## Steps
 
-1. On the BRELA registry, open the company and select the whole **Company Details** page (Ctrl+A, Ctrl+C).
-2. In BRELA Desk open the client, go to the **Company** tab and press **Import from BRELA**.
-3. Paste the text. The app shows a **preview**: the company details, the people (directors, shareholders, secretary, beneficial owners), the business activities, and any **warnings**.
-4. Press **Apply**. Nothing is saved before you press Apply.
+1. On the BRELA registry open the company and select the whole **Company Details** page (Ctrl+A, then Ctrl+C).
+2. In BRELA Desk open the client, the **Company** tab, and press **Import from BRELA**.
+3. Paste into the box and press the button to read it. If the box is empty: "Paste the BRELA Company Details page first."
+4. A **preview** shows what was found: company details, people (directors, shareholders, secretary, beneficial owners), business activities, and a list of **warnings**.
+5. Check it. Press **Apply** to save. Nothing is saved before you press Apply.
 
 ## What is read
 
-- Name, number, type, registration date, registered office and all contact fields.
-- Every business activity, and which one is marked **Main**.
-- Share capital and each shareholder's shares and percentage.
-- Each person's names, gender, nationality, date of birth, occupation and address. Both **surveyed** addresses (plot, block, street) and **unsurveyed** areas are understood.
+| Part | Details |
+|---|---|
+| Company | name, number, type, registration date, registered office, contacts, tracking numbers |
+| Activities | every business activity with its code; the one marked **Main** is used as the main activity |
+| Share capital | authorised capital, nominal value, issued shares |
+| People | names, gender, nationality, date of birth, occupation, ID, address, roles, shares and share class, ownership, previous names, other directorships |
+| Addresses | **surveyed** addresses (house, plot, block, street, road, ward) and **unsurveyed** areas with landmark; P.O. box and postcode |
 
-> If a person or the company is already saved, the import updates them instead of making a copy. Fields you typed that BRELA does not provide are kept.
+## Warnings you may see
 
-## Check the result
+- **No activity is marked as Main**: the page had activities but none flagged Main. Choose it yourself after applying.
+- Warnings about fields the page did not contain or that look odd. Read each one; they do not block Apply.
 
-Open the **Company** tab. The top card shows the company, the main activity (with "+N more"), the share capital and the shareholding table. Each person has a card with everything BRELA gave. Fix anything with **Edit**.
+## Importing again
 
-Next: [People of a company](help:clients/people).
+Importing again **updates** the company and **matches people by name** instead of creating copies. BRELA's values win for the fields it provides (for example the address). Fields you typed that BRELA does not provide are kept.
+
+## If the import is wrong
+
+- Check you copied the whole page, not just a part.
+- Look at the preview before pressing Apply; if a person is wrong, fix it afterwards with **Edit** on their card.
+- See [Import problems](help:help/import-fails).
+
+See also: [The Company tab](help:clients/company-tab), [People](help:clients/people).
