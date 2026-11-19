@@ -523,3 +523,9 @@ td.text-end{white-space:nowrap}
 .hc-toc{position:sticky;top:90px}
 .hc-toc a{display:block;padding:.2rem 0;font-size:.9rem}
 .hc-contact .card-body{padding:1rem 1.25rem}
+
+/* Getting-started checklist (Dashboard) */
+.ob-card{border-left:4px solid var(--bs-primary,#1a82f7)}
+.ob-step{display:flex;align-items:center;gap:.5rem;padding:.55rem 0;border-top:1px solid var(--bs-border-color,#e9ebec)}
+.ob-step i.bx{font-size:1.25rem}
+.ob-step.is-done .fw-medium{text-decoration:line-through;color:var(--bs-secondary-color,#74788d)}

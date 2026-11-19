@@ -35,6 +35,7 @@ ALTER TABLE cases ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMPTZ;
 UPDATE cases c SET completed_at=(SELECT max(a.created_at) FROM activity a WHERE a.case_id=c.id AND a.text LIKE '%→ done') WHERE c.status='done' AND c.completed_at IS NULL;
 UPDATE cases c SET submitted_at=(SELECT min(a.created_at) FROM activity a WHERE a.case_id=c.id AND a.text LIKE '%→ submitted') WHERE c.submitted_at IS NULL AND c.status IN ('submitted','returned','done');
 ALTER TABLE users ADD COLUMN IF NOT EXISTS seen_guide BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS checklist_hidden BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar BYTEA;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_mime TEXT;

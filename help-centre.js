@@ -48,7 +48,36 @@ const search=term=>{const q0=String(term||'').toLowerCase();let words=String(ter
   if(n<need)continue;const w0=words.find(w=>b.includes(w)),i=w0?b.indexOf(w0):-1,flat=a.body.replace(/[#*|>`\n]+/g,' ').replace(/\s+/g,' ').trim(),pos=i<0?0:Math.max(0,flat.toLowerCase().indexOf(w0)-60);
   hits.push({n,score:score+n*20,...brief(a),snippet:i<0?a.summary:(pos>0?'… ':'')+flat.slice(pos,pos+180)})}
  return hits.sort((x,y)=>y.n-x.n||y.score-x.score).slice(0,30).map(({n,score,...r})=>r)};
-module.exports=(app,{wrap,fail})=>{
+// ---- getting-started checklist on the Dashboard: steps are worked out from the data, so they tick themselves
+const STEPS=[
+ {key:'profile',title:'Add your phone number to your profile',hint:'So WhatsApp alerts and the morning digest reach you.',href:'profile.html',guide:'account/profile',level:'STAFF'},
+ {key:'playbook',title:'Read the Playbook for your role',hint:'Your responsibilities and how a case flows.',href:'playbook.html',guide:'daily-work/playbook',level:'STAFF'},
+ {key:'templates',title:'Import the official Word templates',hint:'The wizards fill these forms; do it once.',href:'templates.html',guide:'documents/import-official-templates',level:'SENIOR'},
+ {key:'client',title:'Add your first client',hint:'A company or person you work for.',href:'clients.html',guide:'clients/add-a-client',level:'STAFF'},
+ {key:'company',title:'Import a company from BRELA',hint:'Paste the Company Details page and the people and activities are saved.',href:'clients.html',guide:'clients/import-from-brela',level:'STAFF'},
+ {key:'case',title:'Create your first case',hint:'Choose the client and what is changing.',href:'cases-board.html',guide:'cases/create-a-case',level:'STAFF'},
+ {key:'wizard',title:'Prepare documents with a wizard',hint:'Answer a few questions and the forms are filled.',href:'cases-board.html',guide:'documents/prepare-documents',level:'STAFF'},
+ {key:'team',title:'Add your team members',hint:'Create their logins and choose their roles.',href:'settings.html#team',guide:'settings/team-and-roles',level:'MANAGER'},
+ {key:'whatsapp',title:'Connect WhatsApp (optional)',hint:'Receive client documents and send alerts.',href:'settings.html#wa',guide:'whatsapp/whatsapp-setup',level:'MANAGER'},
+ {key:'ai',title:'Set up the AI assistant (optional)',hint:'Only for Smart fill and drafting templates; the wizards do not need it.',href:'settings.html#ai',guide:'settings/ai-settings',level:'MANAGER'}];
+const RANK={STAFF:0,SENIOR:1,MANAGER:2};
+module.exports=(app,{wrap,fail,q,one,WA})=>{
+ const done=async u=>{const n=async sql=>(await one(sql)).n,AIr=await one('SELECT keys FROM ai_settings WHERE id=1').catch(()=>null),AIok=!!(AIr&&AIr.keys&&Object.values(AIr.keys).some(Boolean));
+  const me=await one('SELECT phone,seen_guide,checklist_hidden FROM users WHERE id=$1',[u.id]);
+  return{hidden:!!me.checklist_hidden,done:{
+   profile:!!(me.phone&&String(me.phone).trim()),playbook:!!me.seen_guide,
+   templates:await n("SELECT count(*)::int AS n FROM templates WHERE docx_data IS NOT NULL")>0,
+   client:await n('SELECT count(*)::int AS n FROM clients')>0,
+   company:await n('SELECT count(*)::int AS n FROM client_people')>0,
+   case:await n('SELECT count(*)::int AS n FROM cases')>0,
+   wizard:await n("SELECT count(*)::int AS n FROM files WHERE source='template'")>0,
+   team:await n('SELECT count(*)::int AS n FROM users WHERE active')>1,
+   whatsapp:!!(WA&&WA.configured&&WA.configured()),
+   ai:AIok}}};
+ app.get('/api/onboarding',wrap(async(req,res)=>{const r=await done(req.user),lv=RANK[req.user.level]||0,steps=STEPS.filter(s=>RANK[s.level]<=lv).map(s=>({key:s.key,title:s.title,hint:s.hint,href:s.href,guide:s.guide,done:!!r.done[s.key]})),d=steps.filter(s=>s.done).length;
+  res.json({hidden:r.hidden,steps,done:d,total:steps.length,percent:steps.length?Math.round(d/steps.length*100):100})}));
+ app.post('/api/onboarding/hide',wrap(async(req,res)=>{await q('UPDATE users SET checklist_hidden=TRUE WHERE id=$1',[req.user.id]);res.json({ok:1})}));
+ app.post('/api/onboarding/show',wrap(async(req,res)=>{await q('UPDATE users SET checklist_hidden=FALSE WHERE id=$1',[req.user.id]);res.json({ok:1})}));
  app.get('/api/help',wrap(async(req,res)=>{const all=load();res.json({categories:CATEGORIES.map(([key,title,icon,description])=>({key,title,icon,description,articles:all.filter(a=>a.category===key).map(brief)})).filter(c=>c.articles.length)})}));
  app.get('/api/help/search',wrap(async(req,res)=>res.json({items:search(req.query.q)})));
  app.get('/api/help/:cat/:slug',wrap(async(req,res)=>{const a=load().find(x=>x.category===req.params.cat&&x.slug===req.params.slug);if(!a)fail(404,'Guide not found');

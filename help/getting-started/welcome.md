@@ -39,6 +39,8 @@ BRELA Desk is the office system of the BRELA consulting team. It keeps every cli
 
 ## Where to start on your first day
 
+The **Getting started** card on the Dashboard walks you through it step by step ([The checklist](help:getting-started/getting-started-checklist)). Or:
+
 1. Read [Roles and access](help:getting-started/roles-and-access) so you know what you can do.
 2. Open the [Playbook](help:daily-work/playbook) and read **My role**.
 3. Open [My Work](help:daily-work/my-work) to see what is waiting for you.

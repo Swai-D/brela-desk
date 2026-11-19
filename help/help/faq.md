@@ -14,6 +14,8 @@ order: 21
 
 **How many stages does a case have?** Six: New, Gathering Docs, Ready to Submit, Submitted to BRELA, Returned (Correction), Completed ([How a case flows](help:getting-started/how-a-case-flows)).
 
+**The Getting started card on the Dashboard is gone. How do I get it back?** Open **Help** and press **Show the getting-started checklist** ([The checklist](help:getting-started/getting-started-checklist)).
+
 ## Clients and company data
 
 **Why does it say a client already exists?** The name is taken; search for it ([Add a client](help:clients/add-a-client)).
