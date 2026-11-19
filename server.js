@@ -604,6 +604,7 @@ app.post('/api/whatsapp/test',need('MANAGER'),wrap(async(req,res)=>{
 app.post('/api/whatsapp/digest-now',need('MANAGER'),wrap(async(req,res)=>res.json({people:await WA.runDigest(true)})));
 // ---- static + boot
 require('./ai-routes')(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E});
+require('./help-centre')(app,{wrap,fail});
 // ---- static files, safe across deploys (Railway sits behind a proxy/CDN)
 // HTML is never cached and links to CSS/JS carry the build id (?v=...), so a new deploy can never be paired with old styles or scripts.
 const PUB=path.join(__dirname,'public'),VER=String(process.env.RAILWAY_GIT_COMMIT_SHA||process.env.SOURCE_COMMIT||process.env.GIT_SHA||Date.now().toString(36)).slice(0,12);

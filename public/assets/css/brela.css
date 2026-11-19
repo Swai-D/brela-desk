@@ -511,3 +511,15 @@ td.text-end{white-space:nowrap}
 .wd{border:1px solid var(--bs-border-color,#e9ebec);border-radius:.5rem;padding:.6rem .75rem;margin-bottom:.5rem}
 .wz-fn{font-size:.8rem;columns:2;column-gap:1.5rem}
 .wz-tabs{display:flex;gap:.25rem;flex-wrap:wrap;margin-bottom:1rem;border-bottom:1px solid var(--bs-border-color,#e9ebec)}
+
+/* Help centre */
+.hc-ic{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:.6rem;background:var(--bs-primary-bg-subtle,#e0ecff);color:var(--bs-primary,#1a82f7);font-size:1.3rem;flex:none}
+.hc-list li{padding:.2rem 0}
+.hc-doc h2{font-size:1.15rem;margin:1.6rem 0 .6rem;scroll-margin-top:90px}
+.hc-doc h3{scroll-margin-top:90px}
+.hc-doc h3+p,.hc-doc p,.hc-doc li{line-height:1.65}
+.hc-doc code{background:var(--bs-tertiary-bg,#f1f3f7);padding:.1rem .35rem;border-radius:.3rem;font-size:.85em}
+.hc-tip{border-left:3px solid var(--bs-primary,#1a82f7);background:var(--bs-primary-bg-subtle,#e0ecff);padding:.6rem .9rem;border-radius:0 .4rem .4rem 0;margin:1rem 0}
+.hc-toc{position:sticky;top:90px}
+.hc-toc a{display:block;padding:.2rem 0;font-size:.9rem}
+.hc-contact .card-body{padding:1rem 1.25rem}
