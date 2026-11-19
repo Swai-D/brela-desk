@@ -19,5 +19,5 @@ run() {
   kill $srv $mock $mockai 2>/dev/null; wait $srv $mock $mockai 2>/dev/null
   if [ $code -ne 0 ]; then echo "---- server log ($name)"; tail -40 "/tmp/server-$name.log"; exit $code; fi
 }
-run api; run whatsapp; run report; run playbook; run crud; run roles; run deploy; run pagination; run track; run frontend; run history; run lists; run engine; run ai; run templates; run package; run studio; run registry; run options; run scenarios
+run api; run whatsapp; run report; run playbook; run crud; run roles; run deploy; run pagination; run track; run frontend; run history; run lists; run engine; run ai; run templates; run package; run studio; run registry; run options; run scenarios; run wizards
 echo "All test suites passed"

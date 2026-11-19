@@ -3,7 +3,7 @@ const fs=require('fs'),path=require('path');
 const SR=['MANAGER','SENIOR'],KEY=/^[a-z][a-z0-9_]{0,40}$/,ROLES=['director','shareholder','secretary','beneficial_owner','other'];
 const COMMON_KEYS=['company_name','proposed_names','business_activity','registered_office','postal_address','share_capital','number_of_shares','share_value','date_of_incorporation','tin','financial_year_end','objects'];
 const {parseRegistry,composeAddress}=require('./registry-import');
-const SC=require('./scenarios');
+const SC=require('./scenarios'),WD=require('./wizard-dsl');
 module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  const sr=u=>SR.includes(u.level);
  const clean=v=>String(v??'').replace(/\r/g,'').trim().slice(0,2000);
@@ -83,8 +83,8 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const [client,cd,people,who]=await Promise.all([one('SELECT * FROM clients WHERE id=$1',[c.client_id]),one('SELECT data FROM cases WHERE id=$1',[caseId]),q('SELECT * FROM client_people WHERE client_id=$1 ORDER BY position,id',[c.client_id]),c.who?one('SELECT name FROM users WHERE id=$1',[c.who]):null]);
   const mk=(profile,data)=>E.buildContext({client,caseRow:c,assignee:who&&who.name,profile,data,people});
   let ctx=mk(client.profile,{...cd.data,...(opt.over||{})}),blanks=[];
-  if(opt.sid){ // a scenario: worked-out wording, dates and amounts sit between the company's details and anything typed by hand on the case
-   const s=SC.byId(opt.sid),a=opt.answers||{},{V,B}=s.derive(a,SC.companyView(ctx)),prof={...client.profile};
+  if(opt.scn){ // a scenario: worked-out wording, dates and amounts sit between the company's details and anything typed by hand on the case
+   const s=opt.scn,a=opt.answers||{},{V,B}=s.derive(a,SC.companyView(ctx)),prof={...client.profile};
    for(const [k,def] of SC.ARTICLE_KEYS.map(x=>[x[0],x[2]]))prof[k]=a['art_'+k]||prof[k]||def;
    for(const [k,v] of Object.entries(V))if(String(v)!=='')prof[k]=String(v);
    blanks=[...B,...Object.entries(V).filter(([k,v])=>/_opt$/.test(k)&&String(v)==='').map(([k])=>k.toUpperCase())];
@@ -285,6 +285,59 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const f=await saveDocx(req,x,t,r,name,item);
   res.json({file:f,missing:r.missing,clauses:r.clauses,filled:r.filled})}));
 
+
+ // ---------- document wizards: stored in the database so a Manager can change the questions, documents, formulas and checks (Settings -> Document wizards)
+ let wzSeeded=false;
+ const ensureWizards=async()=>{if(wzSeeded)return;let pos=0;
+  for(const b of SC.BUILTIN){pos++;const core=b.fields.map(f=>({...f,core:true})),row=await one('SELECT fields FROM wizards WHERE id=$1',[b.id]);
+   if(!row){await q('INSERT INTO wizards(id,title,description,icon,match,engine,fields,position) VALUES($1,$2,$3,$4,$5,$6,$7::jsonb,$8)',[b.id,b.title,b.desc,b.icon,b.match.source,b.id,JSON.stringify(core),pos]);continue}
+   const have=new Set((row.fields||[]).map(f=>f.key)),isCore=new Set(core.map(f=>f.key)),next=[...(row.fields||[]).map(f=>isCore.has(f.key)?{...f,core:true}:f),...core.filter(f=>!have.has(f.key))];
+   if(JSON.stringify(next)!==JSON.stringify(row.fields))await q('UPDATE wizards SET fields=$1::jsonb WHERE id=$2',[JSON.stringify(next),b.id])}
+  wzSeeded=true};
+ const wizRows=async activeOnly=>{await ensureWizards();return q(`SELECT * FROM wizards ${activeOnly?'WHERE active':''} ORDER BY position,created_at,id`)};
+ const getWizard=async(id,activeOnly)=>{await ensureWizards();const r=await one(`SELECT * FROM wizards WHERE id=$1${activeOnly?' AND active':''}`,[id]);return r?SC.compose(r):null};
+ const FTYPES=['text','longtext','number','money','date','time','bool','choice','person','people'],FROMS=['any','directors','shareholders','secretaries'];
+ const cleanWizard=async(b,old)=>{
+  const title=clean(b.title);if(!title)fail(400,'The wizard needs a name');
+  const oldF=Object.fromEntries(((old&&old.fields)||[]).map(f=>[f.key,f])),fields=[],seen=new Set();
+  for(const f of (Array.isArray(b.fields)?b.fields:[]).slice(0,60)){
+   const key=clean(f.key);if(!KEY.test(key))fail(400,`"${clean(f.label)||key}": the field name must use lowercase letters, numbers and _ and start with a letter`);if(seen.has(key))fail(400,`Two questions use the name "${key}"`);seen.add(key);
+   const o=oldF[key],label=clean(f.label).slice(0,160);if(!label)fail(400,'Every question needs a label');
+   const maps=clean(f.maps_to).toLowerCase();if(maps&&!/^[a-z][a-z0-9_]{0,60}$/.test(maps))fail(400,`"${label}": the placeholder name is not valid`);
+   const fmt=WD.FMT.some(x=>x[0]===f.fmt)?f.fmt:'';
+   if(o&&o.core){fields.push({...o,label,help:clean(f.help).slice(0,300)||undefined,ph:clean(f.ph).slice(0,120)||undefined,group:clean(f.group).slice(0,60)||o.group,req:o.req===undefined?undefined:!!f.req,maps_to:maps||undefined,fmt:maps&&fmt?fmt:undefined});continue}
+   const type=FTYPES.includes(f.type)?f.type:'text',nf={key,label,type,group:clean(f.group).slice(0,60)||'Questions'};
+   if(f.req)nf.req=true;if(clean(f.help))nf.help=clean(f.help).slice(0,300);if(clean(f.ph))nf.ph=clean(f.ph).slice(0,120);
+   if(type==='person'||type==='people'){nf.from=FROMS.includes(f.from)?f.from:'any';if(type==='people')nf.max=Math.min(10,Math.max(1,+f.max||2))}
+   if(type==='choice'){nf.opts=(Array.isArray(f.opts)?f.opts:[]).slice(0,20).map(x=>[clean(x[0]).slice(0,60),clean(x[1]).slice(0,100)]).filter(x=>x[0]&&x[1]);if(!nf.opts.length)fail(400,`"${label}": add at least one choice`)}
+   if(f.show&&typeof f.show==='object'){const sh={};if(Array.isArray(f.show.any))sh.any=f.show.any.map(clean).filter(Boolean);for(const [k,v] of Object.entries(f.show))if(k!=='any')sh[clean(k)]=clean(v).slice(0,60);if(sh.any&&!sh.any.length)delete sh.any;if(Object.keys(sh).length)nf.show=sh}
+   if(maps){nf.maps_to=maps;if(fmt)nf.fmt=fmt}
+   fields.push(nf)}
+  for(const o of Object.values(oldF))if(o.core&&!seen.has(o.key))fields.push(o); // built-in questions cannot be removed
+  for(const f of fields)if(f.show)for(const k of [...(f.show.any||[]),...Object.keys(f.show).filter(k=>k!=='any')])if(!fields.some(x=>x.key===k))fail(400,`"${f.label}" is shown only when "${k}" is answered, but there is no such question`);
+  const docs=[];for(const d of (Array.isArray(b.docs)?b.docs:[]).slice(0,30)){
+   const tid=+d.template_id;if(!tid)continue;const t=await one('SELECT id FROM templates WHERE id=$1 AND docx_data IS NOT NULL',[tid]);if(!t)fail(400,'One of the chosen templates no longer exists');
+   const iff=clean(d.if),per=clean(d.per);if(iff&&!seen.has(iff))fail(400,`A document depends on "${iff}", which is not a question`);if(per&&!fields.some(f=>f.key===per&&(f.type==='person'||f.type==='people')))fail(400,'A "one document per person" setting must point at a person question');
+   docs.push({template_id:tid,name:clean(d.name).slice(0,120)||'Document',if:iff||undefined,per:per||undefined})}
+  const rules=[];for(const r of (Array.isArray(b.rules)?b.rules:[]).slice(0,40)){const key=clean(r.key).toLowerCase();if(!key&&!clean(r.expr))continue;if(!/^[a-z][a-z0-9_]{0,60}$/.test(key))fail(400,`Formula "${clean(r.key)}": the placeholder name is not valid`);const e=WD.check(r.expr);if(e)fail(400,`Formula for ${key.toUpperCase()}: ${e}`);rules.push({key,expr:clean(r.expr).slice(0,600),blank:!!r.blank})}
+  const checks=[];for(const k of (Array.isArray(b.checks)?b.checks:[]).slice(0,20)){if(!clean(k.when)&&!clean(k.msg))continue;const e=WD.check(k.when);if(e)fail(400,`Check "${clean(k.msg).slice(0,40)}": ${e}`);if(!clean(k.msg))fail(400,'Every check needs a message');checks.push({when:clean(k.when).slice(0,600),msg:clean(k.msg).slice(0,300)})}
+  return{title:title.slice(0,120),description:clean(b.description).slice(0,400),icon:/^bx[a-z]?-[a-z0-9-]{2,40}$/.test(clean(b.icon))?clean(b.icon):'bx-file',match:clean(b.match).slice(0,200),fields,docs,rules,checks,active:b.active!==false}};
+ app.get('/api/wizards',need('MANAGER'),wrap(async(req,res)=>{
+  const rows=await wizRows(false),ts=await q('SELECT id,name,docx_defaults FROM templates WHERE docx_data IS NOT NULL ORDER BY name');
+  res.json({items:rows,templates:ts.map(t=>({id:t.id,name:t.name,keys:Object.keys(t.docx_defaults||{}).map(k=>k.toLowerCase())})),functions:WD.docs(),formats:WD.FMT,types:FTYPES})}));
+ app.post('/api/wizards',need('MANAGER'),wrap(async(req,res)=>{
+  await ensureWizards();const w=await cleanWizard(req.body||{},null);let id=w.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'wizard',n=1;while(await one('SELECT 1 FROM wizards WHERE id=$1',[id]))id=id.replace(/-\d+$/,'')+'-'+(++n);
+  const pos=(await one('SELECT coalesce(max(position),0)+1 AS n FROM wizards')).n;
+  await q('INSERT INTO wizards(id,title,description,icon,match,fields,docs,rules,checks,position,active) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8::jsonb,$9::jsonb,$10,$11)',[id,w.title,w.description,w.icon,w.match,JSON.stringify(w.fields),JSON.stringify(w.docs),JSON.stringify(w.rules),JSON.stringify(w.checks),pos,w.active]);
+  await audit(req,'wizard.create',`Document wizard "${w.title}" created`);res.json({id})}));
+ app.put('/api/wizards/:wid',need('MANAGER'),wrap(async(req,res)=>{
+  await ensureWizards();const old=await one('SELECT * FROM wizards WHERE id=$1',[req.params.wid]);if(!old)fail(404,'Not found');const w=await cleanWizard(req.body||{},old);
+  await q('UPDATE wizards SET title=$2,description=$3,icon=$4,match=$5,fields=$6::jsonb,docs=$7::jsonb,rules=$8::jsonb,checks=$9::jsonb,active=$10,updated_at=now() WHERE id=$1',[old.id,w.title,w.description,w.icon,w.match,JSON.stringify(w.fields),JSON.stringify(w.docs),JSON.stringify(w.rules),JSON.stringify(w.checks),w.active]);
+  await audit(req,'wizard.update',`Document wizard "${w.title}" changed`);res.json({ok:1})}));
+ app.delete('/api/wizards/:wid',need('MANAGER'),wrap(async(req,res)=>{
+  await ensureWizards();const old=await one('SELECT id,title,engine FROM wizards WHERE id=$1',[req.params.wid]);if(!old)fail(404,'Not found');
+  await q('DELETE FROM wizards WHERE id=$1',[old.id]);if(old.engine)wzSeeded=false; // a built-in wizard goes back to its original questions
+  await audit(req,'wizard.delete',`Document wizard "${old.title}" ${old.engine?'reset to the original':'deleted'}`);res.json({ok:1,reset:!!old.engine})}));
  // ---------- case scenarios: a few questions -> every document of the case, filled
  const FORMKEY={F01:'213a',F02:'213b',F03:'57a',F04:'57b',F05:'131'};
  const cleanAnswers=(s,raw)=>{const o={};for(const f of s.fields){let v=clean((raw||{})[f.key]);if(f.type==='bool')v=v==='yes'?'yes':'';if(f.type==='people'||f.type==='person')v=v.split('|').map(x=>x.trim()).filter(Boolean).slice(0,f.max||1).join('|');if(v)o[f.key]=v}return o};
@@ -296,11 +349,11 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  const tplFor=tid=>one(`SELECT id,name,docx_data,docx_defaults FROM templates WHERE docx_data IS NOT NULL AND keywords LIKE $1 ORDER BY id LIMIT 1`,[tid.toLowerCase()+' %']);
  // work out (and optionally save) every document of a scenario
  const runScenario=async(req,caseId,s,answers,generate)=>{
-  const base=await contextFor(caseId,{sid:s.id,answers}),cv=SC.companyView(base.ctx),jobs=s.jobs(answers,cv),warnings=s.warn(answers,cv),out=[];
+  const base=await contextFor(caseId,{scn:s,answers}),cv=SC.companyView(base.ctx),jobs=s.jobs(answers,cv),warnings=s.warn(answers,cv),out=[];
   for(const j of jobs){
-   const t=await tplFor(j.tid),row={tid:j.tid,name:j.name,who:j.who||'',title:j.who?`${j.name}: ${SC.tc(j.who)}`:j.name};
+   const t=j.template_id?await one('SELECT id,name,docx_data,docx_defaults FROM templates WHERE id=$1 AND docx_data IS NOT NULL',[j.template_id]):await tplFor(j.tid),row={tid:j.tid||'',name:j.name,who:j.who||'',title:j.who?`${j.name}: ${SC.tc(j.who)}`:j.name};
    if(!t){out.push({...row,error:'The official Word templates are not imported yet (open Templates and press Import).'});continue}
-   const x=await contextFor(caseId,{sid:s.id,answers,over:j.over}),values={...(t.docx_defaults||{}),...E.packageValues(x.ctx)};
+   const x=await contextFor(caseId,{scn:s,answers,over:j.over}),values={...(t.docx_defaults||{}),...E.packageValues(x.ctx)};
    for(const k of x.blanks)if(values[k]===undefined||values[k]===null)values[k]='';
    let r;try{r=await E.docxFill(t.docx_data,values)}catch(e){out.push({...row,error:'Could not fill this template: '+e.message});continue}
    row.missing=r.missing.filter(m=>!/^\?/.test(m)).map(m=>E.labelFromKey(m));row.filled=r.filled;
@@ -313,11 +366,11 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const ppl=[];for(const n of s.people(answers,cv)){const p=base.people.find(q=>SC.tc(q.full_name)===SC.tc(n.name));
    if(!p)ppl.push({name:n.name,why:n.why,missing:['not saved yet']});else{const m=n.need.filter(k=>!String(p[k]||'').trim());if(m.length)ppl.push({id:p.id,name:p.full_name,why:n.why,missing:m})}}
   return{jobs:out,warnings,people:ppl}};
- const loadScenario=async(req,res)=>{const id=+req.params.id,s=SC.byId(req.params.sid);if(!s)fail(404,'Unknown scenario');return{id,s,c:await caseInfo(id)}};
+ const loadScenario=async(req,res)=>{const id=+req.params.id,s=await getWizard(req.params.sid,true);if(!s)fail(404,'Unknown wizard');return{id,s,c:await caseInfo(id)}};
  app.get('/api/cases/:id/scenarios',wrap(async(req,res)=>{
   const id=+req.params.id,c=await caseInfo(id);if(!c)fail(404,'Case not found');
   const row=await one('SELECT scn,options FROM cases WHERE id=$1',[id]),opts=JSON.stringify(row.options||[])+' '+(c.type||''),ready=!!(await one(`SELECT 1 FROM templates WHERE docx_data IS NOT NULL AND keywords LIKE 't01 %'`));
-  res.json({ready,items:SC.SCENARIOS.map(s=>({id:s.id,title:s.title,icon:s.icon,desc:s.desc,saved:Object.keys((row.scn||{})[s.id]||{}).length>0,suggested:s.match.test(opts)}))})}));
+  const ws=await wizRows(true);res.json({ready,items:ws.map(w=>SC.compose(w)).map(s=>({id:s.id,title:s.title,icon:s.icon,desc:s.desc,saved:Object.keys((row.scn||{})[s.id]||{}).length>0,suggested:s.match.test(opts)}))})}));
  app.get('/api/cases/:id/scenarios/:sid',wrap(async(req,res)=>{
   const {id,s,c}=await loadScenario(req);if(!c)fail(404,'Case not found');
   const x=await contextFor(id),answers=await savedAnswers(id,s.id);
