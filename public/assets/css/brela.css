@@ -503,3 +503,11 @@ td.text-end{white-space:nowrap}
 .sc-b:hover{border-color:#b9c6fa;background:#f8faff}.sc-b.is-sug{border-color:#c9d3fa;background:#f5f7fd}
 .sc-b>i:first-child{font-size:24px;color:#3b4cb8;flex:none}.sc-b b{color:#2b3452}.sc-b small{display:block;color:#7a84a0;font-size:12.5px;line-height:1.45;margin-top:2px}.sc-go{margin-left:auto;color:#a3adc9;align-self:center}
 .sc-job{display:flex;gap:10px;align-items:center;border:1px solid #e9ecf3;border-radius:10px;padding:9px 12px;margin-bottom:8px}.sc-job>i{font-size:22px;flex:none;color:#7a84a0}.sc-job.is-err{border-color:#f3c9c9;background:#fff7f7}
+
+/* Wizard builder (Settings) */
+.wq{border:1px solid var(--bs-border-color,#e9ebec);border-radius:.5rem;padding:.6rem .75rem;margin-bottom:.5rem;background:var(--bs-body-bg,#fff)}
+.wq-top{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.wq-more{margin-top:.6rem;padding-top:.6rem;border-top:1px dashed var(--bs-border-color,#e9ebec)}
+.wd{border:1px solid var(--bs-border-color,#e9ebec);border-radius:.5rem;padding:.6rem .75rem;margin-bottom:.5rem}
+.wz-fn{font-size:.8rem;columns:2;column-gap:1.5rem}
+.wz-tabs{display:flex;gap:.25rem;flex-wrap:wrap;margin-bottom:1rem;border-bottom:1px solid var(--bs-border-color,#e9ebec)}

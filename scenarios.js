@@ -45,7 +45,7 @@ const ART_FIELDS=keys=>ARTICLE_KEYS.filter(a=>keys.includes(a[0])).map(([key,lab
 
 const F=(key,label,type,o={})=>({key,label,type,...o});
 const YES=[['yes','Yes']];
-const SCENARIOS=[
+const BUILTIN=[
 {id:'directors',title:'Change of directors',icon:'bx-user-plus',match:/director/i,desc:'Appoint new directors, accept resignations, or both. Makes the members\' resolution, the directors\' resolution, and a Form 213a / 213b for each person.',
  fields:[
   F('appoint','Directors being appointed','people',{from:'any',max:2,help:'Pick from the people already saved, or add a new person (their details are used on Form 213a). The resolution has room for two.',group:'Who'}),
@@ -188,8 +188,28 @@ const SCENARIOS=[
 // what derive() needs to know about the company
 function companyView(ctx){
  const v=ctx.values||{},l=ctx.lists||{},money=x=>num(x);
- return{people:l.people||[],directors:l.directors||[],shareholders:l.shareholders||[],secretaries:l.secretaries||[],currency:v.share_currency||'TZS',nominal:money(v.nominal_value_per_share||v.share_value),shareClass:v.share_class||'Ordinary'}}
-const byId=id=>SCENARIOS.find(s=>s.id===id);
+ return{values:v,people:l.people||[],directors:l.directors||[],shareholders:l.shareholders||[],secretaries:l.secretaries||[],currency:v.share_currency||'TZS',nominal:money(v.nominal_value_per_share||v.share_value),shareClass:v.share_class||'Ordinary'}}
+const byId=id=>BUILTIN.find(s=>s.id===id);
+// ---- a wizard as stored in the database (built-in ones keep their code for the tricky parts; Managers add questions, documents, formulas and checks on top)
+const names=l=>(l||[]).map(p=>p.full_name).join('|');
+const envOf=(a,cv,V)=>({...(cv.values||{}),...a,...(V||{}),directors:names(cv.directors),shareholders:names(cv.shareholders),secretaries:names(cv.secretaries),people:names(cv.people),currency:cv.currency,nominal:String(cv.nominal||'')});
+const matchRe=w=>{const t=String(w||'').split(/[,;\n]/).map(x=>x.trim()).filter(Boolean).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));return t.length?new RegExp(t.join('|'),'i'):/$^/};
+function compose(row){
+ const D=require('./wizard-dsl'),b=row.engine?byId(row.engine):null,docs=row.docs||[],rules=row.rules||[],checks=row.checks||[],fields=row.fields||[];
+ return{id:row.id,title:row.title,desc:row.description||'',icon:row.icon||'bx-file',match:matchRe(row.match),engine:row.engine||null,fields,
+  jobs:(a,c)=>{const o=b?b.jobs(a,c):[];
+   for(const d of docs){if(!d.template_id)continue;if(d.if&&!D.truthy(a[d.if]))continue;
+    if(d.per){D.pipe(a[d.per]).forEach(n=>o.push({template_id:+d.template_id,name:d.name||'Document',who:n,over:{person_name:n}}))}else o.push({template_id:+d.template_id,name:d.name||'Document'})}
+   return o},
+  derive:(a,c)=>{const base=b?b.derive(a,c):{V:{},B:[]},V={...base.V},B=[...base.B];
+   for(const f of fields)if(f.maps_to&&a[f.key]){const k=String(f.maps_to).toLowerCase(),v=D.formatValue(f.fmt||'raw',f.type==='bool'?'':a[f.key]);if(v!=='')V[k]=v}
+   const env=envOf(a,c,V);
+   for(const r of rules){const k=String(r.key||'').toLowerCase();if(!k)continue;const v=D.run(r.expr,env,c);env[k]=v;if(v!=='')V[k]=v;else if(r.blank)B.push(k.toUpperCase())}
+   return{V,B}},
+  warn:(a,c)=>{const w=b?b.warn(a,c):[],env=envOf(a,c,{});for(const k of checks)if(k.msg&&D.truthy(D.run(k.when,env,c)))w.push(k.msg);return w},
+  people:(a,c)=>b?b.people(a,c):[]}}
+// what the case page needs to draw the form
 // the form for the UI (functions removed)
-const publicDef=(s,ctx,profile)=>({id:s.id,title:s.title,icon:s.icon,desc:s.desc,fields:s.fields.map(f=>({...f,def:f.article?((profile||{})[f.key.slice(4)]||f.def):f.def}))});
-module.exports={SCENARIOS,byId,companyView,publicDef,words,joinAnd,fmtD,ordD,addDays,tc,ARTICLE_KEYS,list};
+const publicDef=(s,ctx,profile)=>({id:s.id,title:s.title,icon:s.icon,desc:s.desc,fields:s.fields.map(f=>({key:f.key,label:f.label,type:f.type,req:f.req,from:f.from,max:f.max,ph:f.ph,help:f.help,group:f.group||'Questions',show:f.show,opts:f.opts,article:f.article,pair:f.pair,pairOf:f.pairOf,def:f.article?((profile||{})[f.key.slice(4)]||f.def):f.def}))});
+const comma_=comma;
+module.exports={BUILTIN,byId,compose,companyView,publicDef,words,joinAnd,fmtD,ordD,addDays,tc,ARTICLE_KEYS,list,comma:comma_,matchRe};

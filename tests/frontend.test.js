@@ -78,4 +78,6 @@ ok('Company tab can import a pasted BRELA Company Details page',/function regist
  ok('import dialog step numbers no longer style the inline bold text',/\.ri-steps>div>b\{/.test(css)&&!/\.ri-steps b\{/.test(css));}
 {const js=fs.readFileSync(path.join(pub,'assets/js/brela.js'),'utf8');
  ok('case page: Prepare documents card and a wizard that asks the questions, adds new people and generates everything',/function scenarioCard/.test(js)&&/async function scenarioModal/.test(js)&&/class="sc-b/.test(js)&&/sc-newp/.test(js)&&/scenarios\/\$\{sid\}\/generate/.test(js)&&/bindScenarios\(\$\('detail'\)/.test(js))}
+{const w=fs.readFileSync(path.join(pub,'assets/js/wizards.js'),'utf8'),st=fs.readFileSync(path.join(pub,'settings.html'),'utf8'),js2=fs.readFileSync(path.join(pub,'assets/js/brela.js'),'utf8');
+ ok('Settings has a Document wizards pane: list, editor with questions, documents, formulas and checks',/WIZ_PANE/.test(w)&&/assets\/js\/wizards\.js/.test(st)&&/data-pane="wizards"/.test(js2)&&/WIZ_PANE\(\$\('wz'\)\)/.test(js2)&&/\/wizards/.test(w)&&/\.wq\{/.test(cssAll));}
 process.exit(fails?(console.log('\n'+fails+' FAILED'),1):(console.log('\nall passed'),0));
