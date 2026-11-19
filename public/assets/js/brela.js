@@ -260,7 +260,7 @@ function bindCompany(root,d,clientId,reload){
 /* ---- Prepare documents: pick what is happening, answer a few questions, get every document filled ---- */
 function scenarioCard(sc){
  if(!sc||!sc.items)return '';
- return `<div class="card"><div class="card-header"><h5 class="card-title mb-0"><i class="bx bx-bolt-circle me-1"></i>Prepare documents</h5><div class="text-muted dx-s">Choose what is happening, answer a few questions, and every form and resolution is filled in one go.</div></div><div class="card-body pt-2">
+ return `<div class="card"><div class="card-header"><h5 class="card-title mb-0"><i class="bx bx-bolt-circle me-1"></i>Prepare documents</h5><div class="text-muted dx-s">Choose what is happening, answer a few questions, and every form and resolution is filled in one go. <a href="help.html#documents/prepare-documents" target="_blank">How it works</a></div></div><div class="card-body pt-2">
  ${sc.ready?'':'<div class="alert alert-warning py-2 small">The official Word templates are not imported yet. A Senior or Manager can import them on the Templates page.</div>'}
  ${sc.items.map(i=>`<button type="button" class="sc-b ${i.suggested?'is-sug':''}" data-sid="${i.id}"><i class="bx ${i.icon}"></i><span class="min-w-0"><b>${esc(i.title)}</b>${i.suggested?' <span class="badge bg-primary-subtle text-primary">Suggested</span>':''}${i.saved?' <span class="badge bg-success-subtle text-success">Answers saved</span>':''}<small>${esc(i.desc)}</small></span><i class="bx bx-chevron-right sc-go"></i></button>`).join('')}</div></div>`}
 function bindScenarios(root,caseId,reload){root.querySelectorAll('.sc-b').forEach(b=>b.onclick=()=>scenarioModal(caseId,b.dataset.sid,reload))}
@@ -869,5 +869,6 @@ async settings(){if(ME.level!=='MANAGER'){$('settings').innerHTML='<div class="a
  draw()}};
 {const _mw=PAGES.mywork;PAGES.mywork=async()=>{await _mw();enhanceMyWork()}}
 PAGES.studio=()=>window.STUDIO_PAGE();
+PAGES.help=()=>window.HELP_PAGE();
 boot();
 function forcedPw(){modal('Set your new password',`<p class="text-muted mb-3">Your account is using a temporary password. Choose your own to continue.</p><label class="form-label">New password (8+ characters)</label>${pwf('fp1')}<div class="mb-2"></div><label class="form-label">Repeat new password</label>${pwf('fp2')}<div class="err text-danger small mt-2"></div>`,'Save & continue',async el=>{const a=el.querySelector('#fp1').value,b=el.querySelector('#fp2').value;if(a!==b)throw new Error('The two passwords do not match');await api('/me/password',{body:{password:a}});location.reload()})}
