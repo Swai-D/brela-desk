@@ -50,4 +50,22 @@ const pub=path.join(__dirname,'..','public');
  ok('an unknown guide is a 404, a path trick is not served',(await call('GET','/help/documents/nope')).s===404&&(await call('GET','/help/..%2Fpackage/json')).s===404);
  const s=await call('GET','/help/search?q=wizard');
  ok('search over the API',s.s===200&&s.j.items.length>=2&&s.j.items[0].snippet,s.j);
+
+ // ---- getting-started checklist
+ const ob=await call('GET','/onboarding');
+ ok('the checklist lists steps for a Manager with progress',ob.s===200&&ob.j.steps.length===10&&ob.j.total===10&&typeof ob.j.percent==='number'&&ob.j.steps.every(x=>x.title&&x.href&&all.some(a=>a.category+'/'+a.slug===x.guide)),ob.j);
+ const before=ob.j.done;
+ const cl=(await call('POST','/clients',{name:'Checklist Test Ltd',phone:'255700000099'})).j;
+ const T=(await call('GET','/bootstrap')).j.types[0].id;await call('POST','/cases',{clientId:cl.id,caseTypeId:T});
+ const ob2=await call('GET','/onboarding'),by=k=>ob2.j.steps.find(x=>x.key===k);
+ ok('steps tick themselves from the data (client, case)',by('client').done&&by('case').done&&ob2.j.done>before,ob2.j.steps.map(x=>x.key+':'+x.done));
+ await call('POST','/onboarding/hide',{});
+ ok('it can be hidden and shown again, per account',(await call('GET','/onboarding')).j.hidden===true&&(await call('POST','/onboarding/show',{})).s===200&&(await call('GET','/onboarding')).j.hidden===false);
+ const jr=await call('POST','/users',{name:'Staff Checklist',email:'staff.cl@test.co',role:'JUNIOR',password:'Secret123!'});
+ const ck0=ck;await call('POST','/logout',{});ck='';await call('POST','/login',{email:'staff.cl@test.co',password:'Secret123!'});
+ const st=await call('GET','/onboarding');
+ ok('a Staff member sees only the steps for them (no templates, team, WhatsApp, AI)',st.s===200&&st.j.steps.length===6&&!st.j.steps.some(x=>['templates','team','whatsapp','ai'].includes(x.key)),st.j.steps&&st.j.steps.map(x=>x.key));
+ await call('POST','/logout',{});ck='';await call('POST','/login',{email:'boss@test.co',password:AP});
+ ok('the Dashboard shows the checklist and the Help can bring it back',/async function checklistCard/.test(fs.readFileSync(path.join(pub,'assets/js/brela.js'),'utf8'))&&/checklistCard\(\)/.test(fs.readFileSync(path.join(pub,'assets/js/brela.js'),'utf8'))&&/hc-ob/.test(fs.readFileSync(path.join(pub,'assets/js/help.js'),'utf8')));
+ ok('the project rule to update the Help with every change is written down',/Every change to the app updates the Help/.test(fs.readFileSync(path.join(__dirname,'..','CLAUDE.md'),'utf8')));
  console.log(fails?'\n'+fails+' FAILED':'\nall passed');process.exit(fails?1:0)})().catch(e=>{console.error(e);process.exit(1)});

@@ -519,6 +519,17 @@ function startIdleSession(){
  const lockButton=$('lock-screen');if(lockButton)lockButton.addEventListener('click',e=>{e.preventDefault();lock(true)});
  reset();
 }
+/* ---- dashboard: getting-started checklist (steps tick themselves from the data) ---- */
+async function checklistCard(){
+ const st=$('stats');if(!st)return;let box=$('onboard');if(!box){st.insertAdjacentHTML('beforebegin','<div id="onboard"></div>');box=$('onboard')}
+ let r;try{r=await api('/onboarding')}catch{return}
+ if(r.hidden){box.innerHTML='';return}
+ const all=r.done===r.total;
+ box.innerHTML=`<div class="card dx-card ob-card mb-3"><div class="card-body"><div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-2"><div><h5 class="mb-1"><i class="bx bx-rocket me-1"></i>${all?'You are all set':'Getting started'}</h5><div class="text-muted dx-s">${all?'Every step is done. You can hide this list; it stays in the Help.':`${r.done} of ${r.total} done. Each step ticks itself when it is done.`}</div></div><button type="button" class="btn btn-sm btn-light" id="ob-hide">${all?'Hide':'Dismiss'}</button></div>
+  <div class="progress mb-2" style="height:6px" role="progressbar" aria-valuenow="${r.percent}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar ${all?'bg-success':''}" style="width:${r.percent}%"></div></div>
+  <ul class="list-unstyled mb-0">${r.steps.map(x=>`<li class="ob-step ${x.done?'is-done':''}" data-step="${x.key}"><i class="bx ${x.done?'bx-check-circle text-success':'bx-circle text-muted'} me-2"></i><div class="flex-grow-1 min-w-0"><div class="fw-medium">${esc(x.title)}</div>${x.done?'':`<div class="text-muted dx-s">${esc(x.hint)}</div>`}</div>${x.done?'':`<span class="text-nowrap"><a href="${x.href}" class="btn btn-sm btn-primary">Go</a> <a href="help.html#${x.guide}" class="btn btn-sm btn-soft-primary">Guide</a></span>`}</li>`).join('')}</ul></div></div>`;
+ $('ob-hide').onclick=async()=>{try{await api('/onboarding/hide',{body:{}});box.innerHTML='';toast('Hidden. Bring it back from the Help page any time.','success',3000)}catch(e){toast(e.message,'error')}}}
+
 const PAGES={
 async profile(){
  const u=S.users.find(x=>x.id===ME.id)||ME,root=$('profile'),role=S.roles.find(x=>x.key===ME.role),avatarUrl=()=>u.avatar?`/api/users/${ME.id}/avatar?v=${encodeURIComponent(u.avatar)}`:'';
@@ -587,7 +598,7 @@ async dashboard(){const open=S.cases.filter(c=>c.status!=='done'),total=S.cases.
   $('activity').innerHTML=r.items.length?opts(r.items,a=>`<li><span class="dx-dot"></span><div class="d-flex align-items-start gap-2">${av(a.user_id)}<div class="min-w-0"><div><b>${esc(U(a.user_id).name)}</b> <a href="case-detail.html?id=${a.case_id}" class="fw-semibold">${esc(a.code)}</a> ${esc(a.text)}</div><div class="text-muted dx-s">${ago(a.created_at)}</div></div></div></li>`):'<li class="text-muted">No activity yet.</li>';
   $('activityPager').innerHTML=r.total?`<div class="d-flex justify-content-between align-items-center mt-3"><small class="text-muted">${(r.page-1)*r.size+1}–${Math.min(r.total,r.page*r.size)} of ${r.total}</small>${r.pages>1?`<div class="d-flex align-items-center gap-2"><button type="button" class="btn btn-icon btn-light" id="activity-prev" title="Previous page" aria-label="Previous page" ${activityPage<=1?'disabled':''}><i class="bx bx-chevron-left"></i></button><small class="text-muted">Page ${activityPage} of ${r.pages}</small><button type="button" class="btn btn-icon btn-light" id="activity-next" title="Next page" aria-label="Next page" ${activityPage>=r.pages?'disabled':''}><i class="bx bx-chevron-right"></i></button></div>`:''}</div>`:'';
   const prev=$('activity-prev'),next=$('activity-next');if(prev)prev.onclick=()=>drawActivity(activityPage-1);if(next)next.onclick=()=>drawActivity(activityPage+1);
- }catch(e){toast(e.message,'error')}};await drawActivity(1)},
+ }catch(e){toast(e.message,'error')}};await drawActivity(1);checklistCard()},
 async mywork(){const mine=S.cases.filter(c=>c.who===ME.id&&c.status!=='done'),t=today(),urgent=c=>c.status==='returned'||(c.due&&c.due<=t);
  const g=[['now','Do now','bx-error','danger',mine.filter(urgent),'Returned by BRELA, or due today or late','You are all clear. Nothing is returned or late.'],['prog','In progress','bx-loader-circle','primary',mine.filter(c=>!urgent(c)&&c.status!=='submitted'),'Gathering documents and preparing','Nothing in preparation.'],['wait','Waiting on BRELA','bx-time-five','info',mine.filter(c=>c.status==='submitted'&&!urgent(c)),'Nothing to do until BRELA responds','No case is waiting on BRELA.']];
  const hr=new Date().getHours(),first=esc(ME.name.split(' ')[0]),sec=x=>`<div class="card dx-card mw-sec mb-0 h-100 ${x[0]==='now'&&x[4].length?'mw-urgent':''}"><div class="card-body"><div class="mw-h"><span class="dx-ic bg-${x[3]}-subtle text-${x[3]}"><i class="bx ${x[2]}"></i></span><div class="flex-grow-1"><h5 class="mb-0">${x[1]}</h5><div class="text-muted dx-s">${x[5]}</div></div><span class="badge bg-${x[3]}-subtle text-${x[3]} mw-count">${x[4].length}</span></div>${x[4].length?x[4].map(c=>mwRow(c)).join(''):`<div class="dx-empty"><span class="dx-ic bg-success-subtle text-success mb-2"><i class="bx bx-check-circle"></i></span><div class="text-muted dx-s">${x[6]}</div></div>`}</div></div>`;

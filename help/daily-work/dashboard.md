@@ -10,6 +10,10 @@ The **Dashboard** is the first page after you sign in. It answers: "How is the o
 
 Under "Good morning, <name>" you see today's date and either a red link, **"N of your cases need action now"** (it opens [My Work](help:daily-work/my-work)), or the green text **nothing urgent on your list**. A case needs action when BRELA returned it or it is due today or late.
 
+## The getting-started card
+
+New users see a **Getting started** checklist above the cards. Its steps tick themselves; **Go** opens the page and **Guide** the help. Press **Dismiss** to hide it ([The checklist](help:getting-started/getting-started-checklist)).
+
 ## The five cards
 
 | Card | What it counts |
