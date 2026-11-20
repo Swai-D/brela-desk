@@ -83,6 +83,8 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const [client,cd,people,who]=await Promise.all([one('SELECT * FROM clients WHERE id=$1',[c.client_id]),one('SELECT data FROM cases WHERE id=$1',[caseId]),q('SELECT * FROM client_people WHERE client_id=$1 ORDER BY position,id',[c.client_id]),c.who?one('SELECT name FROM users WHERE id=$1',[c.who]):null]);
   const mk=(profile,data)=>E.buildContext({client,caseRow:c,assignee:who&&who.name,profile,data,people});
   let ctx=mk(client.profile,{...cd.data,...(opt.over||{})}),blanks=[];
+  // the company's own details come first; where the Company holds nothing, the standard Articles wording fills the provisions (Table A, quorum, notice...)
+  if(opt.articles&&!opt.scn){const prof={...client.profile};for(const [k,,def] of SC.ARTICLE_KEYS)if(!String(prof[k]||'').trim())prof[k]=def;ctx=mk(prof,{...cd.data,...(opt.over||{})})}
   if(opt.scn){ // a scenario: worked-out wording, dates and amounts sit between the company's details and anything typed by hand on the case
    const s=opt.scn,a=opt.answers||{},{V,B}=s.derive(a,SC.companyView(ctx)),prof={...client.profile};
    for(const [k,def] of SC.ARTICLE_KEYS.map(x=>[x[0],x[2]]))prof[k]=a['art_'+k]||prof[k]||def;
@@ -279,7 +281,7 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   await q('UPDATE templates SET uses=uses+1 WHERE id=$1',[t.id]);return f};
  // fill an original Word template (exact layout) from the case details
  app.post('/api/cases/:id/ai/generate-docx',wrap(async(req,res)=>{
-  const id=+req.params.id,b=req.body||{},x=await contextFor(id);
+  const id=+req.params.id,b=req.body||{},x=await contextFor(id,{articles:true});
   const t=await one('SELECT * FROM templates WHERE id=$1 AND docx_data IS NOT NULL',[+b.template_id]);if(!t)fail(404,'This template has no original Word file');
   const item=b.item_id?await one('SELECT id,name FROM case_docs WHERE id=$1 AND case_id=$2',[+b.item_id,id]):null;
   if(b.item_id&&!item)fail(400,'That checklist item is not on this case');

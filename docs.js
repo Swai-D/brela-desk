@@ -92,6 +92,49 @@ const W_NS='http://schemas.openxmlformats.org/wordprocessingml/2006/main',XML_NS
 const labelFromKey=k=>{const o=/_OPT$/.test(k);const b=o?k.slice(0,-4):k;return b.replace(/_/g,' ')+(o?', IF ANY':'')};
 function docxTargets(zip){return Object.keys(zip.files).filter(f=>!zip.files[f].dir&&/^word\/.+\.xml$/.test(f)&&/document|header/.test(f))}
 
+// ---- repeating people: the official templates have a fixed number of numbered slots (DIRECTOR 1..3, MEMBER 1..7, ATTENDEE 1..5 ...).
+// Count how many people the company really has, drop the empty slots and copy the last slot for any extra person, so nothing is left yellow
+// and nobody is left out. A slot is the paragraph, table row or table that holds only that person's labels.
+const SLOT_RE=/^(NEW DIRECTOR|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING) (\d+)(?: .+)?$/;
+function restructureSlots(doc,values){
+ const rPrOf=el=>Array.from(el.childNodes).find(n=>n.nodeType===1&&n.namespaceURI===W_NS&&n.localName==='rPr');
+ const isHl=r=>{const rp=rPrOf(r);return !!rp&&!!Array.from(rp.childNodes).find(n=>n.localName==='highlight')};
+ const textOf=e=>Array.from(e.getElementsByTagNameNS(W_NS,'t')).map(t=>t.textContent).join('');
+ const hlRuns=()=>Array.from(doc.getElementsByTagNameNS(W_NS,'r')).filter(isHl);
+ const have=new Map();// prefix -> highest n that has any value
+ for(const [k,v] of Object.entries(values)){const m=k.match(/^(NEW_DIRECTOR|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_(\d+)_/);if(m&&String(v??'').trim()!==''){const p=m[1].replace('_',' ');have.set(p,Math.max(have.get(p)||0,+m[2]))}}
+ const slotsOf=prefix=>{const g=new Map(),keyOf=new Map();
+  for(const r of hlRuns()){const m=textOf(r).trim().match(SLOT_RE);if(m){keyOf.set(r,m[1]+'|'+m[2]);if(m[1]===prefix){if(!g.has(+m[2]))g.set(+m[2],[]);g.get(+m[2]).push(r)}}}
+  const owns=(el,key)=>Array.from(el.getElementsByTagNameNS(W_NS,'r')).every(r=>!isHl(r)||keyOf.get(r)===key);
+  const contains=(a,b)=>{for(let x=b.parentNode;x;x=x.parentNode)if(x===a)return true;return false};
+  const out=new Map();
+  for(const [n,rs] of g){const key=prefix+'|'+n,set=[];
+   for(const r of rs){let best=null;
+    for(let a=r.parentNode;a&&a.nodeType===1&&a.localName!=='body';a=a.parentNode){const nm=a.localName;
+     if(nm==='tc'){if(best&&best.localName==='tbl'&&textOf(a).replace(/\s/g,'')!==textOf(best).replace(/\s/g,''))break;continue}
+     if(nm!=='p'&&nm!=='tr'&&nm!=='tbl')continue;
+     if(!owns(a,key))break;best=a}
+    if(best&&!set.includes(best))set.push(best)}
+   const top=set.filter(b=>!set.some(o=>o!==b&&contains(o,b)));
+   top.sort((a,b)=>a===b?0:(a.compareDocumentPosition(b)&4)?-1:1);
+   out.set(n,top)}
+  return out};
+ const renumber=(el,prefix,n)=>{for(const r of Array.from(el.getElementsByTagNameNS(W_NS,'r'))){if(!isHl(r))continue;const ts=Array.from(r.getElementsByTagNameNS(W_NS,'t')),t=ts.map(x=>x.textContent).join('');
+   const m=t.trim().match(SLOT_RE);if(m&&m[1]===prefix&&ts.length){ts[0].textContent=t.replace(new RegExp('^(\\s*'+prefix+' )\\d+'),'$1'+n);for(const x of ts.slice(1))x.textContent=''}}};
+ let changed=0;
+ for(const [prefix,count] of have){
+  const slots=slotsOf(prefix);if(!slots.size)continue;
+  const nums=[...slots.keys()].sort((a,b)=>a-b),max=nums[nums.length-1];
+  // unused slots go (slot 1 always stays, so a company with nobody saved still shows what is needed)
+  for(const n of nums)if(n>count&&n>1){for(const b of slots.get(n)||[])if(b.parentNode){b.parentNode.removeChild(b);changed++}}
+  // more people than slots: copy the last slot
+  if(count>max){const last=slots.get(max)||[],ins=last.map(b=>b);
+   for(let n=max+1;n<=count;n++)last.forEach((b,i)=>{if(!b.parentNode)return;const c=b.cloneNode(true);renumber(c,prefix,n);ins[i].parentNode.insertBefore(c,ins[i].nextSibling);ins[i]=c;changed++})}}
+ if(changed){// a table cell must end with a paragraph, and may not be empty
+  for(const tc of Array.from(doc.getElementsByTagNameNS(W_NS,'tc'))){const kids=Array.from(tc.childNodes).filter(n=>n.nodeType===1&&n.localName!=='tcPr');
+   if(!kids.length||kids[kids.length-1].localName!=='p')tc.appendChild(doc.createElementNS(W_NS,'w:p'))}}
+ return changed}
+
 async function docxFill(buf,values,{acceptClauses=false}={}){
  const JSZip=require('jszip'),{DOMParser,XMLSerializer}=require('@xmldom/xmldom');
  const zip=await JSZip.loadAsync(buf);
@@ -100,6 +143,7 @@ async function docxFill(buf,values,{acceptClauses=false}={}){
  const q=t=>`{${W_NS}}${t}`;
  for(const f of docxTargets(zip)){
   const doc=new DOMParser().parseFromString(await zip.file(f).async('string'),'text/xml');
+  restructureSlots(doc,values);
   const del=[];
   for(const p of Array.from(doc.getElementsByTagNameNS(W_NS,'p'))){
    const runs=Array.from(p.childNodes).filter(n=>n.nodeType===1&&n.namespaceURI===W_NS&&n.localName==='r');
@@ -109,11 +153,11 @@ async function docxFill(buf,values,{acceptClauses=false}={}){
    const inCell=p!==p.ownerElement&&(()=>{for(let a=p.parentNode;a&&a.nodeType===1;a=a.parentNode)if(a.namespaceURI===W_NS&&a.localName==='tc')return true;return false})();
    for(let i=0;i<runs.length;i++){const r=runs[i];if(!isHl(r))continue;
     const wrapped=0<i&&i<runs.length-1&&rtext(runs[i-1])==='['&&rtext(runs[i+1])===']';
-    const key=l2k[rtext(r)];
+    const lab=rtext(r),key=l2k[lab]||(wrapped&&/, IF ANY$/.test(lab)&&/^[A-Z0-9 ,]+$/.test(lab)?lab.replace(/, IF ANY$/,'').replace(/ /g,'_')+'_OPT':null);
     if(wrapped&&key){
      const val=values[key];
-     if(val===undefined||val===null){missing.add(key);continue}
-     const v=String(val);filled++;
+     if((val===undefined||val===null)&&!/_OPT$/.test(key)){missing.add(key);continue}// an optional ("IF ANY") detail nobody has is left blank, not yellow
+     const v=val===undefined||val===null?'':String(val);if(val!==undefined&&val!==null)filled++;
      const ts=Array.from(r.getElementsByTagNameNS(W_NS,'t'));
      if(!ts.length){const t=doc.createElementNS(W_NS,'w:t');r.appendChild(t);ts.push(t)}
      ts[0].textContent=v;ts[0].setAttributeNS(XML_NS,'xml:space','preserve');
@@ -162,6 +206,9 @@ function packageValues(ctx){
  const v={};for(const [k,x] of Object.entries(ctx.values||{}))if(String(x??'').trim()!=='')v[k.toUpperCase()]=String(x);
  const lists=ctx.lists||{},dirs=lists.directors||[],secs=lists.secretaries||[],mem=lists.shareholders&&lists.shareholders.length?lists.shareholders:dirs;
  const nm=p=>String((p&&(p.full_name||p.name))||'').trim(),set=(k,x)=>{if(x!==undefined&&x!==null&&String(x).trim()!==''&&!v[k])v[k]=String(x).trim()};
+ // company details first: where the Company tab holds the same thing under another name, use it
+ set('PRINCIPAL_ACTIVITIES',ctx.values&&(ctx.values.principal_activities||ctx.values.business_activity||ctx.values.main_activity));
+ set('COMPANY_TYPE',ctx.values&&ctx.values.company_type);set('REGISTERED_OFFICE',ctx.values&&ctx.values.registered_office);set('INCORPORATION_NO',ctx.values&&ctx.values.incorporation_no);
  set('CHAIRMAN_NAME',nm(dirs[0]));set('SIGNING_DIRECTOR_NAME',nm(dirs[0]));set('SECRETARY_NAME',nm(secs[0]));set('SECRETARY_ADDRESS',secs[0]&&secs[0].address);
  dirs.forEach((p,i)=>{const n=i+1;set('ATTENDEE_'+n+'_NAME',nm(p));set(`DIRECTOR_${n}_NAME`,nm(p));set(`DIRECTOR_${n}_NATIONALITY`,p.nationality);set(`DIRECTOR_${n}_ADDRESS`,p.address);set(`DIRECTOR_${n}_DOB`,dmy(p.dob))});
  mem.forEach((p,i)=>{const n=i+1;set('MEMBER_'+n+'_NAME',nm(p));if(p.shares&&/^[\d,]+$/.test(String(p.shares).trim()))set('MEMBER_'+n+'_SHARES',Number(String(p.shares).replace(/,/g,'')).toLocaleString('en-US'))});

@@ -64,6 +64,10 @@ order: 21
 
 **What is an approved template?** One that fills instantly with no AI ([Versions and approval](help:documents/template-versions-and-approval)).
 
+**My company has five directors but the form only shows three. What happens?** The app adds a block for every director on the Company tab, and removes the empty ones for a company with fewer. [How document filling works](help:documents/how-document-filling-works).
+
+**Why is a detail still yellow in the Word file?** Only details the app cannot know are left yellow: dates, amounts, or a person's occupation or nationality that is not on the Company tab. [Template is not filling](help:help/template-not-filling).
+
 ## Doc Studio and files
 
 **How do I turn photos into a PDF?** [Photos to PDF](help:studio/photos-to-pdf).
