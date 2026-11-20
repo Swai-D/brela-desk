@@ -1,7 +1,7 @@
 ---
 title: A template or wizard document is not filling correctly
 summary: Blanks, gaps, wrong values or an error when making a document.
-keywords: not filling, gap, blank, empty, [[gap]], could not fill this word template, this word file could not be read, template error, missing, wrong value, placeholder
+keywords: word file will not open, damaged file, corrupt word, unreadable content, not filling, gap, blank, empty, [[gap]], could not fill this word template, this word file could not be read, template error, missing, wrong value, placeholder
 order: 6
 ---
 | You see | Cause | Fix |
@@ -13,6 +13,8 @@ order: 6
 | "The template text is empty" / "The template is too long" | The template editor needs fixing | Open the template and correct it |
 | A wrong name or address | The company or person data is wrong | Edit it at the source ([Wrong company data](help:help/wrong-company-data)) |
 | Wizard says templates are not imported | Not loaded | Senior: **Templates → Import Word package** |
+| Word says the file is damaged or will not open | A file made before this was fixed had a doubled XML header | Press **Generate** again: the new file opens normally |
+| There is a **Word** button but no **PDF** button | The server cannot make PDF copies (the PDF converter is not installed) | Use the Word file, or ask whoever runs the server to install LibreOffice |
 
 ## Steps to find the cause
 

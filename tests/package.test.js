@@ -15,6 +15,8 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
  ok('filler places the fields and reports the clause highlights',r.filled===49&&r.clauses===2&&r.missing.includes('?ABSENT NAMES'),[r.filled,r.clauses,r.missing]);
  r=await E.docxFill(buf,{...man.defaults,...data.common,...data.T01},{acceptClauses:true});
  ok('manifest defaults fill the rest; nothing stays yellow when clauses are accepted',r.filled===55&&r.missing.length===0&&r.clauses===0,[r.filled,r.missing,r.clauses]);
+ {const Z=await require('jszip').loadAsync(r.buffer);let bad=[];for(const f of Object.keys(Z.files).filter(f=>/^word\/.+\.xml$/.test(f))){const x=await Z.file(f).async('string');if((x.match(/<\?xml/g)||[]).length!==1||!x.startsWith('<?xml'))bad.push(f)}
+  ok('every XML part of the filled Word file has exactly one XML declaration, at the very start (Word refuses the file otherwise)',bad.length===0&&!!Z.file('word/document.xml'),bad)}
  const text=(await mammoth.extractRawText({buffer:r.buffer})).value;
  ok('the filled Word file contains the sample values',text.includes('RAHU MULTISERVICES COMPANY LIMITED')&&text.includes('Ronald Baraka Shelukindo'));
  // api

@@ -63,4 +63,10 @@ const text=async f=>{const r=await fetch(`${B}/files/${f.id}`,{headers:{cookie:c
  const an=await call('POST',`/cases/${cs.id}/scenarios/annual/generate`,{answers:{no_charges:'yes'}});
  const f131=await text(an.j.jobs[0].file);
  ok('annual return is one click and comes out with the members and totals',an.j.jobs.length===1&&/DEMOMULTI SERVICES/.test(f131)&&/35,600,000/.test(f131)&&/EMMANUEL JOHN TARIMO/.test(f131),f131.slice(0,800));
+ {const hasSoffice=require('child_process').spawnSync('soffice',['--version']).status===0,job=an.j.jobs[0];
+  ok('a Word file is saved with every document, and a PDF copy beside it when the server can convert (else just the Word file)',/\.docx$/.test(job.file.filename)&&(hasSoffice?!!job.pdf&&/\.pdf$/.test(job.pdf.filename):job.pdf===null),job);
+  if(job.pdf){const r=await fetch(`${B}/files/${job.pdf.id}`,{headers:{cookie:ck}}),b=Buffer.from(await r.arrayBuffer());
+   ok('the PDF copy downloads as a real PDF',b.subarray(0,5).toString('latin1')==='%PDF-'&&b.length>5000&&/pdf/.test(r.headers.get('content-type')));
+   const again=await call('POST',`/cases/${cs.id}/scenarios/annual/generate`,{answers:{no_charges:'yes'}}),old=await fetch(`${B}/files/${job.pdf.id}`,{headers:{cookie:ck}}),oldW=await fetch(`${B}/files/${job.file.id}`,{headers:{cookie:ck}});
+   ok('generating again replaces both copies (the old Word and PDF are gone, new ones exist)',again.s===200&&!!again.j.jobs[0].pdf&&again.j.jobs[0].pdf.id!==job.pdf.id&&old.status===404&&oldW.status===404,[again.s,old.status,oldW.status])}}
  console.log(fails?'\n'+fails+' FAILED':'\nall passed');process.exit(fails?1:0)})().catch(e=>{console.error(e);process.exit(1)});

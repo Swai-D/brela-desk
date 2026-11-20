@@ -1,7 +1,7 @@
 ---
 title: Prepare documents (the wizards): how to use them
 summary: On a case, answer a few questions and every form and resolution is filled; Check, Generate, open, regenerate.
-keywords: prepare documents, wizard, generate, check, resolution, form 213a, 213b, 131, 57a, 57b, one click, fill, scenario, suggested, answers saved, warnings, missing details, regenerate
+keywords: pdf, pdf copy, upload to brela, prepare documents, wizard, generate, check, resolution, form 213a, 213b, 131, 57a, 57b, one click, fill, scenario, suggested, answers saved, warnings, missing details, regenerate
 order: 1
 ---
 **Prepare documents** is a card on every case. It uses the company's saved details and the official Word templates. **No AI is involved**: the same answers always give the same documents, so the team's work is to **cross-check and sign**.
@@ -13,11 +13,12 @@ order: 1
 3. Answer the questions. A red **\*** means required. Dates left empty use the default shown in the field's hint.
 4. For a person question pick a saved person, or press **Add a new person** to create one without leaving the page ([People](help:clients/people)).
 5. Press **Check**. You see the list of documents that will be made, **warnings**, and the people whose details are missing ("not saved yet" or the list of missing fields).
-6. Fix what the warnings say, then press **Generate**. Each document gets an **Open** link.
+6. Fix what the warnings say, then press **Generate**. Each document gets a **Word** button and, when the server can make it, a **PDF** button.
 
 ## What you get
 
 - One Word file per document, named with the form and, for per-person forms, the person's name.
+- A **PDF copy** of each Word file, with the same name and the same layout. Use the PDF when a portal asks for a PDF upload and the Word file when you still need to edit. The PDF is made from the file as it was generated, so if you edit the Word file afterwards, save a new PDF from Word or press **Generate** again (it replaces both copies).
 - The files are attached to the case. If the checklist has an item with the form number in its name (for example "Form 213a") the file is linked to it ([Checklist and files](help:cases/checklist-and-files)).
 - A history entry on the case.
 

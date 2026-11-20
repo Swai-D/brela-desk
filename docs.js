@@ -125,9 +125,25 @@ async function docxFill(buf,values,{acceptClauses=false}={}){
     else missing.add('?'+rtext(r))}
   }
   for(const p of del)if(p.parentNode)p.parentNode.removeChild(p);
-  zip.file(f,'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+new XMLSerializer().serializeToString(doc))}
+  // xmldom keeps the file's own <?xml ...?> line when it writes the document back, so strip it and add exactly one (two make Word refuse to open the file)
+  zip.file(f,'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n'+new XMLSerializer().serializeToString(doc).replace(/^\s*(<\?xml[^>]*\?>\s*)+/,''))}
  const buffer=await zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'});
  return{buffer,missing:[...missing],filled,clauses}}
+
+// A PDF copy of a filled Word file (easier to upload to BRELA). Uses LibreOffice when the server has it; returns null when it does not,
+// so generating documents never fails because of the PDF. Set PDF_COPY=off to turn it off, SOFFICE_BIN to point at the program.
+let pdfUnavailable=false;
+async function docxToPdf(buf){
+ if(pdfUnavailable||/^(off|0|false)$/i.test(process.env.PDF_COPY||''))return null;
+ const fs=require('fs'),os=require('os'),path=require('path'),{execFile}=require('child_process');
+ const dir=await fs.promises.mkdtemp(path.join(os.tmpdir(),'brela-pdf-'));
+ try{
+  await fs.promises.writeFile(path.join(dir,'in.docx'),buf);
+  await new Promise((ok,no)=>execFile(process.env.SOFFICE_BIN||'soffice',['--headless','--norestore','-env:UserInstallation=file://'+dir+'/profile','--convert-to','pdf','--outdir',dir,path.join(dir,'in.docx')],{timeout:60000},e=>e?no(e):ok()));
+  const out=await fs.promises.readFile(path.join(dir,'in.pdf'));
+  return out.length>5&&out.subarray(0,5).toString('latin1')==='%PDF-'?out:null}
+ catch(e){if(e&&e.code==='ENOENT')pdfUnavailable=true;return null}
+ finally{fs.promises.rm(dir,{recursive:true,force:true}).catch(()=>{})}}
 
 // Map the app context (client, case data, people) to the UPPER_SNAKE values a package template needs.
 const MON={january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12};
@@ -192,4 +208,4 @@ async function extractText(buf,name='',mime=''){
  if(text.length<20){const e=new Error('No readable text found in this file (scanned documents are not supported yet: paste the text instead).');e.status=400;throw e}
  return text.slice(0,60000)}
 
-module.exports={fields,render,gaps,applyGaps,reverse,buildContext,withhold,suggestScore,textToDocx,extractText,personScope,SENSITIVE_KEY,ROLE_LISTS,labelFromKey,docxFill,docxTargets,packageValues,docxTextToBody};
+module.exports={fields,render,gaps,applyGaps,reverse,buildContext,withhold,suggestScore,textToDocx,extractText,personScope,SENSITIVE_KEY,ROLE_LISTS,labelFromKey,docxFill,docxToPdf,docxTargets,packageValues,docxTextToBody};
