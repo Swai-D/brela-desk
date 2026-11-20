@@ -12,13 +12,28 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
  const man=JSON.parse(fs.readFileSync(path.join(PKG,'templates','manifest.json'),'utf8')),data=JSON.parse(fs.readFileSync(path.join(PKG,'sample_data_RAHU.json'),'utf8'));
  const buf=fs.readFileSync(path.join(PKG,'templates','T01_Members_Resolution_Appointment_of_Directors.docx'));
  let r=await E.docxFill(buf,{...data.common,...data.T01});
- ok('filler places the fields and reports the clause highlights',r.filled===49&&r.clauses===2&&r.missing.includes('?ABSENT NAMES'),[r.filled,r.clauses,r.missing]);
+ ok('filler places the fields and reports the clause highlights',r.filled===43&&r.clauses===2&&r.missing.includes('?ABSENT NAMES'),[r.filled,r.clauses,r.missing]);
  r=await E.docxFill(buf,{...man.defaults,...data.common,...data.T01},{acceptClauses:true});
- ok('manifest defaults fill the rest; nothing stays yellow when clauses are accepted',r.filled===55&&r.missing.length===0&&r.clauses===0,[r.filled,r.missing,r.clauses]);
+ ok('manifest defaults fill the rest; nothing stays yellow when clauses are accepted',r.filled===49&&r.missing.length===0&&r.clauses===0,[r.filled,r.missing,r.clauses]);
  {const Z=await require('jszip').loadAsync(r.buffer);let bad=[];for(const f of Object.keys(Z.files).filter(f=>/^word\/.+\.xml$/.test(f))){const x=await Z.file(f).async('string');if((x.match(/<\?xml/g)||[]).length!==1||!x.startsWith('<?xml'))bad.push(f)}
   ok('every XML part of the filled Word file has exactly one XML declaration, at the very start (Word refuses the file otherwise)',bad.length===0&&!!Z.file('word/document.xml'),bad)}
  const text=(await mammoth.extractRawText({buffer:r.buffer})).value;
  ok('the filled Word file contains the sample values',text.includes('RAHU MULTISERVICES COMPANY LIMITED')&&text.includes('Ronald Baraka Shelukindo'));
+ // repeating people: slots follow the real number of directors, members and attendees; optional details are blank, not yellow
+ {const JSZ=require('jszip'),PERSON=(n,roles)=>({full_name:n,roles,nationality:'TANZANIAN',address:'PLOT 1, DAR ES SALAAM',dob:'1980-01-01',occupation:'BUSINESS',shares:'1000'});
+  const vals=(nd,nm)=>{const ppl=[...Array.from({length:nd},(_,i)=>PERSON('DIRECTOR NUMBER '+(i+1),['director','shareholder'])),PERSON('SECRETARY ONE',['secretary']),...Array.from({length:Math.max(0,nm-nd)},(_,i)=>PERSON('EXTRA MEMBER '+(i+1),['shareholder']))];
+   const ctx=E.buildContext({client:{name:'LOOP CO LIMITED'},profile:{...Object.fromEntries(Object.entries(data.common).map(([k,v])=>[k.toLowerCase(),v])),date_of_incorporation_iso:'2015-01-22',principal_activities:'TRADING',shares_issued_total:'5000',nominal_value_per_share:'1000',share_class:'Ordinary'},people:ppl});return{...man.defaults,...E.packageValues(ctx)}};
+  const fill=async(file,v)=>{const r=await E.docxFill(fs.readFileSync(path.join(PKG,'templates',fs.readdirSync(path.join(PKG,'templates')).find(f=>f.startsWith(file)))),v,{acceptClauses:true});const z=await JSZ.loadAsync(r.buffer),xml=await z.file('word/document.xml').async('string');return{r,xml,txt:(await mammoth.extractRawText({buffer:r.buffer})).value}};
+  const f5=await fill('F05',vals(5,5));
+  ok('Form 131 lists all 5 directors (the template only has 3 blocks) and nothing is left yellow',[1,2,3,4,5].every(n=>f5.txt.includes('DIRECTOR NUMBER '+n))&&f5.r.missing.length===0&&!/\[DIRECTOR \d/.test(f5.txt),[f5.r.missing]);
+  const f1=await fill('F05',vals(1,1));
+  ok('a company with one director gets one director block, with no empty slots left over',f1.txt.includes('DIRECTOR NUMBER 1')&&!/\[DIRECTOR|Business occupation:\s*\n+\s*Business occupation/.test(f1.txt)&&(f1.txt.match(/Business occupation/g)||[]).length===1&&f1.r.missing.length===0,[(f1.txt.match(/Business occupation/g)||[]).length,f1.r.missing]);
+  ok('optional "IF ANY" details with no value are blank instead of staying yellow',!/IF ANY/.test(f5.txt)&&!/IF ANY/.test(f1.txt)&&!f5.r.missing.some(k=>/_OPT$|IF ANY/.test(k)));
+  const t2=await fill('T02',vals(2,2));
+  ok('the attendance list of a resolution has one line per director, no spare numbered lines',t2.txt.includes('DIRECTOR NUMBER 1')&&t2.txt.includes('DIRECTOR NUMBER 2')&&!/\[ATTENDEE/.test(t2.txt),t2.txt.slice(0,600));
+  const t1=await fill('T01',vals(2,8));
+  ok('the member lists grow beyond the 7 slots of the template (8 members listed, with their shares)',[1,2,3,4,5,6,7,8].every(n=>(t1.txt.match(/shares\), attended in person|Ordinary, 1,000 shares\)/g)||[]).length>=8)&&/EXTRA MEMBER 6/.test(t1.txt),(t1.txt.match(/attended in person/g)||[]).length);
+  ok('the changed file stays valid: one XML declaration, and every table cell ends with a paragraph',[f5,f1,t1,t2].every(x=>(x.xml.match(/<\?xml/g)||[]).length===1)&&[f5,f1].every(x=>!/<\/w:tbl><\/w:tc>/.test(x.xml)),0)}
  // api
  await as('boss@test.co',AP);
  await call('POST','/users',{name:'Juma Junior',email:'juma@test.co',role:'JUNIOR',password:UP});
@@ -50,5 +65,7 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
  ok('details not on file are reported so the user can add them on the case',g2.missing.length>0&&g2.missing.includes('NEW_DIRECTOR_1_NAME')&&g2.missing.every(k=>/^[A-Z0-9_]+$/.test(k)),g2.missing);
  const after=(await call('GET','/cases/'+c.id)).j;
  ok('the fill is recorded in the case history',after.activity.some(a=>/official Word template/.test(a.text)),after.activity.map(a=>a.text));
+ {const c2=(await call('POST','/cases',{clientId:cl,caseTypeId:T})).j,g3=await call('POST',`/cases/${c2.id}/ai/generate-docx`,{template_id:t01.id}),miss=g3.j.missing||[];
+  ok('a template fills from the Company first: the Articles wording (notice, quorum, Table A) is used when the company has no own provision, so it is not left yellow',g3.s===200&&!miss.some(k=>/^(GM_NOTICE_PROVISION|GM_QUORUM_WORD|GM_QUORUM_PROVISION|TABLE_A_PROVISION|DIRECTORS_NUMBER_PROVISION)$/.test(k)),miss)}
  ok('only real templates can be filled this way',(await call('POST',`/cases/${c.id}/ai/generate-docx`,{template_id:99999})).s===404);
 })();

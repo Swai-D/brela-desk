@@ -16,6 +16,10 @@ order: 6
 | Word says the file is damaged or will not open | A file made before this was fixed had a doubled XML header | Press **Generate** again: the new file opens normally |
 | There is a **Word** button but no **PDF** button | The server cannot make PDF copies (the PDF converter is not installed) | Use the Word file, or ask whoever runs the server to install LibreOffice |
 
+## Why something is still yellow
+
+Only details the app cannot know are left highlighted: dates, times, amounts, the people a wizard is about, and a director's occupation or nationality that is not on the **Company** tab. Fill them on the Company tab or in the wizard and generate again. Unused numbered slots (for example "Director 3" for a company with two directors) and optional "if any" details are removed or left blank, never yellow.
+
 ## Steps to find the cause
 
 1. In the wizard press **Check**: it lists missing people details and warnings.

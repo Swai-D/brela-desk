@@ -1,7 +1,7 @@
 ---
 title: How document filling works
 summary: Where the values in a generated document come from, and the rules for blanks, capitals, dates and totals.
-keywords: filling, placeholder, gap, blank, capitals, uppercase, return date, shares issued, aggregate nominal value, member name address, word template, docx, derive, missing, how it works, no ai
+keywords: filling, loop, repeat, slots, directors list, how many directors, yellow, unused slot, optional blank, if any, company first, placeholder, gap, blank, capitals, uppercase, return date, shares issued, aggregate nominal value, member name address, word template, docx, derive, missing, how it works, no ai
 order: 2
 ---
 Understanding this helps you fix a wrong document at the source.
@@ -18,12 +18,27 @@ Understanding this helps you fix a wrong document at the source.
 
 | Rule | Meaning |
 |---|---|
-| **Gaps** | If a value is unknown, the placeholder stays visible as a gap so someone fills it by hand. |
-| **Blank lines are removed** | An empty optional line (for example "Member 7") is deleted from the document, not left as an empty row. |
+| **Gaps** | If a required value is unknown (a date, an amount, a person's missing detail), the placeholder stays highlighted in yellow so someone fills it by hand and nothing wrong is signed. |
+| **Optional details** | A detail marked "if any" (previous names, other directorships, an attendee's role) is simply left blank when nobody has it. It is never left yellow. |
+| **People lists follow the company** | The official forms have a fixed number of numbered slots (for example three directors on Form 131, seven members on a resolution). The app counts the people on the **Company** tab, removes the empty slots and copies the last slot for every extra person, so a company with one director gets one director block and a company with five gets five. See below. |
+| **Standard wording** | The Articles provisions (notice, quorum, Table A, number of directors) come from the Company; where the Company holds nothing, the standard Tanzanian wording is used. |
 | **Capitals** | Official forms use capitals for names, dates and addresses. The app writes them that way. |
 | **Dates** | Written like `29 September 2026`; in some forms as ordinals (`1st September 2026`). |
 | **Numbers in words** | British style: "two million and five hundred thousand". |
 | **People** | Several people are joined as "A, B and C". |
+
+## How the lists repeat
+
+These lists repeat once for each person on the **Company** tab, in the order shown there:
+
+| List | Repeats for |
+|---|---|
+| **Directors** on Form 131 (name, occupation, previous names, nationality, address, date of birth, other directorships) | Every director |
+| **Members** list on Form 131 and the **members present** lines on a members' resolution | Every shareholder |
+| **Attendance** lines of a directors' resolution | Every director |
+| **Allottees**, **resigning directors** and **new directors** | Every person you pick in the wizard |
+
+If the Company has nobody for a list, the first slot stays so you can see what is needed. Add the people on the **Company** tab ([People](help:clients/people)) and generate again.
 
 ## What the app works out for you
 
