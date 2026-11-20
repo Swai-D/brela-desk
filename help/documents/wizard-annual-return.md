@@ -23,6 +23,6 @@ Company name and number, registered office, return date, the share capital and *
 2. Check the registered office and the nominal value.
 3. If anything was missing, import again from BRELA ([Import](help:clients/import-from-brela)).
 
-Then press **Generate** and open the Form 131. Check the totals and the members.
+Then press **Generate** and open the Form 131 with the **Word** button (to edit) or the **PDF** button (to upload). Check the totals and the members.
 
 See also: [How document filling works](help:documents/how-document-filling-works).

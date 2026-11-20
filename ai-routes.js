@@ -269,6 +269,10 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  const saveDocx=async(req,x,t,r,name,item)=>{
   const id=x.c.id,f=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'template') RETURNING id,filename`,
    [x.c.client_id,id,item?item.id:null,`${name}.docx`,'application/vnd.openxmlformats-officedocument.wordprocessingml.document',r.buffer.length,r.buffer,req.user.id]);
+  // a PDF copy next to the Word file (best effort: the server may not have a converter)
+  const pdfBuf=await E.docxToPdf(r.buffer);
+  if(pdfBuf){const pf=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'template') RETURNING id,filename`,
+   [x.c.client_id,id,item?item.id:null,`${name}.pdf`,'application/pdf',pdfBuf.length,pdfBuf,req.user.id]);f.pdf={id:pf.id,filename:pf.filename}}
   if(item&&!r.missing.length)await q('UPDATE case_docs SET done=TRUE WHERE id=$1',[item.id]);
   await AI.record({userId:req.user.id,caseId:id,templateId:t.id,kind:'fill',mode:'docx',output:`filled ${r.filled}, ${r.missing.length} missing`});
   await log(id,req.user.id,`filled official Word template "${t.name}"${item?` for "${item.name}"`:''} (${r.filled} detail${r.filled===1?'':'s'} placed${r.missing.length?`, ${r.missing.length} still missing`:''})`);
@@ -359,8 +363,8 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
    row.missing=r.missing.filter(m=>!/^\?/.test(m)).map(m=>E.labelFromKey(m));row.filled=r.filled;
    if(generate){
     const fn=row.title.replace(/[\\/:*?"<>|]+/g,' ').trim(),item=FORMKEY[j.tid]?await one(`SELECT id,name FROM case_docs WHERE case_id=$1 AND name ILIKE $2 ORDER BY done,id LIMIT 1`,[caseId,'%'+FORMKEY[j.tid]+'%']):null;
-    await q(`DELETE FROM files WHERE case_id=$1 AND source='template' AND filename=$2`,[caseId,fn+'.docx']);
-    const f=await saveDocx(req,x,t,r,fn,item);row.file={id:f.id,filename:f.filename}}
+    await q(`DELETE FROM files WHERE case_id=$1 AND source='template' AND filename IN ($2,$3)`,[caseId,fn+'.docx',fn+'.pdf']);
+    const f=await saveDocx(req,x,t,r,fn,item);row.file={id:f.id,filename:f.filename};row.pdf=f.pdf||null}
    out.push(row)}
   // people whose details a form needs
   const ppl=[];for(const n of s.people(answers,cv)){const p=base.people.find(q=>SC.tc(q.full_name)===SC.tc(n.name));

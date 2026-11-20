@@ -16,7 +16,7 @@ This is for one document at a time (the wizards make several at once).
    - **No template**: the AI writes it in the standard layout.
 4. In **Fill the gaps**, type the missing details. Tick **Remember these on this case** so next time they are filled automatically.
 5. Read the text carefully ("the AI can make mistakes") and edit it.
-6. Press **Save to case as Word (.docx)**. The file is attached to the item, which is ticked when no gaps remain.
+6. Press **Save to case as Word (.docx)**. The file is attached to the item, which is ticked when no gaps remain. A PDF copy is saved next to it, and the message shows **Download Word** and **Download PDF**.
 7. Optional: **Teach the template from my corrected version** ([Versions](help:documents/template-versions-and-approval)).
 
 ## Privacy
