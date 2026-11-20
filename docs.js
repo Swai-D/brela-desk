@@ -146,14 +146,44 @@ function restructureSlots(doc,values){
    if(!kids.length||kids[kids.length-1].localName!=='p')tc.appendChild(doc.createElementNS(W_NS,'w:p'))}}
  return changed}
 
+// The forms split the company name over two boxes (COMPANY NAME LINE 1 / LINE 2). Put the whole name in one box and take the second away.
+function mergeNameRows(doc,values){
+ const rPrOf=el=>Array.from(el.childNodes).find(n=>n.nodeType===1&&n.namespaceURI===W_NS&&n.localName==='rPr');
+ const isHl=r=>{const rp=rPrOf(r);return !!rp&&!!Array.from(rp.childNodes).find(n=>n.localName==='highlight')};
+ const textOf=e=>Array.from(e.getElementsByTagNameNS(W_NS,'t')).map(t=>t.textContent).join('').trim();
+ const l2=Array.from(doc.getElementsByTagNameNS(W_NS,'r')).filter(r=>isHl(r)&&textOf(r)==='COMPANY NAME LINE 2');
+ let changed=0;
+ for(const r of l2){let blk=null;
+  for(let a=r.parentNode;a&&a.nodeType===1&&a.localName!=='body';a=a.parentNode){
+   if(a.localName==='tr'){const hl=Array.from(a.getElementsByTagNameNS(W_NS,'r')).filter(isHl);if(hl.every(x=>textOf(x)==='COMPANY NAME LINE 2')&&a.parentNode&&Array.from(a.parentNode.childNodes).filter(n=>n.localName==='tr').length>1)blk=a;break}}
+  if(blk){blk.parentNode.removeChild(blk);changed++}}
+
+ // widen the name box to the edge of the section it sits in, so a long name stays on one line
+ const l1=Array.from(doc.getElementsByTagNameNS(W_NS,'r')).filter(r=>isHl(r)&&textOf(r)==='COMPANY NAME LINE 1');
+ const kid=(el,n)=>Array.from(el.childNodes).find(x=>x.nodeType===1&&x.namespaceURI===W_NS&&x.localName===n);
+ const wv=(el,n)=>{const e=el&&kid(el,n);return e?+(e.getAttributeNS(W_NS,'w')||e.getAttribute('w:w')||0):0};
+ for(const r of l1){let tbl=null,outer=null;
+  for(let a=r.parentNode;a&&a.nodeType===1;a=a.parentNode){if(a.localName==='tbl'&&!tbl)tbl=a;else if(a.localName==='tc'&&tbl){outer=a;break}}
+  if(!tbl||!outer)continue;
+  const pr=kid(tbl,'tblPr'),ind=wv(pr,'tblInd'),ow=wv(kid(outer,'tcPr'),'tcW'),target=ow-ind-200;
+  const grid=kid(tbl,'tblGrid'),cols=grid?Array.from(grid.childNodes).filter(x=>x.localName==='gridCol'):[];
+  if(!ow||cols.length!==1||target<=wv({childNodes:[]},'x')||target<=+(cols[0].getAttribute('w:w')||0))continue;
+  cols[0].setAttribute('w:w',String(target));
+  for(const tc of Array.from(tbl.getElementsByTagNameNS(W_NS,'tc'))){const tp=kid(tc,'tcPr'),w=tp&&kid(tp,'tcW');if(w)w.setAttribute('w:w',String(target))}}
+ return changed}
+
 async function docxFill(buf,values,{acceptClauses=false}={}){
  const JSZip=require('jszip'),{DOMParser,XMLSerializer}=require('@xmldom/xmldom');
  const zip=await JSZip.loadAsync(buf);
+ values={...values};
+ const fullName=String(values.COMPANY_NAME||[values.COMPANY_NAME_LINE_1,values.COMPANY_NAME_LINE_2].filter(x=>String(x||'').trim()).join(' ')).trim().toUpperCase();
+ if(fullName){values.COMPANY_NAME_LINE_1=fullName;values.COMPANY_NAME_LINE_2='';values.__merge_name=1}
  const l2k={};for(const k of Object.keys(values))l2k[labelFromKey(k)]=k;
  const missing=new Set();let filled=0,clauses=0;
  const q=t=>`{${W_NS}}${t}`;
  for(const f of docxTargets(zip)){
   const doc=new DOMParser().parseFromString(await zip.file(f).async('string'),'text/xml');
+  if(values.__merge_name)mergeNameRows(doc,values);
   restructureSlots(doc,values);
   const del=[];
   for(const p of Array.from(doc.getElementsByTagNameNS(W_NS,'p'))){
@@ -229,6 +259,8 @@ function packageValues(ctx){
  const iso=String(ctx.values&&ctx.values.date_of_incorporation_iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
  if(iso&&!v.RETURN_DATE){const now=new Date(Date.now()+3*3600e3),ty=now.getUTCFullYear();let d=new Date(Date.UTC(ty,+iso[2]-1,+iso[3]));if(d>now)d=new Date(Date.UTC(ty-1,+iso[2]-1,+iso[3]));
   if(d.getUTCFullYear()>+iso[1])v.RETURN_DATE=`${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`.toUpperCase()}
+ // Form 131 is signed on the day the return is made up to
+ if(v.RETURN_DATE)set('SIGNING_DATE_OPT',v.RETURN_DATE);
  const nominal=numOf(ctx.values&&(ctx.values.share_value||ctx.values.nominal_value_per_share)),issuedN=numOf(ctx.values&&(ctx.values.shares_issued_total||ctx.values.shares_issued));
  if(issuedN){v.SHARES_ISSUED_TOTAL=fmt(issuedN);if(!/,/.test(String(ctx.values&&ctx.values.share_class||'')))v.SHARES_ISSUED=fmt(issuedN)}
  if(issuedN&&nominal){set('AGGREGATE_NOMINAL_VALUE_TOTAL',fmt(issuedN*nominal));set('AGGREGATE_NOMINAL_VALUE',fmt(issuedN*nominal))}

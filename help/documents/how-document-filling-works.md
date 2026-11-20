@@ -24,6 +24,8 @@ Understanding this helps you fix a wrong document at the source.
 | **Business occupation** | The occupation saved for the person. If none is saved: **Director** for a director, **Secretary** for a secretary. |
 | **Nationality** | The nationality saved for the person; a country or code such as "TZ" or "Tanzania" is written as "Tanzanian". The same person saved twice is treated as one. |
 | **Standard wording** | The Articles provisions (notice, quorum, Table A, number of directors) come from the Company; where the Company holds nothing, the standard Tanzanian wording is used. |
+| **Company name** | The full company name is written in a single row on the forms (Forms 131, 213a, 213b and 57a), never split over two lines. |
+| **Signing date on Form 131** | The date next to the signature is the same as the date the return is made up to. |
 | **Capitals** | Official forms use capitals for names, dates and addresses. The app writes them that way. |
 | **Dates** | Written like `29 September 2026`; in some forms as ordinals (`1st September 2026`). |
 | **Numbers in words** | British style: "two million and five hundred thousand". |

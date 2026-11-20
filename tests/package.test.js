@@ -84,5 +84,11 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
  ok('the fill is recorded in the case history',after.activity.some(a=>/official Word template/.test(a.text)),after.activity.map(a=>a.text));
  {const c2=(await call('POST','/cases',{clientId:cl,caseTypeId:T})).j,g3=await call('POST',`/cases/${c2.id}/ai/generate-docx`,{template_id:t01.id}),miss=g3.j.missing||[];
   ok('a template fills from the Company first: the Articles wording (notice, quorum, Table A) is used when the company has no own provision, so it is not left yellow',g3.s===200&&!miss.some(k=>/^(GM_NOTICE_PROVISION|GM_QUORUM_WORD|GM_QUORUM_PROVISION|TABLE_A_PROVISION|DIRECTORS_NUMBER_PROVISION)$/.test(k)),miss)}
+ {const JSZ=require('jszip'),T=d=>fs.readFileSync(path.join(PKG,'templates',fs.readdirSync(path.join(PKG,'templates')).find(f=>f.startsWith(d))));
+  const V={...Object.fromEntries(Object.entries(data.common).map(([k,v])=>[k.toLowerCase(),v])),...data.common,COMPANY_NAME:'Rahu Multiservices Company Limited',COMPANY_NAME_LINE_1:'RAHU MULTISERVICES',COMPANY_NAME_LINE_2:'COMPANY LIMITED',RETURN_DATE:'22 JANUARY 2026',SIGNING_DATE_OPT:'1 JANUARY 2020'};
+  for(const f of ['F01','F02','F03','F05']){const r=await E.docxFill(T(f),V,{acceptClauses:true}),txt=(await mammoth.extractRawText({buffer:r.buffer})).value;
+   ok(f+': the company name is one full name in a single row, with no second name line',txt.includes('RAHU MULTISERVICES COMPANY LIMITED')&&!/COMPANY NAME LINE/.test(txt),txt.slice(0,300))}
+  const pv=E.packageValues?E.packageValues({values:{RETURN_DATE:'22 JANUARY 2026'},lists:{}}):null;
+  if(pv)ok('Form 131 is signed on the day the return is made up to',pv.SIGNING_DATE_OPT==='22 JANUARY 2026',pv.SIGNING_DATE_OPT)}
  ok('only real templates can be filled this way',(await call('POST',`/cases/${c.id}/ai/generate-docx`,{template_id:99999})).s===404);
 })();
