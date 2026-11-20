@@ -20,7 +20,7 @@ You can also add a person from a wizard without leaving the case: choose **Add a
 |---|---|
 | **Full name** | Everything. Written in capitals on forms. |
 | **Roles** | Director, Shareholder, Secretary, Beneficial owner, Other. A person can have several. |
-| **Gender**, **Date of birth**, **Nationality**, **Occupation** | Form 213a and other appointment forms |
+| **Gender**, **Date of birth**, **Nationality**, **Occupation** | Form 213a and other appointment forms, and the director blocks of Form 131 |
 | **ID / passport number** | Forms and the register |
 | **Shares**, **Share class**, **Share value**, **Ownership %** | Shareholding table, annual return, call on shares |
 | **Previous names**, **Other directorships** | Appointment forms |
@@ -35,6 +35,10 @@ Press **Edit** on the person's card. Delete is on the card too and asks for conf
 
 ## What the wizards need
 
-The wizard warns you about missing details before it generates. For Form 213a (appointment) the important ones are date of birth, occupation, nationality and the address.
+The wizard warns you about missing details before it generates. For Form 213a (appointment) the important ones are date of birth, nationality and the address.
+
+- **Occupation:** if you leave it empty the forms use the office the person holds: **Director** for a director, **Secretary** for a secretary. Type an occupation only when the form should show something else.
+- **Nationality:** write the nationality (**Tanzanian**). If you write a country or code (**Tanzania**, **TZ**, **Kenya**) the forms convert it to the nationality. The BRELA import often leaves nationality empty, so check it for each director and secretary.
+- **The same person twice:** if a person is saved twice with the same name, the forms treat them as one and use whichever record has the detail.
 
 See also: [The Company tab](help:clients/company-tab), [Duplicate people](help:help/duplicate-client-person).

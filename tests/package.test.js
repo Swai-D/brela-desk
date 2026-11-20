@@ -34,6 +34,23 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
   const t1=await fill('T01',vals(2,8));
   ok('the member lists grow beyond the 7 slots of the template (8 members listed, with their shares)',[1,2,3,4,5,6,7,8].every(n=>(t1.txt.match(/shares\), attended in person|Ordinary, 1,000 shares\)/g)||[]).length>=8)&&/EXTRA MEMBER 6/.test(t1.txt),(t1.txt.match(/attended in person/g)||[]).length);
   ok('the changed file stays valid: one XML declaration, and every table cell ends with a paragraph',[f5,f1,t1,t2].every(x=>(x.xml.match(/<\?xml/g)||[]).length===1)&&[f5,f1].every(x=>!/<\/w:tbl><\/w:tc>/.test(x.xml)),0)}
+ // nationality and occupation come from the Company; occupation defaults to the office held
+ {const JSZ=require('jszip'),base={...Object.fromEntries(Object.entries(data.common).map(([k,v])=>[k.toLowerCase(),v]))};
+  const run=async(file,people,extra={})=>{const ctx=E.buildContext({client:{name:'NAT CO LIMITED'},profile:{...base,...extra},people});const v={...man.defaults,...E.packageValues(ctx)};
+   const r=await E.docxFill(fs.readFileSync(path.join(PKG,'templates',fs.readdirSync(path.join(PKG,'templates')).find(f=>f.startsWith(file)))),v,{acceptClauses:true});return{r,txt:(await mammoth.extractRawText({buffer:r.buffer})).value,ctx,v}};
+  const P=(n,roles,x={})=>({full_name:n,roles,address:'PLOT 1, DAR',dob:'1980-01-01',...x});
+  const f5=await run('F05',[P('ANNA ONE',['director'],{nationality:'TZ'}),P('BEN TWO',['director','secretary'],{nationality:'Tanzania',occupation:'Engineer'}),P('CARL THREE',['director'],{nationality:'Kenya'})]);
+  ok('a country written instead of the nationality becomes the nationality (TZ, Tanzania, Kenya)',f5.v.DIRECTOR_1_NATIONALITY==='TANZANIAN'&&f5.v.DIRECTOR_2_NATIONALITY==='TANZANIAN'&&f5.v.DIRECTOR_3_NATIONALITY==='KENYAN',[f5.v.DIRECTOR_1_NATIONALITY,f5.v.DIRECTOR_2_NATIONALITY,f5.v.DIRECTOR_3_NATIONALITY]);
+  ok('business occupation: what is saved wins, otherwise Director',f5.v.DIRECTOR_1_OCCUPATION==='DIRECTOR'&&f5.v.DIRECTOR_2_OCCUPATION==='ENGINEER'&&f5.v.DIRECTOR_3_OCCUPATION==='DIRECTOR'&&!/\[DIRECTOR \d OCCUPATION\]/.test(f5.txt),[f5.v.DIRECTOR_1_OCCUPATION,f5.v.DIRECTOR_2_OCCUPATION]);
+  const f1d=await run('F01',[P('ANNA ONE',['director'],{nationality:'Tanzanian'})],{});
+  ok('Form 213a for a director: occupation is Director and the nationality is filled',f1d.v.OCCUPATION==='DIRECTOR'&&f1d.v.NATIONALITY==='TANZANIAN',[f1d.v.OCCUPATION,f1d.v.NATIONALITY]);
+  const f1s=await run('F01',[P('SARA SEC',['secretary'],{nationality:'Tanzanian'})],{});
+  ok('Form 213a for a secretary: occupation is Secretary',f1s.v.OCCUPATION==='SECRETARY'&&f1s.v.ROLE_UPPER==='SECRETARY',[f1s.v.OCCUPATION,f1s.v.ROLE_UPPER]);
+  const dup=await run('F05',[P('Dan Four',['director'],{nationality:''}),P('DAN  FOUR',['shareholder','director'],{nationality:'Tanzanian',occupation:'Farmer'})]);
+  ok('the same person saved twice is one person: nationality and occupation are taken from whichever record has them',dup.v.DIRECTOR_1_NATIONALITY==='TANZANIAN'&&dup.v.DIRECTOR_1_OCCUPATION==='FARMER'&&!dup.v.DIRECTOR_2_NAME,[dup.v.DIRECTOR_1_NATIONALITY,dup.v.DIRECTOR_1_OCCUPATION,dup.v.DIRECTOR_2_NAME]);
+  const none=await run('F05',[P('Eve Five',['director'],{nationality:''})]);
+  const nd=E.personNeeds(none.r.missing,none.ctx);
+  ok('a detail that is really missing is reported with the person\'s name (so it is added on the Company tab)',nd.people.some(x=>x.name==='Eve Five'&&x.fields.includes('nationality'))&&!nd.rest.includes('DIRECTOR_1_NATIONALITY'),nd)}
  // api
  await as('boss@test.co',AP);
  await call('POST','/users',{name:'Juma Junior',email:'juma@test.co',role:'JUNIOR',password:UP});
