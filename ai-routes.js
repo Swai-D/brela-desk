@@ -289,7 +289,8 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   let r;try{r=await E.docxFill(t.docx_data,values)}catch(e){fail(400,'Could not fill this Word template: '+e.message)}
   const name=(item?item.name:t.name).replace(/[\\/:*?"<>|]+/g,' ').trim()||'Document';
   const f=await saveDocx(req,x,t,r,name,item);
-  res.json({file:f,missing:r.missing,clauses:r.clauses,filled:r.filled})}));
+  const needs=E.personNeeds(r.missing,x.ctx);
+  res.json({file:f,missing:r.missing,clauses:r.clauses,filled:r.filled,people:needs.people,rest:needs.rest})}));
 
 
  // ---------- document wizards: stored in the database so a Manager can change the questions, documents, formulas and checks (Settings -> Document wizards)

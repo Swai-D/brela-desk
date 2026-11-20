@@ -18,7 +18,7 @@ order: 6
 
 ## Why something is still yellow
 
-Only details the app cannot know are left highlighted: dates, times, amounts, the people a wizard is about, and a director's occupation or nationality that is not on the **Company** tab. Fill them on the Company tab or in the wizard and generate again. Unused numbered slots (for example "Director 3" for a company with two directors) and optional "if any" details are removed or left blank, never yellow.
+When a person's detail is missing the message names the person (for example "**Juma Kileo**: nationality") under **Missing on the Company tab**. Open the client, **Company**, edit that person, save, and generate again. Only details the app cannot know are left highlighted: dates, times, amounts, the people a wizard is about, and a director's occupation or nationality that is not on the **Company** tab. Fill them on the Company tab or in the wizard and generate again. Unused numbered slots (for example "Director 3" for a company with two directors) and optional "if any" details are removed or left blank, never yellow.
 
 ## Steps to find the cause
 

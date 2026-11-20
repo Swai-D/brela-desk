@@ -41,6 +41,17 @@ function reverse(text,values){
  return{body,replaced:[...replaced]}}
 
 const fmtDate=d=>new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'Africa/Dar_es_Salaam'});
+// A country written instead of the nationality ("TZ", "Tanzania", "Kenya") becomes the nationality the forms need ("Tanzanian", "Kenyan").
+const NATION={tz:'Tanzanian',tza:'Tanzanian',tanzania:'Tanzanian',tanzanian:'Tanzanian',ke:'Kenyan',kenya:'Kenyan',ug:'Ugandan',uganda:'Ugandan',rw:'Rwandan',rwanda:'Rwandan',bi:'Burundian',burundi:'Burundian',cd:'Congolese',drc:'Congolese',zm:'Zambian',zambia:'Zambian',mw:'Malawian',malawi:'Malawian',mz:'Mozambican',mozambique:'Mozambican',za:'South African','south africa':'South African',in:'Indian',india:'Indian',cn:'Chinese',china:'Chinese',gb:'British',uk:'British','united kingdom':'British',us:'American',usa:'American','united states':'American',ae:'Emirati'};
+const natName=x=>{const t=String(x||'').replace(/\s+/g,' ').trim();return NATION[t.toLowerCase()]||t};
+// The same person saved twice (typed by hand and imported, or with different capitals) is one person: details missing on one record are taken from the other.
+function mergePeople(list){
+ const norm=x=>String(x||'').replace(/\s+/g,' ').trim().toLowerCase(),out=[];
+ for(const p of list){
+  const hit=out.find(o=>norm(o.full_name)&&norm(o.full_name)===norm(p.full_name)&&!(norm(o.id_number)&&norm(p.id_number)&&norm(o.id_number)!==norm(p.id_number)));
+  if(!hit){out.push({...p,roles:[...(p.roles||[])]});continue}
+  for(const [k,v] of Object.entries(p)){if(k==='roles')hit.roles=[...new Set([...(hit.roles||[]),...(v||[])])];else if(k==='addr'){if(!hit.addr||!Object.keys(hit.addr).length)hit.addr=v}else if(hit[k]===undefined||hit[k]===null||String(hit[k]).trim()==='')hit[k]=v}}
+ return out}
 function buildContext({client={},caseRow={},assignee='',profile={},data={},people=[]}){
  const v={client_name:client.name||'',company_name:client.name||'',client_phone:client.phone||'',client_email:client.email||'',client_track_number:client.track_number||'',
   case_code:caseRow.code||'',case_type:caseRow.type||'',case_track_number:caseRow.track_number||'',track_number:caseRow.track_number||client.track_number||'',
@@ -48,7 +59,7 @@ function buildContext({client={},caseRow={},assignee='',profile={},data={},peopl
  Object.assign(v,profile,data);
  const acts=Array.isArray(client.activities)?client.activities:[];
  if(acts.length&&!v.business_activities){v.business_activities=acts.map(a=>`${a.code}  ${a.name}${a.main?' (main)':''}`).join('\n');v.activities_count=String(acts.length)}
- const ordered=[...people].sort((a,b)=>(a.position||0)-(b.position||0)||(a.id||0)-(b.id||0));
+ const ordered=mergePeople(people).map(p=>({...p,nationality:natName(p.nationality)})).sort((a,b)=>(a.position||0)-(b.position||0)||(a.id||0)-(b.id||0));
  const lists={people:ordered};for(const [name,role] of Object.entries(ROLE_LISTS))lists[name]=ordered.filter(p=>(p.roles||[]).includes(role));
  ordered.forEach((p,i)=>{const s=personScope(p,i,ordered.length);for(const f of PERSON_FIELDS)if(s[f])v[`person_${i+1}_${f}`]=s[f]});
  v.directors_count=String(lists.directors.length);v.shareholders_count=String(lists.shareholders.length);v.people_count=String(ordered.length);
@@ -227,18 +238,35 @@ function packageValues(ctx){
  // ---- Forms 213a / 213b: the person concerned = the one named in the case data (person_name), else the first director
  const people=lists.people||[],want=up(v.PERSON_NAME||v.SUBJECT_NAME||v.DIRECTOR_NAME||''),subj=(want&&people.find(p=>up(nm(p))===want))||dirs[0]||secs[0];
  if(subj){const sn=splitName(nm(subj)),ad=addrLines(subj);
-  set('FIRST_NAMES',up(sn.first||sn.last));set('SURNAME',sn.first?up(sn.last):'');set('DOB',up(longDate(subj.dob)));set('NATIONALITY',up(subj.nationality));set('OCCUPATION',up(subj.occupation));
+  set('FIRST_NAMES',up(sn.first||sn.last));set('SURNAME',sn.first?up(sn.last):'');set('DOB',up(longDate(subj.dob)));set('NATIONALITY',up(subj.nationality));
   set('PREVIOUS_NAMES_OPT',up(subj.previous_names));set('OTHER_DIRECTORSHIPS_OPT',subj.other_directorships);
   set('ADDRESS_LINE_1',up(ad[0]));set('ADDRESS_LINE_2',up(ad[1]));set('ADDRESS_LINE_3_OPT',up(ad[2]));
-  const isSec=(subj.roles||[]).includes('secretary')&&!(subj.roles||[]).includes('director');set('ROLE_UPPER',isSec?'SECRETARY':'DIRECTOR');set('ROLE_LOWER',isSec?'secretary':'director')}
+  const isSec=(subj.roles||[]).includes('secretary')&&!(subj.roles||[]).includes('director');set('ROLE_UPPER',isSec?'SECRETARY':'DIRECTOR');set('ROLE_LOWER',isSec?'secretary':'director');
+  // business occupation: what is saved for the person, otherwise the office they hold (Director / Secretary)
+  set('OCCUPATION',up(subj.occupation)||v.ROLE_UPPER||(isSec?'SECRETARY':'DIRECTOR'))}
  set('SIGNING_DIRECTOR_ROLE','Director');set('SIGNING_DIRECTOR_ROLE_BRACKETED','(Director)');
  // ---- people mentioned by name in the case data (allottees): fill their address and share class from the company's people records
  for(let n=1;n<=10;n++){const nmv=v['ALLOTTEE_'+n+'_NAME'];if(!nmv)continue;const p=people.find(x=>up(nm(x))===up(nmv));if(p){set('ALLOTTEE_'+n+'_ADDRESS',up(p.address));set('ALLOTTEE_'+n+'_CLASS',p.share_class||(ctx.values&&ctx.values.share_class)||'')}}
  secs[0]&&set('SECRETARY_PREVIOUS_NAMES_OPT',up(secs[0].previous_names));
- dirs.forEach((p,i)=>{const n=i+1;set(`DIRECTOR_${n}_OCCUPATION`,up(p.occupation));set(`DIRECTOR_${n}_PREVIOUS_NAMES_OPT`,up(p.previous_names));set(`DIRECTOR_${n}_OTHER_DIRECTORSHIPS_OPT`,p.other_directorships)});
+ dirs.forEach((p,i)=>{const n=i+1;set(`DIRECTOR_${n}_OCCUPATION`,up(p.occupation)||'DIRECTOR');set(`DIRECTOR_${n}_PREVIOUS_NAMES_OPT`,up(p.previous_names));set(`DIRECTOR_${n}_OTHER_DIRECTORSHIPS_OPT`,p.other_directorships)});
  if(v.REGISTERED_OFFICE&&!/\.$/.test(v.REGISTERED_OFFICE))v.REGISTERED_OFFICE+='.';
  for(const k of Object.keys(v))if(CAPS.test(k))v[k]=v[k].toUpperCase();
  return v}
+
+// Which saved person is missing which detail (so the message can say "Add Juma's nationality on the Company tab" instead of a bare label).
+function personNeeds(missing,ctx){
+ const L=ctx.lists||{},dirs=L.directors||[],secs=L.secretaries||[],mem=L.shareholders&&L.shareholders.length?L.shareholders:dirs,people=L.people||[];
+ const FIELD={NATIONALITY:'nationality',ADDRESS:'address',DOB:'date of birth',OCCUPATION:'occupation',NAME:'name'},by=new Map(),rest=[];
+ const want=String((ctx.values&&(ctx.values.person_name||ctx.values.subject_name))||'').trim().toUpperCase(),subj=(want&&people.find(p=>String(p.full_name||'').trim().toUpperCase()===want))||dirs[0]||secs[0];
+ const add=(p,f)=>{const n=String(p.full_name||'').trim();if(!n)return false;if(!by.has(n))by.set(n,{id:p.id||null,name:n,fields:[]});const o=by.get(n);if(!o.fields.includes(f))o.fields.push(f);return true};
+ for(const raw of missing){let m,done=false;const k=String(raw).replace(/^\?/,'').replace(/, IF ANY$/,'_OPT').replace(/ /g,'_');
+  if((m=k.match(/^DIRECTOR_(\d+)_(NATIONALITY|ADDRESS|DOB|OCCUPATION)$/))&&dirs[m[1]-1])done=add(dirs[m[1]-1],FIELD[m[2]]);
+  else if((m=k.match(/^MEMBER_(\d+)_(NAME)$/))&&mem[m[1]-1])done=false;
+  else if(k==='SECRETARY_ADDRESS'&&secs[0])done=add(secs[0],'address');
+  else if((m=k.match(/^(NATIONALITY|DOB|OCCUPATION)$/))&&subj)done=add(subj,FIELD[m[1]]);
+  else if(k==='ADDRESS_LINE_1'&&subj)done=add(subj,'address');
+  if(!done)rest.push(raw)}
+ return{people:[...by.values()],rest}}
 
 // Convert an extracted .docx text back into a template body: [LABEL] -> {{key}}, using the label->key map of the package.
 function docxTextToBody(text,l2k){
@@ -255,4 +283,4 @@ async function extractText(buf,name='',mime=''){
  if(text.length<20){const e=new Error('No readable text found in this file (scanned documents are not supported yet: paste the text instead).');e.status=400;throw e}
  return text.slice(0,60000)}
 
-module.exports={fields,render,gaps,applyGaps,reverse,buildContext,withhold,suggestScore,textToDocx,extractText,personScope,SENSITIVE_KEY,ROLE_LISTS,labelFromKey,docxFill,docxToPdf,docxTargets,packageValues,docxTextToBody};
+module.exports={fields,render,gaps,applyGaps,reverse,buildContext,withhold,suggestScore,textToDocx,extractText,personScope,SENSITIVE_KEY,ROLE_LISTS,natName,mergePeople,personNeeds,labelFromKey,docxFill,docxToPdf,docxTargets,packageValues,docxTextToBody};
