@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // One-command sync of dnative-hash/brela-desk-crm with Swai-D/brela-desk.
 //
-//   node sync-crm.js            # fetch → merge → feature checks → tests (package + frontend) → push → mirror branches
+//   node sync-crm.js            # fetch → merge → feature checks → tests (package + frontend) → push → mirror/update branches
 //   node sync-crm.js --full     # also run every test suite (fresh DB for each), like tests/run.sh
 //   node sync-crm.js --no-push  # do everything except pushing (inspect the result yourself)
 //   node sync-crm.js --dry-run  # only fetch + report differences, change nothing
@@ -148,6 +148,9 @@ const suites = FULL
   } else {
     log('crm/main already matches origin/main (no merge needed)');
     if (DRY) return finish(originMain, crmMain, true);
+    // Nothing to merge, so skip checks/tests/push — but still mirror/update feature branches.
+    const mirror = await mirrorBranches();
+    return finish(originMain, crmMain, true, mirror, false);
   }
 
   // 3. Word-package feature checks ----------------------------------------------
@@ -204,32 +207,49 @@ const suites = FULL
   info(`crm/main = ${git('rev-parse crm/main').slice(0, 7)} — content identical to origin/main ✓`);
 
   // 7. mirror feature branches ------------------------------------------------------
-  log('Mirror unmerged feature branches to crm');
+  const mirror = await mirrorBranches();
+
+  return finish(originMain, crmMain, true, mirror);
+})().catch(e => { console.error(e); cleanup(); process.exit(1); });
+
+async function mirrorBranches() {
+  log('Mirror feature branches to crm (new + fast-forward)');
   const originBranches = git('for-each-ref refs/remotes/origin --format=%(refname:short)')
     .split('\n').filter(b => b && b !== 'origin/HEAD' && b !== 'origin').map(b => b.replace(/^origin\//, ''));
   const crmBranches = new Set(git('for-each-ref refs/remotes/crm --format=%(refname:short)')
     .split('\n').filter(b => b && b !== 'crm/HEAD' && b !== 'crm').map(b => b.replace(/^crm\//, '')));
-  let mirrored = 0;
+  const res = {added: 0, updated: 0};
   for (const b of originBranches) {
-    if (crmBranches.has(b) || b === 'main') continue;
-    info(`mirroring ${b}`);
+    if (b === 'main') continue;
+    if (!crmBranches.has(b)) {
+      info(`mirroring ${b}`);
+      const p = spawnSync('git', ['push', 'crm', `refs/remotes/origin/${b}:refs/heads/${b}`], {cwd: ROOT, encoding: 'utf8'});
+      if (p.status !== 0) console.log(`    WARN could not push ${b}: ${(p.stderr || '').trim().split('\n').pop()}`);
+      else res.added++;
+      continue;
+    }
+    // Existing on crm: fast-forward it only when it is strictly behind origin (never force).
+    const behind = Number(gitAllowFail(['rev-list', '--count', `crm/${b}..origin/${b}`]) || 0);
+    const ahead = Number(gitAllowFail(['rev-list', '--count', `origin/${b}..crm/${b}`]) || 0);
+    if (!behind) continue;
+    if (ahead) { info(`skip ${b}: crm has ${ahead} commit(s) not on origin`); continue; }
+    info(`updating ${b} (+${behind} commit${behind === 1 ? '' : 's'})`);
     const p = spawnSync('git', ['push', 'crm', `refs/remotes/origin/${b}:refs/heads/${b}`], {cwd: ROOT, encoding: 'utf8'});
-    if (p.status !== 0) console.log(`    WARN could not push ${b}: ${(p.stderr || '').trim().split('\n').pop()}`);
-    else mirrored++;
+    if (p.status !== 0) console.log(`    WARN could not update ${b}: ${(p.stderr || '').trim().split('\n').pop()}`);
+    else res.updated++;
   }
-  if (!mirrored) info('nothing to mirror — all branches already exist on crm');
+  if (!res.added && !res.updated) info('nothing to mirror — all branches on crm match origin');
+  return res;
+}
 
-  return finish(originMain, crmMain, true, mirrored);
-})().catch(e => { console.error(e); cleanup(); process.exit(1); });
-
-function finish(originMain, crmMain, ok, mirrored = 0) {
+function finish(originMain, crmMain, ok, mirror = {added: 0, updated: 0}, ranSuites = true) {
   console.log(`
 =============================================
 ${ok ? 'DONE ✓' : 'STOPPED ✗'}
   origin/main: ${originMain.slice(0, 7)}
   crm/main:    ${gitAllowFail(['rev-parse', 'crm/main']).slice(0, 7)}
-  suites run:  ${suites.join(', ')}
-  mirrored:    ${mirrored || '0 new'}
+  suites run:  ${ranSuites ? suites.join(', ') : 'skipped (no main changes)'}
+  mirrored:    ${mirror.added || 0} new, ${mirror.updated || 0} updated
 =============================================`);
   process.exitCode = ok ? 0 : 1;
 }
