@@ -1,6 +1,6 @@
 ---
 title: My Work
-summary: Your own cases in three groups: do now, in progress and waiting on BRELA, plus your team's queue.
+summary: Your own cases in three groups (do now, in progress, waiting on BRELA); the waiting group shows the whole team's submitted cases.
 keywords: my work, my cases, do now, in progress, waiting on BRELA, team queue, todo, urgent, assigned to me, what should I do
 order: 2
 ---
@@ -12,9 +12,9 @@ order: 2
 |---|---|
 | **Do now** | Cases BRELA returned, or due today, or late |
 | **In progress** | Cases you are preparing (New, Gathering Docs, Ready to Submit) that are not urgent |
-| **Waiting on BRELA** | Submitted cases that are not urgent. Nothing to do until BRELA answers. |
+| **Waiting on BRELA** | Every case in the **Submitted to BRELA** stage, for the **whole team**. Yours come first; a case that belongs to a colleague shows "with <name>". Nothing to do until BRELA answers. |
 
-The number on each group is its count. At the top you see your name, how many cases need action now, and your open cases. "Nothing urgent" in green means you are clear.
+The number on each group is its count (Waiting on BRELA counts the whole team's submitted cases, not only yours). A submitted case of yours that is due today or late shows under **Do now** instead. At the top you see your name, how many cases need action now, and your open cases. "Nothing urgent" in green means you are clear.
 
 Each row shows the client, the case code and type, the stage, the due date or how late it is, and a small progress bar of documents ready (for example 3/5). Click a row to open the case.
 
