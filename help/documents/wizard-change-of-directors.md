@@ -13,6 +13,8 @@ Use it when new directors join, directors leave, or both.
 | **Directors being appointed** | Up to two. Pick saved people or **Add a new person**. Their details feed Form 213a. |
 | **Directors resigning** | Pick from the current directors. |
 | **Chairman of the meetings** | Defaults to the first director who stays. |
+| **The appointment takes effect** | **When the new director's signed consent is received** (standard) or **From the date of the resolution, no condition**. Controls the words "with effect from the time of receipt of that consent". |
+| **The resignations take effect** | **At the conclusion of the meeting** (standard) or **No time stated**. |
 | **Members' meeting: date** (required) and **Time** | Time defaults to 10:00. |
 | **Directors' meeting accepting the resignations: date** and **Time** | Default: same day as the members' meeting, 11:00. |
 | **Articles of Association references** | Notice of directors' meetings, directors' quorum (in words and the article), shorter notice for a general meeting, members' quorum, the article for the number of directors, the article adopting Table A. Saved on the client and reused. |

@@ -172,6 +172,15 @@ function mergeNameRows(doc,values){
   for(const tc of Array.from(tbl.getElementsByTagNameNS(W_NS,'tc'))){const tp=kid(tc,'tcPr'),w=tp&&kid(tp,'tcW');if(w)w.setAttribute('w:w',String(target))}}
  return changed}
 
+// Optional wording of the official forms (yellow, not a [LABEL]). The wizard decides each one; without an answer the standard wording is kept.
+const CLAUSES=[
+ {k:'CONSENT_EFFECT',re:/^with effect from the time of receipt of that consent$/i},
+ {k:'RESIGN_EFFECT',re:/^(each )?(with effect from|to take effect at) the conclusion of this meeting$/i},
+ {k:'PAY_BANK',re:/^or into (the Company bank account|a bank account designated by the Company)$/i},
+ {k:'AT_NOMINAL',re:/^at nominal value$/i},
+ {k:'REALLOT',re:/^re-allotted or otherwise disposed of$/i},
+ {k:'UNISSUED',re:/^shall not be allotted, sold or otherwise disposed of/i}];
+const clauseOf=t=>{const x=String(t||'').replace(/\s+/g,' ').trim();return CLAUSES.find(c=>c.re.test(x))};
 async function docxFill(buf,values,{acceptClauses=false}={}){
  const JSZip=require('jszip'),{DOMParser,XMLSerializer}=require('@xmldom/xmldom');
  const zip=await JSZip.loadAsync(buf);
@@ -206,7 +215,13 @@ async function docxFill(buf,values,{acceptClauses=false}={}){
      unhl(r);
      p.removeChild(runs[i-1]);p.removeChild(runs[i+1]);
      if(v===''&&!/_OPT$/.test(key)&&!inCell)del.push(p)}
-    else if(!wrapped){if(acceptClauses)unhl(r);else clauses++}
+    else if(!wrapped){const cl=clauseOf(rtext(r));
+     if(cl){const on=String(values['CLAUSE_'+cl.k]??'yes').toLowerCase()!=='no';
+      if(on)unhl(r);else{const pr=runs[i-1],nx=runs[i+1];p.removeChild(r);
+       // no stray space before the punctuation that follows
+       if(pr&&nx&&/^\s*[,.;:]/.test(rtext(nx))){for(const t of Array.from(pr.getElementsByTagNameNS(W_NS,'t')).reverse()){if(t.textContent){t.textContent=/^\s*[.;:]/.test(rtext(nx))?t.textContent.replace(/[\s,]+$/,''):t.textContent.replace(/\s+$/,'');break}}}}
+      }
+     else if(acceptClauses)unhl(r);else clauses++}
     else missing.add('?'+rtext(r))}
   }
   for(const p of del)if(p.parentNode)p.parentNode.removeChild(p);

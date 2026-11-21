@@ -12,7 +12,7 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
  const man=JSON.parse(fs.readFileSync(path.join(PKG,'templates','manifest.json'),'utf8')),data=JSON.parse(fs.readFileSync(path.join(PKG,'sample_data_RAHU.json'),'utf8'));
  const buf=fs.readFileSync(path.join(PKG,'templates','T01_Members_Resolution_Appointment_of_Directors.docx'));
  let r=await E.docxFill(buf,{...data.common,...data.T01});
- ok('filler places the fields and reports the clause highlights',r.filled===43&&r.clauses===2&&r.missing.includes('?ABSENT NAMES'),[r.filled,r.clauses,r.missing]);
+ ok('filler places the fields and keeps the standard optional wording (no clause left yellow)',r.filled===43&&r.clauses===0&&r.missing.includes('?ABSENT NAMES'),[r.filled,r.clauses,r.missing]);
  r=await E.docxFill(buf,{...man.defaults,...data.common,...data.T01},{acceptClauses:true});
  ok('manifest defaults fill the rest; nothing stays yellow when clauses are accepted',r.filled===49&&r.missing.length===0&&r.clauses===0,[r.filled,r.missing,r.clauses]);
  {const Z=await require('jszip').loadAsync(r.buffer);let bad=[];for(const f of Object.keys(Z.files).filter(f=>/^word\/.+\.xml$/.test(f))){const x=await Z.file(f).async('string');if((x.match(/<\?xml/g)||[]).length!==1||!x.startsWith('<?xml'))bad.push(f)}
@@ -66,6 +66,7 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
  ok('importing again skips the templates that already exist',imp.j.created.length===0&&imp.j.skipped.length===man.templates.length,imp.j);
  const list=(await call('GET','/templates')).j,t01=list.find(t=>t.name.startsWith("Members' Resolution"));
  const f05=list.find(t=>t.name.includes('Form 131'));
+ ok('each official template says which wizard makes it, so the case opens the wizard',t01.wizard==='directors'&&f05.wizard==='annual'&&list.find(t=>/Notice of Call/i.test(t.name)).wizard==='shares',[t01.wizard,f05.wizard]);
  ok('the imported templates carry their exact Word file and are drafts',list.length>=15&&t01.has_docx===true&&f05.kind==='FORM'&&f05.status==='DRAFT',[list.length,t01.has_docx,f05.kind]);
  const g1=(await call('GET','/templates/'+t01.id)).j;
  ok('the text version has {{fields}} in place of the yellow labels and the house rules in the notes',/\{\{company_name\}\}/.test(g1.body)&&/\{\{new_directors_names\}\}/.test(g1.body)&&/\{\{#directors\}\}/.test(g1.body)===false&&g1.ai_notes.includes('USE RULES')&&g1.ai_notes.includes('CLAUSES TO CONFIRM'),[g1.body.slice(0,300),g1.ai_notes&&g1.ai_notes.slice(0,200)]);
@@ -73,16 +74,17 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
  await call('PATCH',`/clients/${cl}/profile`,{set:{company_name:'Kilimo Fresh Limited',registered_office:'Mbezi, Kinondoni, P.O. Box 1, Dar es Salaam, Tanzania.',chairman_name:'Zawadi Mushi'}});
  await call('POST',`/clients/${cl}/people`,{full_name:'Zawadi Mushi',roles:['director','secretary']});
  await call('POST',`/clients/${cl}/people`,{full_name:'Juma Kileo',roles:['director','shareholder']});
- await call('PATCH',`/cases/${c.id}/data`,{set:{members_meeting_date:'1 March 2026',new_directors_names:'Juma Kileo',existing_directors_names:'Zawadi Mushi',directors_number_provision:'Article 5 of the Articles',gm_quorum_word:'two',gm_quorum_provision:'Article 4(b)',members_meeting_time:'09:00',gm_notice_provision:'Article 4(a)'}});
+ ok('an official form is made by its wizard: without answers the case asks for them (one way to make documents)',(await call('POST',`/cases/${c.id}/ai/generate-docx`,{template_id:t01.id})).s===409);
+ await call('PUT',`/cases/${c.id}/scenarios/directors`,{answers:{appoint:'Juma Kileo',members_meeting_date:'2026-03-01',members_meeting_time:'09:00'}});
  const gen=await call('POST',`/cases/${c.id}/ai/generate-docx`,{template_id:t01.id});
- ok('an official Word file is filled and attached to the case',gen.s===200&&gen.j.file.filename.endsWith('.docx')&&gen.j.filled>0&&Array.isArray(gen.j.missing),gen.j.filled);
+ ok('an official Word file is filled and attached to the case',gen.s===200&&gen.j.file.filename.endsWith('.docx')&&gen.j.filled>0&&Array.isArray(gen.j.missing)&&gen.j.wizard==='directors',[gen.s,gen.j]);
  const dl=await fetch(`http://localhost:${PORT}/api/files/${gen.j.file.id}`,{headers:{cookie:ck}});
  ok('the filled file downloads as a real Word document',(await dl.arrayBuffer()).byteLength>5000&&dl.headers.get('content-type').includes('wordprocessingml'));
  const g2=gen.j;
- ok('details not on file are reported so the user can add them on the case',g2.missing.length>0&&g2.missing.includes('NEW_DIRECTOR_1_NAME')&&g2.missing.every(k=>/^[A-Z0-9_]+$/.test(k)),g2.missing);
+ ok('details not on file are reported so the user can add them on the case',g2.missing.every(k=>/^[A-Z0-9 ]+$/.test(k)),g2.missing);
  const after=(await call('GET','/cases/'+c.id)).j;
- ok('the fill is recorded in the case history',after.activity.some(a=>/official Word template/.test(a.text)),after.activity.map(a=>a.text));
- {const c2=(await call('POST','/cases',{clientId:cl,caseTypeId:T})).j,g3=await call('POST',`/cases/${c2.id}/ai/generate-docx`,{template_id:t01.id}),miss=g3.j.missing||[];
+ ok('the fill is recorded in the case history',after.activity.some(a=>/prepared 1 document/.test(a.text)),after.activity.map(a=>a.text));
+ {const c2=(await call('POST','/cases',{clientId:cl,caseTypeId:T})).j;await call('PUT',`/cases/${c2.id}/scenarios/directors`,{answers:{appoint:'Juma Kileo',members_meeting_date:'2026-03-01'}});const g3=await call('POST',`/cases/${c2.id}/ai/generate-docx`,{template_id:t01.id}),miss=(g3.j.missing||[]).map(k=>k.replace(/ /g,'_'));
   ok('a template fills from the Company first: the Articles wording (notice, quorum, Table A) is used when the company has no own provision, so it is not left yellow',g3.s===200&&!miss.some(k=>/^(GM_NOTICE_PROVISION|GM_QUORUM_WORD|GM_QUORUM_PROVISION|TABLE_A_PROVISION|DIRECTORS_NUMBER_PROVISION)$/.test(k)),miss)}
  {const JSZ=require('jszip'),T=d=>fs.readFileSync(path.join(PKG,'templates',fs.readdirSync(path.join(PKG,'templates')).find(f=>f.startsWith(d))));
   const V={...Object.fromEntries(Object.entries(data.common).map(([k,v])=>[k.toLowerCase(),v])),...data.common,COMPANY_NAME:'Rahu Multiservices Company Limited',COMPANY_NAME_LINE_1:'RAHU MULTISERVICES',COMPANY_NAME_LINE_2:'COMPANY LIMITED',RETURN_DATE:'22 JANUARY 2026',SIGNING_DATE_OPT:'1 JANUARY 2020'};
@@ -96,5 +98,16 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
   const base={...data.common,...man.defaults,ALLOTTEE_1_NAME:'ONE',ALLOTTEE_1_SHARES:'30',ALLOTTEE_1_ADDRESS:'A',ALLOTTEE_1_CONSENT_DATE:'1st May 2026',ALLOTTEE_2_NAME:'TWO',ALLOTTEE_2_SHARES:'20',ALLOTTEE_2_ADDRESS:'B',ALLOTTEE_2_CONSENT_DATE:'1st May 2026'};
   const r=await E.docxFill(T('F03'),base,{acceptClauses:true}),txt=(await mammoth.extractRawText({buffer:r.buffer})).value;
   ok('Form 57a: unused allottee slots are removed and are not reported as missing (the default "Ordinary" class does not count as a person)',!/ALLOTTEE [34]/.test(txt)&&!r.missing.some(k=>/^ALLOTTEE_[34]_/.test(k)),r.missing)}
+ {const T=d=>fs.readFileSync(path.join(PKG,"templates",fs.readdirSync(path.join(PKG,"templates")).find(f=>f.startsWith(d)))),text=async r=>{const f=await fetch(`http://localhost:${PORT}/api/files/${r.j.file.id}`,{headers:{cookie:ck}});return (await mammoth.extractRawText({buffer:Buffer.from(await f.arrayBuffer())})).value};
+  const t1=await text(gen);ok('the standard wording is kept, not left yellow, when nothing says otherwise',/with effect from the time of receipt of that consent/.test(t1),t1.slice(0,200));
+  await call('PUT',`/cases/${c.id}/scenarios/directors`,{answers:{appoint:'Juma Kileo',members_meeting_date:'2026-03-01',consent_effect:'resolution'}});
+  const g4=await call('POST',`/cases/${c.id}/ai/generate-docx`,{template_id:t01.id}),t2=await text(g4);
+  ok('a wizard question removes optional wording: "effect on receipt of consent" is taken out cleanly',!/receipt of that consent/.test(t2)&&!/\s,/.test(t2.split('\n').find(l=>/RESOLVED/.test(l))||''),t2.slice(0,300));
+  const r1=await E.docxFill(T('T07B'),{...man.defaults,...data.common,...data.T07B,CLAUSE_AT_NOMINAL:'no'}),x1=(await mammoth.extractRawText({buffer:r1.buffer})).value;
+  ok('"at nominal value" is removed when the price differs from the nominal value and kept otherwise',!/at nominal value/.test(x1)&&/allotted to/.test(x1)&&!/ ,/.test(x1.replace(/\n/g,' ')),x1.slice(0,50));
+  const r2=await E.docxFill(T('T07B'),{...man.defaults,...data.common,...data.T07B}),x2=(await mammoth.extractRawText({buffer:r2.buffer})).value;
+  ok('no optional wording is left highlighted once the wizard has decided',r2.clauses===0&&/at nominal value/.test(x2),r2.clauses)}
+ {const T4=fs.readFileSync(path.join(PKG,'templates',fs.readdirSync(path.join(PKG,'templates')).find(f=>f.startsWith('T04')))),r=await E.docxFill(T4,{...man.defaults,...data.common,...data.T04,CLAUSE_PAY_BANK:'no'}),x=(await mammoth.extractRawText({buffer:r.buffer})).value;
+  ok('removing "or into a bank account..." leaves clean punctuation (no ",.")',/registered office of the company\./.test(x)&&!/company,\./.test(x),x.slice(0,10))}
  ok('only real templates can be filled this way',(await call('POST',`/cases/${c.id}/ai/generate-docx`,{template_id:99999})).s===404);
 })();

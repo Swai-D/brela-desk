@@ -51,6 +51,8 @@ const BUILTIN=[
   F('appoint','Directors being appointed','people',{from:'any',max:2,help:'Pick from the people already saved, or add a new person (their details are used on Form 213a). The resolution has room for two.',group:'Who'}),
   F('resign','Directors resigning','people',{from:'directors',max:2,group:'Who'}),
   F('chairman','Chairman of the meetings','person',{from:'directors',ph:'First director who stays, if left empty',group:'Who'}),
+  F('consent_effect','The appointment takes effect','choice',{opts:[['receipt','When the new director\'s signed consent is received'],['resolution','From the date of the resolution, no condition']],group:'Wording'}),
+  F('resign_effect','The resignations take effect','choice',{opts:[['meeting','At the conclusion of the meeting'],['none','No time stated']],group:'Wording'}),
   F('members_meeting_date','Members\' meeting: date','date',{req:true,group:'Meetings'}),F('members_meeting_time','Time','time',{ph:'10:00',group:'Meetings'}),
   F('resignation_meeting_date','Directors\' meeting accepting the resignations: date','date',{ph:'Same day as the members\' meeting',group:'Meetings'}),F('resignation_meeting_time','Time','time',{ph:'11:00',group:'Meetings'}),
   ...ART_FIELDS(['board_notice_provision','board_quorum_word','board_quorum_provision','gm_notice_provision','gm_quorum_word','gm_quorum_provision','directors_number_provision','table_a_provision'])],
@@ -64,6 +66,7 @@ const BUILTIN=[
   const existing=dirs.map(p=>p.full_name).filter(n=>!ap.some(x=>same(x,n))),remaining=[...existing.filter(n=>!rs.some(x=>same(x,n))),...ap];
   const chair=a.chairman&&!rs.some(x=>same(x,a.chairman))?a.chairman:(remaining[0]||existing[0]||'');
   V.chairman_name=chair;V.signing_director_name=chair;V.signing_director_role='Director';
+  V.clause_consent_effect=a.consent_effect==='resolution'?'no':'yes';V.clause_resign_effect=a.resign_effect==='none'?'no':'yes';
   const md=a.members_meeting_date,rd=a.resignation_meeting_date||md;
   V.new_directors_names=joinAnd(ap.map(tc));V.resigning_directors_names=joinAnd(rs.map(tc));V.existing_directors_names=joinAnd(existing.map(tc));V.remaining_directors_names=joinAnd(remaining.map(tc));
   V.additional_or_replacement=ap.length===1&&rs.length===1?'a replacement director':'additional directors';
@@ -112,6 +115,7 @@ const BUILTIN=[
   F('do_reg29','Reg. 29 notice requiring payment (warns of forfeiture)','bool',{group:'Steps you need now'}),
   F('do_forfeit','Forfeit the shares','bool',{group:'Steps you need now'}),
   F('do_realloc','Re-allot the forfeited shares','bool',{group:'Steps you need now'}),
+  F('pay_bank','The call may be paid','choice',{opts:[['bank','At the registered office or into the company bank account'],['office','At the registered office only']],show:{any:['do_call']},group:'The call'}),
   F('reg29_notice_date','Reg. 29 notice date','date',{ph:'Day after the due date',show:{any:['do_reg29','do_forfeit','do_realloc']},group:'Reg. 29 notice'}),
   F('reg29_used','A Reg. 29 notice was or will be served','bool',{show:{any:['do_forfeit','do_realloc']},group:'Reg. 29 notice'}),
   F('forfeit_date','Forfeiture resolution: date','date',{ph:'Day after the last payment deadline',show:{any:['do_forfeit','do_realloc']},group:'Forfeiture'}),F('forfeit_time','Time','time',{ph:'10:00',show:{any:['do_forfeit','do_realloc']},group:'Forfeiture'}),
@@ -148,6 +152,7 @@ const BUILTIN=[
   // forfeiture and re-allotment
   const fd=a.forfeit_date||addDays(last,1),al=a.allotment_date||fd;V.forfeiture_date=fmtD(fd);V.forfeiture_time=a.forfeit_time||'10:00';V.allotment_date=fmtD(al);V.allotment_time=a.allotment_time||'11:00';
   const atts=[1,2,3,4].map(i=>({name:a['allottee_'+i],shares:num(a[`allottee_${i}_shares`])})).filter(x=>x.name),price=num(a.price_per_share)||nominal,noncash=a.payment==='noncash';
+  V.clause_pay_bank=a.pay_bank==='office'?'no':'yes';V.clause_at_nominal=price===nominal?'yes':'no';
   [1,2,3,4].forEach(i=>{const x=atts[i-1];V[`allottee_${i}_name`]=x?x.name:'';V[`allottee_${i}_shares`]=x?comma(x.shares):'';V[`allottee_${i}_amount`]=x&&!noncash?`${cur} ${comma(x.shares*price)}`:'';if(!x)B.push(`ALLOTTEE_${i}_NAME`)});
   V.payment_date=fmtD(a.payment_date||addDays(al,14));V.consideration_description=a.consideration||'';
   // Form 57a / 57b

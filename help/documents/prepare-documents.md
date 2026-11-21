@@ -15,6 +15,10 @@ order: 1
 5. Press **Check**. You see the list of documents that will be made, **warnings**, and the people whose details are missing ("not saved yet" or the list of missing fields).
 6. Fix what the warnings say, then press **Generate**. Each document gets a **Word** button and, when the server can make it, a **PDF** button.
 
+## The one way to make documents
+
+The wizards are the only way to make the official forms, resolutions and notices. If you press the robot icon on a checklist item and choose an official template, the same wizard opens, so the result is identical wherever you start. Optional wording (for example "at nominal value") is decided by a question or by your answers, so the files come out without yellow marks. Yellow remains only for a detail that is truly missing, such as a person's nationality, and the **Check** step names it.
+
 ## What you get
 
 - One Word file per document, named with the form and, for per-person forms, the person's name.
