@@ -1,6 +1,6 @@
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const api=async(url,o={})=>{const fd=o.body instanceof FormData,r=await fetch('/api'+url,{method:o.method||(o.body?'POST':'GET'),credentials:'same-origin',headers:o.body&&!fd?{'Content-Type':'application/json'}:{},body:o.body&&!fd?JSON.stringify(o.body):o.body});
- if(r.status===401){location.href=sessionStorage.getItem('brela.lock.user')?'auth-lock-screen.html':'login.html';throw new Error('Please sign in')}const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Something went wrong');return j};
+ if(r.status===401){location.href=sessionStorage.getItem('brela.lock.user')?'auth-lock-screen.html':'login.html';throw new Error('Please sign in')}const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.error||'Something went wrong');e.data=j;e.status=r.status;throw e}return j};
 const STATUSES=[{k:'new',n:'New',c:'secondary'},{k:'docs',n:'Gathering Docs',c:'info'},{k:'ready',n:'Ready to Submit',c:'warning'},{k:'submitted',n:'Submitted to BRELA',c:'primary'},{k:'returned',n:'Returned (Correction)',c:'danger'},{k:'done',n:'Completed',c:'success'}];
 let ROLES=[],RL=[];const RN=r=>((RL.find(x=>x.key===r)||{}).name)||(String(r).charAt(0)+String(r).slice(1).toLowerCase()),syncRoles=()=>{RL=S.roles||[];ROLES=RL.map(r=>r.key)};
 const LV_N={MANAGER:'Manager',SENIOR:'Senior',STAFF:'Staff'},LV_C={MANAGER:'danger',SENIOR:'primary',STAFF:'secondary'};
@@ -58,6 +58,16 @@ const toast=(msg,type='success',ms=4200)=>{let box=$('toast-box');if(!box){box=d
 const ask=(msg,o={})=>new Promise(res=>{const id='cf'+Date.now();document.body.insertAdjacentHTML('beforeend',`<div class="modal fade" id="${id}" tabindex="-1" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content confirm-box ${o.danger?'danger':''}"><div class="modal-body text-center pt-4"><div class="confirm-ico"><i class='bx ${o.icon||(o.danger?'bx-trash':'bx-help-circle')}'></i></div><h5 class="mb-1">${o.title||'Are you sure?'}</h5><p class="text-muted mb-0">${msg}</p></div><div class="modal-footer justify-content-center border-0 pt-0"><button class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button><button class="btn ${o.danger?'btn-danger':'btn-primary'} px-4 cf-ok">${o.ok||'Yes, continue'}</button></div></div></div></div>`);
  const el=$(id),m=new bootstrap.Modal(el);let done=false;const end=v=>{if(!done){done=true;res(v)}};
  el.querySelector('.cf-ok').onclick=()=>{end(true);m.hide()};el.addEventListener('hidden.bs.modal',()=>{el.remove();end(false)});m.show()});
+/* ---- "this document is made by a wizard": say so, and take the person straight there ---- */
+const wizardPrompt=(info,caseId,onDone)=>new Promise(res=>{const id='wp'+Date.now(),qs=info.questions||[];
+ document.body.insertAdjacentHTML('beforeend',`<div class="modal fade" id="${id}" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content confirm-box"><div class="modal-body text-center pt-4 px-4"><div class="confirm-ico"><i class='bx bx-bolt-circle'></i></div>
+  <h5 class="mb-2">${info.reason==='answers'?'A few answers are needed first':'This document is made by a wizard'}</h5>
+  <p class="text-muted mb-2">${info.reason==='answers'?`<b>${esc(info.wizard_title)}</b> fills this document from your answers. Still needed:`:`<b>${esc(info.wizard_title)}</b> asks a few questions and fills the document from the Company and your answers, so it comes out the same everywhere.`}</p>
+  ${qs.length?`<ul class="text-start small text-muted d-inline-block mb-2 ps-3">${qs.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
+  <div class="modal-footer justify-content-center border-0 pt-0"><button class="btn btn-light px-4" data-bs-dismiss="modal">Not now</button><button class="btn btn-primary px-4 wp-go"><i class="bx bx-bolt-circle me-1"></i>Open ${esc(info.wizard_title)}</button></div></div></div></div>`);
+ const el=$(id),m=new bootstrap.Modal(el);let go=false;
+ el.querySelector('.wp-go').onclick=()=>{go=true;m.hide()};
+ el.addEventListener('hidden.bs.modal',()=>{el.remove();if(go)scenarioModal(caseId,info.wizard,onDone);res(go)});m.show()});
 /* ---- custom text prompt (replaces window.prompt) ---- */
 const askText=(title,msg,ph='')=>new Promise(res=>{const el=modal(title,`${msg?`<p class="text-muted mb-2">${msg}</p>`:''}<input id="at-i" class="form-control" placeholder="${esc(ph)}">`,'Save',el=>{const v=el.querySelector('#at-i').value.trim();if(!v)throw new Error('Please write something');res(v)});
  el.addEventListener('hidden.bs.modal',()=>res(null))});
@@ -360,7 +370,7 @@ async function aiDoc(caseId,item,onDone){
     ${(r.people||[]).length?`<div class="alert alert-warning py-2"><b><i class="bx bx-user-exclamation me-1"></i>Missing on the Company tab</b> (left yellow in the Word file):<ul class="mb-0 mt-1 ps-3">${r.people.map(p=>`<li><b>${esc(p.name)}</b>: ${esc(p.fields.join(', '))}</li>`).join('')}</ul><div class="small mt-1">Open the client, then <b>Company</b> &rarr; the person &rarr; edit, add them, then press Prepare again.</div></div>`:''}
     ${(r.rest||r.missing).length?`<div class="alert alert-warning py-2"><b>${(r.rest||r.missing).length} detail${(r.rest||r.missing).length===1?'':'s'} not on file</b>, left as yellow [LABELS] in the Word file: <code>${(r.rest||r.missing).map(esc).join('</code>, <code>')}</code><div class="small mt-1">Add them on the case under <b>Details for documents</b> (lowercase, e.g. <code>${esc((r.rest||r.missing)[0].toLowerCase())}</code>), then press Prepare again.</div></div>`:''}`;
    g('#ad-foot').innerHTML='<button class="btn btn-primary" data-bs-dismiss="modal">Done</button>'}
-  catch(e){toast(e.message,'error');g('#ad-go').disabled=false;g('#ad-go').innerHTML='<i class="bx bx-bot me-1"></i>Prepare'}};
+  catch(e){g('#ad-go').disabled=false;g('#ad-go').innerHTML='<i class="bx bx-bot me-1"></i>Prepare';if(e.data&&e.data.wizard){m.hide();return wizardPrompt(e.data,caseId,onDone)}toast(e.message,'error')}};
  const generate=async()=>{const t=T();if(t&&t.wizard){m.hide();return scenarioModal(caseId,t.wizard,onDone)}if(t&&t.has_docx)return docxGen(t);g('#ad-go').disabled=true;g('#ad-go').innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Preparing...';
   try{const r=await api(`/cases/${caseId}/ai/generate`,{body:{template_id:t?t.id:undefined,mode:g('#ad-force').checked?'ai':'auto',doc_name:g('#ad-n').value,instructions:g('#ad-i').value}});
    Object.assign(st,{text:r.text,mode:r.mode,runId:r.run_id,tpl:r.template,docName:r.doc_name,manual:false});

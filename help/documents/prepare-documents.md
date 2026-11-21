@@ -21,6 +21,8 @@ The wizards are the only way to make the official forms, resolutions and notices
 
 Your own Word templates ([Make a template from your own Word file](help:documents/template-from-word-file)) appear here too, each with a wizard that was made for it.
 
+Starting from a checklist item? The robot icon takes you to the right wizard, or shows a dialog with a button that opens it ([Fill a template on a case](help:documents/fill-a-template-on-a-case)).
+
 ## What you get
 
 - One Word file per document, named with the form and, for per-person forms, the person's name.
