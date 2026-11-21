@@ -30,7 +30,7 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
   ok('a company with one director gets one director block, with no empty slots left over',f1.txt.includes('DIRECTOR NUMBER 1')&&!/\[DIRECTOR|Business occupation:\s*\n+\s*Business occupation/.test(f1.txt)&&(f1.txt.match(/Business occupation/g)||[]).length===1&&f1.r.missing.length===0,[(f1.txt.match(/Business occupation/g)||[]).length,f1.r.missing]);
   ok('optional "IF ANY" details with no value are blank instead of staying yellow',!/IF ANY/.test(f5.txt)&&!/IF ANY/.test(f1.txt)&&!f5.r.missing.some(k=>/_OPT$|IF ANY/.test(k)));
   const t2=await fill('T02',vals(2,2));
-  ok('the attendance list of a resolution has one line per director, no spare numbered lines',t2.txt.includes('DIRECTOR NUMBER 1')&&t2.txt.includes('DIRECTOR NUMBER 2')&&!/\[ATTENDEE/.test(t2.txt),t2.txt.slice(0,600));
+  ok('the attendance list of a resolution has one line per director, no spare numbered lines',t2.txt.includes('Director Number 1')&&t2.txt.includes('Director Number 2')&&!/\[ATTENDEE/.test(t2.txt),t2.txt.slice(0,600));
   const t1=await fill('T01',vals(2,8));
   ok('the member lists grow beyond the 7 slots of the template (8 members listed, with their shares)',[1,2,3,4,5,6,7,8].every(n=>(t1.txt.match(/shares\), attended in person|Ordinary, 1,000 shares\)/g)||[]).length>=8)&&/EXTRA MEMBER 6/.test(t1.txt),(t1.txt.match(/attended in person/g)||[]).length);
   ok('the changed file stays valid: one XML declaration, and every table cell ends with a paragraph',[f5,f1,t1,t2].every(x=>(x.xml.match(/<\?xml/g)||[]).length===1)&&[f5,f1].every(x=>!/<\/w:tbl><\/w:tc>/.test(x.xml)),0)}
@@ -90,5 +90,11 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
    ok(f+': the company name is one full name in a single row, with no second name line',txt.includes('RAHU MULTISERVICES COMPANY LIMITED')&&!/COMPANY NAME LINE/.test(txt),txt.slice(0,300))}
   const pv=E.packageValues?E.packageValues({values:{RETURN_DATE:'22 JANUARY 2026'},lists:{}}):null;
   if(pv)ok('Form 131 is signed on the day the return is made up to',pv.SIGNING_DATE_OPT==='22 JANUARY 2026',pv.SIGNING_DATE_OPT)}
+ {const T=d=>fs.readFileSync(path.join(PKG,'templates',fs.readdirSync(path.join(PKG,'templates')).find(f=>f.startsWith(d))));
+  const pv=E.packageValues({values:{company_name:'Demo Ltd',allottee_1_name:'X'},lists:{directors:[{full_name:'SALMA JUMA MREMA',nationality:'Tanzanian'},{full_name:'Zawadi Kileo'}],secretaries:[],shareholders:[]}});
+  ok('names in the body of a resolution read in one style (capitals from the registry become Title Case)',pv.ATTENDEE_1_NAME==='Salma Juma Mrema'&&pv.ATTENDEE_2_NAME==='Zawadi Kileo',[pv.ATTENDEE_1_NAME,pv.ATTENDEE_2_NAME]);
+  const base={...data.common,...man.defaults,ALLOTTEE_1_NAME:'ONE',ALLOTTEE_1_SHARES:'30',ALLOTTEE_1_ADDRESS:'A',ALLOTTEE_1_CONSENT_DATE:'1st May 2026',ALLOTTEE_2_NAME:'TWO',ALLOTTEE_2_SHARES:'20',ALLOTTEE_2_ADDRESS:'B',ALLOTTEE_2_CONSENT_DATE:'1st May 2026'};
+  const r=await E.docxFill(T('F03'),base,{acceptClauses:true}),txt=(await mammoth.extractRawText({buffer:r.buffer})).value;
+  ok('Form 57a: unused allottee slots are removed and are not reported as missing (the default "Ordinary" class does not count as a person)',!/ALLOTTEE [34]/.test(txt)&&!r.missing.some(k=>/^ALLOTTEE_[34]_/.test(k)),r.missing)}
  ok('only real templates can be filled this way',(await call('POST',`/cases/${c.id}/ai/generate-docx`,{template_id:99999})).s===404);
 })();

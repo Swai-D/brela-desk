@@ -26,7 +26,7 @@ const hold=p=>num(p&&p.shares);
 const his=p=>/^f/i.test(p&&p.gender||'')?'her':/^m/i.test(p&&p.gender||'')?'his':'his or her';
 const heShe=p=>/^f/i.test(p&&p.gender||'')?'She':/^m/i.test(p&&p.gender||'')?'He':'He or she';
 function addrParts(p){ // [street/area, ward+district, region+country] for forms; and a "line 1 / country" split for letters
- const a=p&&p.addr&&typeof p.addr==='object'?p.addr:{},j=(...x)=>x.filter(Boolean).join(', ');
+ const a0=p&&p.addr&&typeof p.addr==='object'?p.addr:{},lw=x=>typeof x==='string'&&/[a-z]/.test(x)&&x===x.toLowerCase()?x.replace(/(^|[\s\-'])([a-z])/g,(m,y,z)=>y+z.toUpperCase()):x,a=Object.fromEntries(Object.entries(a0).map(([k,v])=>[k,lw(v)])),j=(...x)=>x.filter(Boolean).join(', ');
  if(!Object.keys(a).length){const t=String((p&&p.address)||'').split(',').map(x=>x.trim()).filter(Boolean);return{country:t.length>1?t[t.length-1]:'',rest:t.length>1?t.slice(0,-1).join(', '):t[0]||''}}
  const street=j(a.house&&`House ${a.house}`,a.plot&&`Plot ${a.plot}`,a.block&&`Block ${a.block}`,a.street,a.road,a.unsurveyed,a.landmark);
  return{country:a.country||'',rest:j(street,a.subward,a.ward,a.district,a.region)}}
@@ -89,7 +89,7 @@ const BUILTIN=[
   if(rs.length&&left<2)w.push(`After these changes the company would have ${left} director${left===1?'':'s'}. A private company needs at least 2 (s.189 of the Companies Act), so appoint before anyone resigns.`);
   if(a.resignation_meeting_date&&a.members_meeting_date&&a.resignation_meeting_date<a.members_meeting_date)w.push('The directors\' meeting accepting the resignations must be on or after the members\' meeting that appoints the new directors.');
   return w},
- people(a,c){return[...list(a.appoint).map(n=>({name:n,need:['dob','nationality','occupation','address'],why:'Form 213a'})),...list(a.resign).map(n=>({name:n,need:['dob'],why:'Form 213b'}))]}},
+ people(a,c){return[...list(a.appoint).map(n=>({name:n,need:['dob','nationality','address'],why:'Form 213a'})),...list(a.resign).map(n=>({name:n,need:['dob'],why:'Form 213b'}))]}},
 
 {id:'secretary',title:'Change of company secretary',icon:'bx-id-card',match:/secretar/i,desc:'Appoint a new secretary and/or end the current one: Form 213a and Form 213b.',
  fields:[F('new_secretary','New secretary','person',{from:'any',help:'Pick a saved person or add a new one.',group:'Who'}),F('end_current','End the current secretary\'s appointment','bool',{group:'Who'}),
@@ -99,7 +99,7 @@ const BUILTIN=[
  derive(a,c){const V={},d=a.effective_date,sd=a.signing_director||(c.directors[0]||{}).full_name||'';V.signing_director_name=sd;V.signing_director_role='Director';
   V.appointment_date=up(fmtD(d));V.termination_date=up(fmtD(d));V.consent_date=ordD(d);V.signing_date=ordD(d);return{V,B:[]}},
  warn(a,c){const w=[];if(!a.new_secretary&&a.end_current!=='yes')w.push('Choose a new secretary, or tick that the current secretary\'s appointment ends.');if(a.end_current==='yes'&&!c.secretaries.length)w.push('The company has no saved secretary to end.');return w},
- people(a){return a.new_secretary?[{name:a.new_secretary,need:['dob','nationality','occupation','address'],why:'Form 213a'}]:[]}},
+ people(a){return a.new_secretary?[{name:a.new_secretary,need:['dob','nationality','address'],why:'Form 213a'}]:[]}},
 
 {id:'shares',title:'Call on shares, forfeiture and re-allotment',icon:'bx-pie-chart-alt-2',match:/share|capital/i,desc:'The full unpaid-shares process. Tick the steps you need now; later steps reuse the earlier answers. Makes the resolutions, notices and Forms 57a / 57b.',
  fields:[
@@ -183,7 +183,7 @@ const BUILTIN=[
  fields:[F('return_date','Return made up to','date',{ph:'Latest anniversary of incorporation',group:'Options'}),F('no_charges','There were no charges in the period','bool',{group:'Options'}),F('list_of_changes','A list of changes is enclosed','bool',{group:'Options'}),F('full_members','A full list of members is enclosed','bool',{group:'Options'})],
  jobs:()=>[{tid:'F05',name:'Form 131 - annual return'}],
  derive(a){const V={};if(a.return_date)V.return_date=up(fmtD(a.return_date));V.no_charges_tick_opt=a.no_charges==='yes'?'X':'';V.list_of_changes_tick_opt=a.list_of_changes==='yes'?'X':'';V.full_members_list_tick_opt=a.full_members==='yes'?'X':'';return{V,B:[]}},
- warn:()=>[],people:()=>[]}];
+ warn:()=>[],people:(a,c)=>[...(c.directors||[]).map(p=>({name:p.full_name,need:['dob','nationality','address'],why:'Form 131'})),...(c.secretaries||[]).map(p=>({name:p.full_name,need:['address'],why:'Form 131'}))]}];
 
 // what derive() needs to know about the company
 function companyView(ctx){

@@ -19,7 +19,7 @@ const PARTS=[['country','country'],['region','region'],['district','district'],[
 // one address line from structured parts (house, plot, block, street, road, unsurveyed area, subward, ward, district, region, country)
 function composeAddress(p){
  const g=k=>String((p&&p[k])||'').trim();
- return[g('house')&&`House ${g('house')}`,g('plot')&&`Plot ${g('plot')}`,g('block')&&`Block ${g('block')}`,title(g('street')),title(g('road')),g('unsurveyed'),g('landmark'),title(g('subward')),g('ward'),g('district'),g('region'),g('country')].filter(Boolean).join(', ')}
+ return[g('house')&&`House ${g('house')}`,g('plot')&&`Plot ${g('plot')}`,g('block')&&`Block ${g('block')}`,title(g('street')),title(g('road')),title(g('unsurveyed')),title(g('landmark')),title(g('subward')),title(g('ward')),title(g('district')),title(g('region')),title(g('country'))].filter(Boolean).join(', ')}
 function parseAddress(line){
  const a={},str=String(line||''),ms=[...str.matchAll(ADDR_RE)];ms.forEach((m,i)=>{const from=m.index+m[0].length,to=i+1<ms.length?ms[i+1].index:str.length;a[m[1].toLowerCase().replace(/[^a-z]/g,'')]=NONE(str.slice(from,to))});
  if(/^tz$/i.test(a.pobox||''))a.pobox='';
