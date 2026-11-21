@@ -9,6 +9,14 @@ const text=async f=>{const r=await fetch(`${B}/files/${f.id}`,{headers:{cookie:c
  // ---- helpers
  ok('numbers in words',SC.words(2500000)==='two million and five hundred thousand'&&SC.words(7120)==='seven thousand, one hundred and twenty'&&SC.words(950)==='nine hundred and fifty');
  ok('dates',SC.fmtD('2026-09-29')==='29 September 2026'&&SC.ordD('2026-09-01')==='1st September 2026'&&SC.ordD('2026-09-22')==='22nd September 2026'&&SC.addDays('2026-09-29',14)==='2026-10-13');
+ // reliability: annual return warns when the member shares and the issued shares disagree
+ {const an=SC.BUILTIN.find(x=>x.id==='annual'),w1=an.warn({},{shareholders:[{shares:'300'},{shares:'400'}],values:{shares_issued:'950'}}),w2=an.warn({},{shareholders:[{shares:'500'},{shares:'450'}],values:{shares_issued:'950'}});
+  ok('annual: members\' shares that do not add up to the issued shares are flagged',w1.length===1&&/700.*950/.test(w1[0])&&!w2.length,[w1,w2])}
+ // reliability: resolutions use Title Case names, forms keep capitals; a member who is neither chairman nor secretary stays in the Present list
+ {const E=require('../docs.js'),ctx={values:{company_name:'X LTD'},lists:{directors:[{full_name:'ANNA ÖMER'}],secretaries:[{full_name:'SEC PERSON'}],shareholders:[{full_name:'ANNA ÖMER'},{full_name:'BOB ONE'},{full_name:'CARL TWO'}],people:[]}},
+   r=E.packageValues(ctx,{kind:'resolution'}),f=E.packageValues(ctx);
+  ok('resolution names are Title Case (unicode aware), form names stay in capitals',r.DIRECTOR_1_NAME==='Anna Ömer'&&f.DIRECTOR_1_NAME==='ANNA ÖMER',[r.DIRECTOR_1_NAME,f.DIRECTOR_1_NAME]);
+  ok('members other than chairman and secretary are listed as OTHER MEMBER',r.OTHER_MEMBER_1_NAME!==undefined,Object.keys(r).filter(k=>/OTHER_MEMBER/.test(k)))}
  await call('POST','/login',{email:'boss@test.co',password:AP});
  await call('POST','/templates/import-package',{});
  const cl=(await call('POST','/clients',{name:'Scenario Test Ltd',phone:'255700000021'})).j,cid=cl.id;
@@ -27,7 +35,7 @@ const text=async f=>{const r=await fetch(`${B}/files/${f.id}`,{headers:{cookie:c
  ok('generate makes 6 files',gen.s===200&&gen.j.jobs.filter(j=>j.file).length===6,gen.j);
  const t1=await text(gen.j.jobs[0].file),t2=await text(gen.j.jobs[1].file);
  ok('members\' resolution: names, dates, "additional directors", filing deadline',/Ronald Baraka Shelukindo and Emmanuel Santa Chacha/.test(t1)&&/Ali Omari Kazi and Chausiku Said Mwita/.test(t1)&&/29 September 2026/.test(t1)&&/additional directors/.test(t1)&&/13 October 2026/.test(t1),t1.slice(0,1500));
- ok('members present: chairman first, shares shown, empty lines gone',/BAKARI JUMA LEO/.test(t1)&&/5,000/.test(t1)&&!/\[MEMBER 6 NAME\]/.test(t1)&&!/\[MEMBER 7 NAME\]/.test(t1));
+ ok('members present: chairman first, shares shown, empty lines gone',/Bakari Juma Leo/.test(t1)&&!/BAKARI JUMA LEO/.test(t1)&&/5,000/.test(t1)&&!/\[MEMBER 6 NAME\]/.test(t1)&&!/\[MEMBER 7 NAME\]/.test(t1));
  ok('directors\' resolution: five attendees, notes about what the resigning directors keep, the remaining directors',/Ali Omari Kazi/.test(t2)&&/remains the Company Secretary/.test(t2)&&/Bakari Juma Leo, Ronald Baraka Shelukindo and Emmanuel Santa Chacha/.test(t2),t2.slice(0,2000));
  const f213a=await text(gen.j.jobs[2].file),f213b=await text(gen.j.jobs[4].file);
  ok('Form 213a for the first new director: names split, date of birth, occupation, address, dates in capitals / ordinals',/RONALD BARAKA/.test(f213a)&&/SHELUKINDO/.test(f213a)&&/5 MAY 1990/.test(f213a)&&/ENGINEER/.test(f213a)&&/MFANO STREET/.test(f213a)&&/29 SEPTEMBER 2026/.test(f213a)&&/29th September 2026/.test(f213a)&&/DIRECTOR/.test(f213a),f213a.slice(0,1500));

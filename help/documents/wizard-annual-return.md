@@ -20,7 +20,7 @@ Company name and number, registered office, return date, the share capital and *
 
 ## Before you generate
 
-1. Open the client's **Company** tab and check the shareholders and their shares add up to the issued shares.
+1. Open the client's **Company** tab and check the shareholders and their shares add up to the issued shares. The wizard warns you when they do not, or when no members are saved.
 2. Check the registered office and the nominal value.
 3. If anything was missing, import again from BRELA ([Import](help:clients/import-from-brela)).
 

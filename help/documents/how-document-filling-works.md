@@ -27,7 +27,9 @@ Understanding this helps you fix a wrong document at the source.
 | **Company name** | The full company name is written in a single row on the forms (Forms 131, 213a, 213b and 57a), never split over two lines. |
 | **Signing date on Form 131** | The date next to the signature is the same as the date the return is made up to. |
 | **Empty people slots** | A slot nobody fills (for example a third allottee on Form 57a) is removed from the document and is not listed as missing. |
-| **Names inside resolutions** | Names read in one style, for example "Salma Juma Mrema", even when the registry saved them in capitals. The official forms keep capitals. |
+| **Names inside resolutions** | Names read in Title Case, for example "Salma Juma Mrema", even when the registry saved them in capitals (accented letters such as "Ömer" are kept). The official forms keep capitals. |
+| **Present list** | In a members' resolution the chairman and the secretary come first, then every other member, so nobody who attended is left out, even when the secretary is not a member. |
+| **Warnings** | The wizard shows warnings in yellow before you generate (for example when the members' shares do not add up to the company's issued shares). Fix the cause on the **Company** tab, or sign only after checking it by hand. |
 | **Optional wording** | Wording the official forms offer as an option (for example "at nominal value", "or into a bank account designated by the Company", "with effect from the time of receipt of that consent") is decided by the wizard: some by a question, some by your answers ("at nominal value" stays when the price per share equals the nominal value). Nothing is left yellow. |
 | **One way to generate** | Official forms are always made by their wizard, from the Company plus your answers, whether you start from **Prepare documents** or from the robot icon on a checklist item. |
 | **Capitals** | Official forms use capitals for names, dates and addresses. The app writes them that way. |
