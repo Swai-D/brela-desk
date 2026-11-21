@@ -27,3 +27,5 @@ Company name and number, registered office, return date, the share capital and *
 The director section repeats for every director on the **Company** tab (the printed form has three blocks, the app adds more when you have more) and the members list repeats for every shareholder. Then press **Generate** and open the Form 131 with the **Word** button (to edit) or the **PDF** button (to upload). Check the totals and the members.
 
 See also: [How document filling works](help:documents/how-document-filling-works).
+
+After you generate, the wizard lists any director or secretary whose nationality, date of birth or address is missing on the **Company** tab, so you can add it before signing.

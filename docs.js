@@ -113,7 +113,7 @@ function restructureSlots(doc,values){
  const textOf=e=>Array.from(e.getElementsByTagNameNS(W_NS,'t')).map(t=>t.textContent).join('');
  const hlRuns=()=>Array.from(doc.getElementsByTagNameNS(W_NS,'r')).filter(isHl);
  const have=new Map();// prefix -> highest n that has any value
- for(const [k,v] of Object.entries(values)){const m=k.match(/^(NEW_DIRECTOR|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_(\d+)_/);if(m&&String(v??'').trim()!==''){const p=m[1].replace('_',' ');have.set(p,Math.max(have.get(p)||0,+m[2]))}}
+ for(const [k,v] of Object.entries(values)){const m=k.match(/^(NEW_DIRECTOR|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_(\d+)_/);if(m&&String(v??'').trim()!==''&&!/^(NEW_DIRECTOR|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_\d+_(CLASS|POSSESSIVE)$/.test(k)){const p=m[1].replace('_',' ');have.set(p,Math.max(have.get(p)||0,+m[2]))}}
  const slotsOf=prefix=>{const g=new Map(),keyOf=new Map();
   for(const r of hlRuns()){const m=textOf(r).trim().match(SLOT_RE);if(m){keyOf.set(r,m[1]+'|'+m[2]);if(m[1]===prefix){if(!g.has(+m[2]))g.set(+m[2],[]);g.get(+m[2]).push(r)}}}
   const owns=(el,key)=>Array.from(el.getElementsByTagNameNS(W_NS,'r')).every(r=>!isHl(r)||keyOf.get(r)===key);
@@ -213,6 +213,9 @@ async function docxFill(buf,values,{acceptClauses=false}={}){
   // xmldom keeps the file's own <?xml ...?> line when it writes the document back, so strip it and add exactly one (two make Word refuse to open the file)
   zip.file(f,'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n'+new XMLSerializer().serializeToString(doc).replace(/^\s*(<\?xml[^>]*\?>\s*)+/,''))}
  const buffer=await zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'});
+ // slots nobody fills were taken out of the document, so they are not "missing" either
+ const top={};for(const [k,v] of Object.entries(values)){const m=k.match(/^(NEW_DIRECTOR|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_(\d+)_(?!CLASS$|POSSESSIVE$)/);if(m&&String(v??'').trim()!=='')top[m[1]]=Math.max(top[m[1]]||0,+m[2])}
+ for(const k of [...missing]){const m=String(k).match(/^(NEW_DIRECTOR|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_(\d+)_/);if(m&&+m[2]>Math.max(top[m[1]]||0,1))missing.delete(k)}
  return{buffer,missing:[...missing],filled,clauses}}
 
 // A PDF copy of a filled Word file (easier to upload to BRELA). Uses LibreOffice when the server has it; returns null when it does not,
@@ -283,6 +286,9 @@ function packageValues(ctx){
  dirs.forEach((p,i)=>{const n=i+1;set(`DIRECTOR_${n}_OCCUPATION`,up(p.occupation)||'DIRECTOR');set(`DIRECTOR_${n}_PREVIOUS_NAMES_OPT`,up(p.previous_names));set(`DIRECTOR_${n}_OTHER_DIRECTORSHIPS_OPT`,p.other_directorships)});
  if(v.REGISTERED_OFFICE&&!/\.$/.test(v.REGISTERED_OFFICE))v.REGISTERED_OFFICE+='.';
  for(const k of Object.keys(v))if(CAPS.test(k))v[k]=v[k].toUpperCase();
+ // names written in the body of a resolution read in one style: registry names arrive in capitals, so "SALMA JUMA MREMA" becomes "Salma Juma Mrema" like the others
+ const BODY_NAME=/^((ATTENDEE|ALLOTTEE|RESIGNING)_\d+_NAME|MEMBER_NAME|FORMER_MEMBER_NAME|ADDRESSEE_NAME|[A-Z_]*DIRECTORS_NAMES)$/;
+ for(const k of Object.keys(v))if(BODY_NAME.test(k)&&v[k]===v[k].toUpperCase())v[k]=v[k].toLowerCase().replace(/(^|[\s\-'(])([a-z])/g,(m,x,y)=>x+y.toUpperCase()).replace(/ And /g,' and ');
  return v}
 
 // Which saved person is missing which detail (so the message can say "Add Juma's nationality on the Company tab" instead of a bare label).

@@ -63,6 +63,7 @@ const text=async f=>{const r=await fetch(`${B}/files/${f.id}`,{headers:{cookie:c
  const an=await call('POST',`/cases/${cs.id}/scenarios/annual/generate`,{answers:{no_charges:'yes'}});
  const f131=await text(an.j.jobs[0].file);
  ok('annual return is one click and comes out with the members and totals',an.j.jobs.length===1&&/DEMOMULTI SERVICES/.test(f131)&&/35,600,000/.test(f131)&&/EMMANUEL JOHN TARIMO/.test(f131),f131.slice(0,800));
+ ok('the annual return wizard lists which saved people still lack details Form 131 needs',Array.isArray(an.j.people),an.j.people)
  {const hasSoffice=require('child_process').spawnSync('soffice',['--version']).status===0,job=an.j.jobs[0];
   ok('a Word file is saved with every document, and a PDF copy beside it when the server can convert (else just the Word file)',/\.docx$/.test(job.file.filename)&&(hasSoffice?!!job.pdf&&/\.pdf$/.test(job.pdf.filename):job.pdf===null),job);
   if(job.pdf){const r=await fetch(`${B}/files/${job.pdf.id}`,{headers:{cookie:ck}}),b=Buffer.from(await r.arrayBuffer());
