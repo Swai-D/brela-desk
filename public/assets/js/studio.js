@@ -159,7 +159,20 @@ function shell(){
 const run=async(btn,fn)=>{const h=btn.innerHTML;btn.disabled=true;btn.innerHTML='<i class="bx bx-loader-alt bx-spin me-1"></i>Working…';try{await fn()}catch(e){toast(e.message||'Something went wrong','error')}finally{btn.disabled=false;btn.innerHTML=h}};
 const leave=async()=>!E||!E.changed||await ask('You have unsaved changes in this document. Leave without saving?',{ok:'Leave',title:'Unsaved changes',icon:'bx-error'});
 const dirty=()=>{const d=g('sd-dirty');if(d)d.style.display=E&&E.changed?'':'none'};
-window.addEventListener('beforeunload',e=>{if(E&&E.changed&&ST.view==='sign'){e.preventDefault();e.returnValue=''}});
+// Guard every way out while there are unsaved changes. In-app links (sidebar, topbar,
+// case links) show the same custom dialog as the Back link; the browser owns the text
+// of its own beforeunload prompt, so that stays only for tab close / reload / external.
+let leaving=false;
+document.addEventListener('click',e=>{
+ if(leaving||ST.view!=='sign'||!E||!E.changed||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
+ const a=e.target.closest('a[href]');
+ if(!a)return;
+ const href=a.getAttribute('href');
+ if(!href||href.startsWith('#')||a.target==='_blank'||a.hasAttribute('download'))return;
+ e.preventDefault();e.stopImmediatePropagation();
+ (async()=>{if(await leave()){leaving=true;location.href=a.href}})();
+},true);
+window.addEventListener('beforeunload',e=>{if(!leaving&&E&&E.changed&&ST.view==='sign'){e.preventDefault();e.returnValue=''}});
 
 // ---- signatures panel
 function sigList(){
