@@ -137,12 +137,12 @@ function mount(el,o){
     uf.onchange=async()=>{const file=uf.files[0];uf.value='';if(!file)return;const fd=new FormData();fd.append('file',file);
       try{
         if(t.has_docx){
-          if(!await ask('The template text is updated from it and a new version is saved.',{title:'Replace the Word form with this file?',ok:'Replace',icon:'bx-upload'}))return;
+          if(!await ask('The template text is updated from it and a new version is saved.',{ok:'Yes, replace',icon:'bx-error',title:'Replace the official form with this Word file?'}))return;
           const r=await api(`/templates/${id}/upload-docx`,{body:fd});toast('Word form replaced'+(r.questions_added?`; ${r.questions_added} new wizard question${r.questions_added===1?'':'s'} added`:''),'success');if(o.reopen)o.reopen()}
         else{
           const r=await api('/templates/docx-to-html',{body:fd});const tmp=document.createElement('div');tmp.innerHTML=r.html;const nb=htmlToBody(tmp);
           if(!nb.trim())throw new Error('The Word file has no text');
-          if(b.value.trim()&&!await ask('Save afterwards to keep it; Cancel in the editor discards it.',{title:'Replace the template text with this Word file?',ok:'Replace',icon:'bx-upload'}))return;
+          if(b.value.trim()&&!await ask('Save afterwards to keep it; Cancel in the editor discards it.',{ok:'Yes, load it',icon:'bx-error',title:'Replace the template text with the content of this Word file?'}))return;
           b.value=nb;changed();stale();paper.innerHTML=bodyToHtml(nb);toast('Word file loaded into the template','success');renderWord(true)}
       }catch(e){toast(e.message,'error')}}}
 
