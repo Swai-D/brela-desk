@@ -421,7 +421,7 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   for(const j of jobs){
    const t=j.template_id?await one('SELECT id,name,docx_data,docx_defaults FROM templates WHERE id=$1 AND docx_data IS NOT NULL',[j.template_id]):await tplFor(j.tid),row={tid:j.tid||'',name:j.name,who:j.who||'',title:j.who?`${j.name}: ${SC.tc(j.who)}`:j.name};
    if(!t){out.push({...row,error:'The official Word templates are not imported yet (open Templates and press Import).'});continue}
-   const x=await contextFor(caseId,{scn:s,answers,over:j.over}),values={...(t.docx_defaults||{}),...E.packageValues(x.ctx)};
+   const x=await contextFor(caseId,{scn:s,answers,over:j.over}),values={...(t.docx_defaults||{}),...E.packageValues(x.ctx,{kind:/^T/.test(j.tid||'')?'resolution':''})};
    for(const k of x.blanks)if(values[k]===undefined||values[k]===null)values[k]='';
    let r;try{r=await E.docxFill(t.docx_data,values,{custom:!!j.template_id})}catch(e){out.push({...row,error:'Could not fill this template: '+e.message});continue}
    row.missing=r.missing.filter(m=>!/^\?/.test(m)).map(m=>E.labelFromKey(m));row.filled=r.filled;

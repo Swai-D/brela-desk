@@ -18,7 +18,7 @@ function words(n){n=Math.round(num(n));if(n===0)return 'zero';const sc=[[1e9,'bi
  if(parts.length<2)return parts[0].t;const last=parts[parts.length-1],glue=last.scale||!last.hund?' and ':', ';
  return parts.slice(0,-1).map(x=>x.t).join(', ')+glue+last.t}
 const joinAnd=l=>l.length<2?(l[0]||''):l.slice(0,-1).join(', ')+' and '+l[l.length-1];
-const tc=s=>String(s||'').toLowerCase().replace(/(^|[\s\-'])([a-z])/g,(m,a,b)=>a+b.toUpperCase());
+const tc=s=>String(s||'').toLowerCase().replace(/(^|[\s\-'’])(\p{L})/gu,(m,a,b)=>a+b.toUpperCase());
 const up=s=>String(s||'').toUpperCase();
 const list=a=>String(a||'').split('|').map(x=>x.trim()).filter(Boolean);
 const same=(a,b)=>String(a||'').trim().toUpperCase()===String(b||'').trim().toUpperCase();
@@ -72,6 +72,7 @@ const BUILTIN=[
   V.additional_or_replacement=ap.length===1&&rs.length===1?'a replacement director':'additional directors';
   V.was_or_were=ap.length>1?'were':'was';V.new_directors_noun=ap.length>1?'directors':'a director';V.new_directors_consents=ap.length>1?'their signed written consents':`${his(pp(ap[0]))} signed written consent`;
   V.have_or_has=rs.length>1?'have':'has';V.resigning_noun=rs.length>1?'directors':'a director';
+  if(!rs.length)B.push('RESIGNING_DIRECTORS_NAMES'); // nobody resigns: the paragraph about the resignation notice is left out, not left yellow
   ap.slice(0,2).forEach((n,i)=>{V[`new_director_${i+1}_name`]=n;V[`new_director_${i+1}_possessive`]=his(pp(n))});for(let i=ap.length;i<2;i++){V[`new_director_${i+1}_name`]='';B.push(`NEW_DIRECTOR_${i+1}_NAME`)}
   rs.slice(0,2).forEach((n,i)=>{const p=pp(n),roles=[];if((p.roles||[]).includes('secretary'))roles.push('the Company Secretary');if(hold(p))roles.push(`a member of the Company${(p.share_class||hold(p))?` holding ${comma(hold(p))} ${(p.share_class||'ordinary').toLowerCase()} shares`:''}`);
    V[`resigning_${i+1}_name`]=n;V[`resigning_${i+1}_note_opt`]=roles.length?`${heShe(p)} remains ${joinAnd(roles)}.`:''});for(let i=rs.length;i<2;i++){V[`resigning_${i+1}_name`]='';V[`resigning_${i+1}_note_opt`]='';B.push(`RESIGNING_${i+1}_NAME`)}
@@ -188,7 +189,10 @@ const BUILTIN=[
  fields:[F('return_date','Return made up to','date',{ph:'Latest anniversary of incorporation',group:'Options'}),F('no_charges','There were no charges in the period','bool',{group:'Options'}),F('list_of_changes','A list of changes is enclosed','bool',{group:'Options'}),F('full_members','A full list of members is enclosed','bool',{group:'Options'})],
  jobs:()=>[{tid:'F05',name:'Form 131 - annual return'}],
  derive(a){const V={};if(a.return_date)V.return_date=up(fmtD(a.return_date));V.no_charges_tick_opt=a.no_charges==='yes'?'X':'';V.list_of_changes_tick_opt=a.list_of_changes==='yes'?'X':'';V.full_members_list_tick_opt=a.full_members==='yes'?'X':'';return{V,B:[]}},
- warn:()=>[],people:(a,c)=>[...(c.directors||[]).map(p=>({name:p.full_name,need:['dob','nationality','address'],why:'Form 131'})),...(c.secretaries||[]).map(p=>({name:p.full_name,need:['address'],why:'Form 131'}))]}];
+ warn:(a,c)=>{const w=[],sh=(c.shareholders||[]).reduce((t,p)=>t+num(p.shares),0),iss=num((c.values||{}).shares_issued_total||(c.values||{}).shares_issued);
+  if(sh&&iss&&sh!==iss)w.push(`The members hold ${comma(sh)} shares in total but the company's issued shares are ${comma(iss)}. Correct the shareholders or the company details before signing Form 131.`);
+  if(!(c.shareholders||[]).length)w.push('No members are saved for this company, so the member list on Form 131 will be empty.');
+  return w},people:(a,c)=>[...(c.directors||[]).map(p=>({name:p.full_name,need:['dob','nationality','address'],why:'Form 131'})),...(c.secretaries||[]).map(p=>({name:p.full_name,need:['address'],why:'Form 131'}))]}];
 
 // what derive() needs to know about the company
 function companyView(ctx){

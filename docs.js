@@ -106,14 +106,23 @@ function docxTargets(zip){return Object.keys(zip.files).filter(f=>!zip.files[f].
 // ---- repeating people: the official templates have a fixed number of numbered slots (DIRECTOR 1..3, MEMBER 1..7, ATTENDEE 1..5 ...).
 // Count how many people the company really has, drop the empty slots and copy the last slot for any extra person, so nothing is left yellow
 // and nobody is left out. A slot is the paragraph, table row or table that holds only that person's labels.
-const SLOT_RE=/^(NEW DIRECTOR|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING) (\d+)(?: .+)?$/;
+const SLOT_RE=/^(NEW DIRECTOR|OTHER MEMBER|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING) (\d+)(?: .+)?$/;
+// In a members' resolution the "Present" list carries MEMBER 3-7 after the chairman and the secretary; those lines mean "the other members".
+function renamePresent(doc,values){
+ if(values.OTHER_MEMBER_1_NAME===undefined)return;
+ const W=W_NS,txt=e=>Array.from(e.getElementsByTagNameNS(W,'t')).map(t=>t.textContent).join('');let inside=false;
+ for(const p of Array.from(doc.getElementsByTagNameNS(W,'p'))){const t=txt(p).trim();
+  if(t==='Present'){inside=true;continue}if(t==='Absent'){inside=false;continue}
+  if(!inside)continue;
+  for(const r of Array.from(p.childNodes).filter(n=>n.nodeType===1&&n.localName==='r')){const ts=Array.from(r.getElementsByTagNameNS(W,'t')),x=ts.map(a=>a.textContent).join(''),m=x.match(/^MEMBER (\d+) NAME$/);
+   if(m&&+m[1]>=3&&ts.length){ts[0].textContent='OTHER MEMBER '+(+m[1]-2)+' NAME';for(const e of ts.slice(1))e.textContent=''}}}}
 function restructureSlots(doc,values){
  const rPrOf=el=>Array.from(el.childNodes).find(n=>n.nodeType===1&&n.namespaceURI===W_NS&&n.localName==='rPr');
  const isHl=r=>{const rp=rPrOf(r);return !!rp&&!!Array.from(rp.childNodes).find(n=>n.localName==='highlight')};
  const textOf=e=>Array.from(e.getElementsByTagNameNS(W_NS,'t')).map(t=>t.textContent).join('');
  const hlRuns=()=>Array.from(doc.getElementsByTagNameNS(W_NS,'r')).filter(isHl);
  const have=new Map();// prefix -> highest n that has any value
- for(const [k,v] of Object.entries(values)){const m=k.match(/^(NEW_DIRECTOR|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_(\d+)_/);if(m&&String(v??'').trim()!==''&&!/^(NEW_DIRECTOR|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_\d+_(CLASS|POSSESSIVE)$/.test(k)){const p=m[1].replace('_',' ');have.set(p,Math.max(have.get(p)||0,+m[2]))}}
+ for(const [k,v] of Object.entries(values)){const m=k.match(/^(NEW_DIRECTOR|OTHER_MEMBER|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_(\d+)_/);if(m&&String(v??'').trim()!==''&&!/^(NEW_DIRECTOR|OTHER_MEMBER|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_\d+_(CLASS|POSSESSIVE)$/.test(k)){const p=m[1].replace('_',' ');have.set(p,Math.max(have.get(p)||0,+m[2]))}}
  const slotsOf=prefix=>{const g=new Map(),keyOf=new Map();
   for(const r of hlRuns()){const m=textOf(r).trim().match(SLOT_RE);if(m){keyOf.set(r,m[1]+'|'+m[2]);if(m[1]===prefix){if(!g.has(+m[2]))g.set(+m[2],[]);g.get(+m[2]).push(r)}}}
   const owns=(el,key)=>Array.from(el.getElementsByTagNameNS(W_NS,'r')).every(r=>!isHl(r)||keyOf.get(r)===key);
@@ -216,6 +225,7 @@ async function docxFill(buf,values,{acceptClauses=false,custom=false}={}){
   const doc=new DOMParser().parseFromString(await zip.file(f).async('string'),'text/xml');
   if(custom)joinLabelRuns(doc);
   if(values.__merge_name)mergeNameRows(doc,values);
+  renamePresent(doc,values);
   restructureSlots(doc,values);
   const del=[];
   for(const p of Array.from(doc.getElementsByTagNameNS(W_NS,'p'))){
@@ -253,8 +263,8 @@ async function docxFill(buf,values,{acceptClauses=false,custom=false}={}){
   zip.file(f,'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n'+new XMLSerializer().serializeToString(doc).replace(/^\s*(<\?xml[^>]*\?>\s*)+/,''))}
  const buffer=await zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'});
  // slots nobody fills were taken out of the document, so they are not "missing" either
- const top={};for(const [k,v] of Object.entries(values)){const m=k.match(/^(NEW_DIRECTOR|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_(\d+)_(?!CLASS$|POSSESSIVE$)/);if(m&&String(v??'').trim()!=='')top[m[1]]=Math.max(top[m[1]]||0,+m[2])}
- for(const k of [...missing]){const m=String(k).match(/^(NEW_DIRECTOR|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_(\d+)_/);if(m&&+m[2]>Math.max(top[m[1]]||0,1))missing.delete(k)}
+ const top={};for(const [k,v] of Object.entries(values)){const m=k.match(/^(NEW_DIRECTOR|OTHER_MEMBER|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_(\d+)_(?!CLASS$|POSSESSIVE$)/);if(m&&String(v??'').trim()!=='')top[m[1]]=Math.max(top[m[1]]||0,+m[2])}
+ for(const k of [...missing]){const m=String(k).match(/^(NEW_DIRECTOR|OTHER_MEMBER|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_(\d+)_/);if(m&&+m[2]>Math.max(top[m[1]]||0,1))missing.delete(k)}
  return{buffer,missing:[...missing],filled,clauses}}
 
 // A PDF copy of a filled Word file (easier to upload to BRELA). Uses LibreOffice when the server has it; returns null when it does not,
@@ -276,6 +286,7 @@ async function docxToPdf(buf){
 const MON={january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12};
 const dmy=t=>{const s=String(t||'').trim();let m;if(m=s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/)){const mo=MON[m[2].toLowerCase()];if(mo)return `${String(+m[1]).padStart(2,'0')}/${String(mo).padStart(2,'0')}/${m[3]}`}if(m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/))return `${m[3]}/${m[2]}/${m[1]}`;return s};
 // BRELA forms are filled in CAPITALS
+const titleName=t=>String(t||'').toLowerCase().replace(/(^|[\s\-'’(])(\p{L})/gu,(m,x,y)=>x+y.toUpperCase()).replace(/ And /g,' and ');
 const CAPS=/^(COMPANY_NAME(_LINE_[12])?|COMPANY_TYPE|REGISTERED_OFFICE|PRINCIPAL_ACTIVITIES|SHARE_CLASS|SECRETARY_(NAME|ADDRESS)|SIGNING_DIRECTOR_NAME|CHAIRMAN_NAME|DIRECTOR_\d+_(NAME|ADDRESS|NATIONALITY)|MEMBER_\d+_NAME|NEW_DIRECTOR_\d+_NAME|NATIONALITY)$/;
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const longDate=t=>{const s=String(t||'').trim(),m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?`${+m[3]} ${MONTHS[+m[2]-1]} ${m[1]}`:s};
@@ -285,7 +296,7 @@ function addrLines(p){
  if(!has){const parts=String((p&&p.address)||'').split(',').map(x=>x.trim()).filter(Boolean);if(parts.length<=3)return[parts[0]||'',parts[1]||'',parts[2]||''];const n=Math.ceil(parts.length/3);return[parts.slice(0,n).join(', '),parts.slice(n,2*n).join(', '),parts.slice(2*n).join(', ')]}
  const j=(...x)=>x.filter(Boolean).join(', '),street=j(a.house&&`House ${a.house}`,a.plot&&`Plot ${a.plot}`,a.block&&`Block ${a.block}`,a.street,a.road,a.unsurveyed,a.landmark);
  return street?[street,j(a.subward,a.ward,a.district),j(a.pobox&&`P.O. Box ${a.pobox}`,a.region,a.country)]:[j(a.subward,a.ward),j(a.district,a.pobox&&`P.O. Box ${a.pobox}`),j(a.region,a.country)]}
-function packageValues(ctx){
+function packageValues(ctx,opt={}){
  const v={};for(const [k,x] of Object.entries(ctx.values||{}))if(String(x??'').trim()!=='')v[k.toUpperCase()]=String(x);
  const lists=ctx.lists||{},dirs=lists.directors||[],secs=lists.secretaries||[],mem=lists.shareholders&&lists.shareholders.length?lists.shareholders:dirs;
  const nm=p=>String((p&&(p.full_name||p.name))||'').trim(),set=(k,x)=>{if(x!==undefined&&x!==null&&String(x).trim()!==''&&!v[k])v[k]=String(x).trim()};
@@ -323,11 +334,17 @@ function packageValues(ctx){
  for(let n=1;n<=10;n++){const nmv=v['ALLOTTEE_'+n+'_NAME'];if(!nmv)continue;const p=people.find(x=>up(nm(x))===up(nmv));if(p){set('ALLOTTEE_'+n+'_ADDRESS',up(p.address));set('ALLOTTEE_'+n+'_CLASS',p.share_class||(ctx.values&&ctx.values.share_class)||'')}}
  secs[0]&&set('SECRETARY_PREVIOUS_NAMES_OPT',up(secs[0].previous_names));
  dirs.forEach((p,i)=>{const n=i+1;set(`DIRECTOR_${n}_OCCUPATION`,up(p.occupation)||'DIRECTOR');set(`DIRECTOR_${n}_PREVIOUS_NAMES_OPT`,up(p.previous_names));set(`DIRECTOR_${n}_OTHER_DIRECTORSHIPS_OPT`,p.other_directorships)});
+ // the "Present" list of a members' resolution: the chairman and the secretary have their own lines, so the others follow (a member who is neither must not be lost)
+ {const same=(x,y)=>String(x||'').trim().toUpperCase()===String(y||'').trim().toUpperCase(),mk=Object.keys(v).map(k=>k.match(/^MEMBER_(\d+)_NAME$/)).filter(Boolean).sort((x,y)=>x[1]-y[1]).map(m=>v[m[0]]);
+  if(mk.length){const others=mk.filter(nm=>!same(nm,v.CHAIRMAN_NAME)&&!same(nm,v.SECRETARY_NAME));for(let k=1;k<=Math.max(5,others.length);k++)v['OTHER_MEMBER_'+k+'_NAME']=others[k-1]||''}}
  if(v.REGISTERED_OFFICE&&!/\.$/.test(v.REGISTERED_OFFICE))v.REGISTERED_OFFICE+='.';
  for(const k of Object.keys(v))if(CAPS.test(k))v[k]=v[k].toUpperCase();
  // names written in the body of a resolution read in one style: registry names arrive in capitals, so "SALMA JUMA MREMA" becomes "Salma Juma Mrema" like the others
  const BODY_NAME=/^((ATTENDEE|ALLOTTEE|RESIGNING)_\d+_NAME|MEMBER_NAME|FORMER_MEMBER_NAME|ADDRESSEE_NAME|[A-Z_]*DIRECTORS_NAMES)$/;
- for(const k of Object.keys(v))if(BODY_NAME.test(k)&&v[k]===v[k].toUpperCase())v[k]=v[k].toLowerCase().replace(/(^|[\s\-'(])([a-z])/g,(m,x,y)=>x+y.toUpperCase()).replace(/ And /g,' and ');
+ for(const k of Object.keys(v))if(BODY_NAME.test(k)&&v[k]===v[k].toUpperCase())v[k]=titleName(v[k]);
+ // BRELA's own samples write names in Title Case in resolutions and notices, and in capitals on the forms
+ if(opt.kind==='resolution'){const RES_NAME=/^(CHAIRMAN_NAME|SECRETARY_NAME|SIGNING_DIRECTOR_NAME|SIGNATORY_NAME|(NEW_DIRECTOR|OTHER_MEMBER|DIRECTOR|MEMBER|ATTENDEE|ALLOTTEE|RESIGNING)_\d+_NAME)$/;
+  for(const k of Object.keys(v))if(RES_NAME.test(k)&&v[k]&&v[k]===v[k].toUpperCase())v[k]=titleName(v[k])}
  return v}
 
 // Which saved person is missing which detail (so the message can say "Add Juma's nationality on the Company tab" instead of a bare label).
