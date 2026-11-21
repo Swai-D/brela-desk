@@ -74,7 +74,10 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
  await call('PATCH',`/clients/${cl}/profile`,{set:{company_name:'Kilimo Fresh Limited',registered_office:'Mbezi, Kinondoni, P.O. Box 1, Dar es Salaam, Tanzania.',chairman_name:'Zawadi Mushi'}});
  await call('POST',`/clients/${cl}/people`,{full_name:'Zawadi Mushi',roles:['director','secretary']});
  await call('POST',`/clients/${cl}/people`,{full_name:'Juma Kileo',roles:['director','shareholder']});
- ok('an official form is made by its wizard: without answers the case asks for them (one way to make documents)',(await call('POST',`/cases/${c.id}/ai/generate-docx`,{template_id:t01.id})).s===409);
+ {const nw=await call('POST',`/cases/${c.id}/ai/generate-docx`,{template_id:t01.id});
+  ok('an official form is made by its wizard: without answers the case asks for them and says which wizard to open (one way to make documents)',nw.s===409&&nw.j.wizard==='directors'&&/wizard/i.test(nw.j.wizard_title+'')&&nw.j.reason==='wizard'||nw.s===409&&nw.j.wizard==='directors'&&nw.j.wizard_title&&['wizard','answers'].includes(nw.j.reason),nw.j);
+  const sg=(await call('GET',`/cases/${c.id}/ai/suggest?name=${encodeURIComponent('Members resolution')}`)).j;
+  ok('the suggestions for a checklist item carry the wizard of each official template, so the case goes straight there',sg.find(t=>t.id===t01.id).wizard==='directors',sg.map(t=>[t.name,t.wizard]))}
  await call('PUT',`/cases/${c.id}/scenarios/directors`,{answers:{appoint:'Juma Kileo',members_meeting_date:'2026-03-01',members_meeting_time:'09:00'}});
  const gen=await call('POST',`/cases/${c.id}/ai/generate-docx`,{template_id:t01.id});
  ok('an official Word file is filled and attached to the case',gen.s===200&&gen.j.file.filename.endsWith('.docx')&&gen.j.filled>0&&Array.isArray(gen.j.missing)&&gen.j.wizard==='directors',[gen.s,gen.j]);

@@ -21,6 +21,10 @@ This is for one document at a time (the wizards make several at once).
 6. Press **Save to case as Word (.docx)**. The file is attached to the item, which is ticked when no gaps remain. A PDF copy is saved next to it, and the message shows **Download Word** and **Download PDF**.
 7. Optional: **Teach the template from my corrected version** ([Versions](help:documents/template-versions-and-approval)).
 
+## When a document is made by a wizard
+
+If a template is made by a wizard, the window closes and the wizard opens at once. If a document still needs answers (for example a required question was never answered), a dialog says which wizard it is and lists what is missing. Press **Open <wizard name>** to go straight there, or **Not now** to stay on the case. You never have to look for the wizard yourself.
+
 ## Privacy
 
 ID numbers, phone numbers, emails and dates of birth are **never sent to the AI**; they are filled on the server.

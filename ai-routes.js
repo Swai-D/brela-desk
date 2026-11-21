@@ -99,8 +99,9 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  const bodyOf=async t=>(await one('SELECT body FROM template_versions WHERE template_id=$1 AND version=$2',[t.id,t.version])).body;
  const kindOf=k=>['FORM','DOCUMENT'].includes(k)?k:'DOCUMENT';
  const newVersion=async(t,body,note,source,user)=>{const v=t.version+1;await q('INSERT INTO template_versions(template_id,version,body,note,source,created_by) VALUES($1,$2,$3,$4,$5,$6)',[t.id,v,body,note||null,source,user]);await q(`UPDATE templates SET version=$2,status='DRAFT',clean_runs=0,updated_at=now() WHERE id=$1`,[t.id,v]);return v};
- app.get('/api/templates',wrap(async(req,res)=>{const qs=String(req.query.q||'').trim(),own={};for(const w of await q('SELECT id,docs FROM wizards WHERE active ORDER BY position,created_at'))for(const d of (w.docs||[]))if(d.template_id&&!own[d.template_id])own[d.template_id]=w.id;
-  res.json((await q(`${TLIST} WHERE ($1='' OR t.name ILIKE '%'||$1||'%' OR t.keywords ILIKE '%'||$1||'%') ORDER BY t.name`,[qs])).map(t=>({...t,wizard:WIZ_OF[tidOfTemplate(t)]||own[t.id]||null})))}));
+ const withWizard=async rows=>{const own={};for(const w of await q('SELECT id,docs FROM wizards WHERE active ORDER BY position,created_at'))for(const d of (w.docs||[]))if(d.template_id&&!own[d.template_id])own[d.template_id]=w.id;return rows.map(t=>({...t,wizard:WIZ_OF[tidOfTemplate(t)]||own[t.id]||null}))};
+ app.get('/api/templates',wrap(async(req,res)=>{const qs=String(req.query.q||'').trim();
+  res.json(await withWizard(await q(`${TLIST} WHERE ($1='' OR t.name ILIKE '%'||$1||'%' OR t.keywords ILIKE '%'||$1||'%') ORDER BY t.name`,[qs])))}));
  app.get('/api/templates/:id',wrap(async(req,res)=>{
   const t=await one(`${TLIST} WHERE t.id=$1`,[+req.params.id]);if(!t)fail(404,'Template not found');
   const extra=await one('SELECT ai_notes FROM templates WHERE id=$1',[t.id]),body=await bodyOf(t),versions=await q('SELECT v.version,v.note,v.source,v.created_at,u.name AS by FROM template_versions v LEFT JOIN users u ON u.id=v.created_by WHERE v.template_id=$1 ORDER BY v.version DESC',[t.id]);
@@ -212,7 +213,7 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
 
  app.get('/api/cases/:id/ai/suggest',wrap(async(req,res)=>{
   const c=await caseInfo(+req.params.id);if(!c)fail(404,'Case not found');const name=String(req.query.name||'');
-  const all=await q(`${TLIST}`);res.json(all.map(t=>({...t,score:E.suggestScore(t,name,c.case_type_id)})).sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name)))}));
+  const all=await withWizard(await q(`${TLIST}`));res.json(all.map(t=>({...t,score:E.suggestScore(t,name,c.case_type_id)})).sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name)))}));
 
  // generate: approved template -> instant fill (no AI); otherwise the AI prepares it, following the template as the format guide
  app.post('/api/cases/:id/ai/generate',wrap(async(req,res)=>{
@@ -315,6 +316,7 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  // the official package templates and the wizard that makes each of them
  const WIZ_OF={T01:'directors',T02:'directors',F01:'directors',F02:'directors',F03:'shares',F04:'shares',T03:'shares',T04:'shares',T05:'shares',T06A:'shares',T06B:'shares',T07A:'shares',T07B:'shares',T08:'shares',F05:'annual'};
  const wizardOfTemplateId=async id=>{const r=await one(`SELECT id FROM wizards WHERE active AND docs @> $1::jsonb ORDER BY position,created_at LIMIT 1`,[JSON.stringify([{template_id:+id}])]);return r?r.id:null};
+ const needWizard=(msg,data)=>{const e=new Error(msg);e.status=409;e.data=data;throw e};
  const tidOfTemplate=t=>{const m=String((t&&t.keywords)||'').match(/^([tf]0\d[ab]?) /i);return m?m[1].toUpperCase():null};
  const saveDocx=async(req,x,t,r,name,item)=>{
   const id=x.c.id,f=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'template') RETURNING id,filename`,
@@ -338,12 +340,12 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   for(const w of await wizRows(true)){const s=SC.compose(w),answers=await savedAnswers(id,s.id),cv=SC.companyView((await contextFor(id,{scn:s,answers})).ctx);
    if(!s.jobs(answers,cv).some(j=>pkg?j.tid===pkg:String(j.template_id)===tid))continue;
    const need_=s.fields.filter(f=>f.req&&!f.show&&!String(answers[f.key]||'').trim());
-   if(need_.length)fail(409,`Answer the required questions of "${s.title}" first: ${need_.map(f=>f.label).join(', ')}.`);
+   if(need_.length)needWizard(`Answer the required questions of "${s.title}" first: ${need_.map(f=>f.label).join(', ')}.`,{wizard:s.id,wizard_title:s.title,reason:'answers',questions:need_.map(f=>f.label)});
    const r=await runScenario(req,id,s,answers,true,tid),made=r.jobs.filter(j=>j.file);
    if(made.length){await log(id,req.user.id,`prepared ${made.length} document${made.length===1?'':'s'} for "${s.title}"`);
     const j=made[0];return res.json({file:{...j.file,pdf:j.pdf||null},files:made.map(m=>({...m.file,pdf:m.pdf||null,title:m.title})),missing:j.missing||[],clauses:0,filled:j.filled,people:r.people,rest:j.missing||[],wizard:s.id})}}
   const wid=pkg?(WIZ_OF[pkg]||'directors'):await wizardOfTemplateId(t.id);
-  if(wid){const w=await getWizard(wid,true);fail(409,`This ${pkg?'form':'template'} is made by the "${w?w.title:wid}" wizard. Open Prepare documents on the case, answer its questions, and press Prepare.`)}
+  if(wid){const w=await getWizard(wid,true);needWizard(`This ${pkg?'form':'template'} is made by the "${w?w.title:wid}" wizard. Open Prepare documents on the case, answer its questions, and press Prepare.`,{wizard:wid,wizard_title:w?w.title:wid,reason:'wizard'})}
   const values={...(t.docx_defaults||{}),...E.packageValues(x.ctx)};
   let r;try{r=await E.docxFill(t.docx_data,values,{custom:own})}catch(e){fail(400,'Could not fill this Word template: '+e.message)}
   const name=(item?item.name:t.name).replace(/[\\/:*?"<>|]+/g,' ').trim()||'Document';
