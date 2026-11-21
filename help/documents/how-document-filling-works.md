@@ -28,6 +28,8 @@ Understanding this helps you fix a wrong document at the source.
 | **Signing date on Form 131** | The date next to the signature is the same as the date the return is made up to. |
 | **Empty people slots** | A slot nobody fills (for example a third allottee on Form 57a) is removed from the document and is not listed as missing. |
 | **Names inside resolutions** | Names read in one style, for example "Salma Juma Mrema", even when the registry saved them in capitals. The official forms keep capitals. |
+| **Optional wording** | Wording the official forms offer as an option (for example "at nominal value", "or into a bank account designated by the Company", "with effect from the time of receipt of that consent") is decided by the wizard: some by a question, some by your answers ("at nominal value" stays when the price per share equals the nominal value). Nothing is left yellow. |
+| **One way to generate** | Official forms are always made by their wizard, from the Company plus your answers, whether you start from **Prepare documents** or from the robot icon on a checklist item. |
 | **Capitals** | Official forms use capitals for names, dates and addresses. The app writes them that way. |
 | **Dates** | Written like `29 September 2026`; in some forms as ordinals (`1st September 2026`). |
 | **Numbers in words** | British style: "two million and five hundred thousand". |

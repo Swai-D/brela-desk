@@ -25,6 +25,7 @@ This wizard handles an unpaid-shares process. **Tick the steps you need now**; l
 | **Date of the directors' resolution** (required) and **Time** | Also the notice date. Time 10:00. |
 | **Payment due date** | Default: 30 days after the call; must be at least 14 clear days after the notice |
 | **Chairman of the meetings** | Defaults to the first director |
+| **The call may be paid** | **At the registered office or into the company bank account** (standard) or **At the registered office only**. Used in the call resolution and the notice of call. |
 
 The notice shows the amount in figures and words, per share and in total.
 
@@ -53,3 +54,5 @@ A member holds 10,000 shares of TZS 1,000 nominal and owes a call of TZS 250 a s
 > A plain new issue of shares (not from forfeiture) has no official template yet. Ask your Manager: a custom wizard can be added ([Document wizards](help:settings/document-wizards)).
 
 See also: [Prepare documents](help:documents/prepare-documents), [Glossary](help:help/glossary).
+
+"At nominal value" in the allotment resolution stays when the **Price per share** equals the nominal value; otherwise it is left out.

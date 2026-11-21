@@ -99,7 +99,7 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  const bodyOf=async t=>(await one('SELECT body FROM template_versions WHERE template_id=$1 AND version=$2',[t.id,t.version])).body;
  const kindOf=k=>['FORM','DOCUMENT'].includes(k)?k:'DOCUMENT';
  const newVersion=async(t,body,note,source,user)=>{const v=t.version+1;await q('INSERT INTO template_versions(template_id,version,body,note,source,created_by) VALUES($1,$2,$3,$4,$5,$6)',[t.id,v,body,note||null,source,user]);await q(`UPDATE templates SET version=$2,status='DRAFT',clean_runs=0,updated_at=now() WHERE id=$1`,[t.id,v]);return v};
- app.get('/api/templates',wrap(async(req,res)=>{const qs=String(req.query.q||'').trim();res.json(await q(`${TLIST} WHERE ($1='' OR t.name ILIKE '%'||$1||'%' OR t.keywords ILIKE '%'||$1||'%') ORDER BY t.name`,[qs]))}));
+ app.get('/api/templates',wrap(async(req,res)=>{const qs=String(req.query.q||'').trim();res.json((await q(`${TLIST} WHERE ($1='' OR t.name ILIKE '%'||$1||'%' OR t.keywords ILIKE '%'||$1||'%') ORDER BY t.name`,[qs])).map(t=>({...t,wizard:WIZ_OF[tidOfTemplate(t)]||null})))}));
  app.get('/api/templates/:id',wrap(async(req,res)=>{
   const t=await one(`${TLIST} WHERE t.id=$1`,[+req.params.id]);if(!t)fail(404,'Template not found');
   const extra=await one('SELECT ai_notes FROM templates WHERE id=$1',[t.id]),body=await bodyOf(t),versions=await q('SELECT v.version,v.note,v.source,v.created_at,u.name AS by FROM template_versions v LEFT JOIN users u ON u.id=v.created_by WHERE v.template_id=$1 ORDER BY v.version DESC',[t.id]);
@@ -268,6 +268,9 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   if(created.length)await audit(req,'template.import',`${created.length} template(s) from the Word template package`);
   res.json({created,skipped})}));
 
+ // the official package templates and the wizard that makes each of them
+ const WIZ_OF={T01:'directors',T02:'directors',F01:'directors',F02:'directors',F03:'shares',F04:'shares',T03:'shares',T04:'shares',T05:'shares',T06A:'shares',T06B:'shares',T07A:'shares',T07B:'shares',T08:'shares',F05:'annual'};
+ const tidOfTemplate=t=>{const m=String((t&&t.keywords)||'').match(/^([tf]0\d[ab]?) /i);return m?m[1].toUpperCase():null};
  const saveDocx=async(req,x,t,r,name,item)=>{
   const id=x.c.id,f=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'template') RETURNING id,filename`,
    [x.c.client_id,id,item?item.id:null,`${name}.docx`,'application/vnd.openxmlformats-officedocument.wordprocessingml.document',r.buffer.length,r.buffer,req.user.id]);
@@ -285,6 +288,15 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const t=await one('SELECT * FROM templates WHERE id=$1 AND docx_data IS NOT NULL',[+b.template_id]);if(!t)fail(404,'This template has no original Word file');
   const item=b.item_id?await one('SELECT id,name FROM case_docs WHERE id=$1 AND case_id=$2',[+b.item_id,id]):null;
   if(b.item_id&&!item)fail(400,'That checklist item is not on this case');
+  // one way to make documents: an official form is made by its wizard from the saved answers, so the result is the same everywhere
+  const tid=tidOfTemplate(t);
+  if(tid){
+   for(const w of await wizRows(true)){const s=SC.compose(w),answers=await savedAnswers(id,s.id),cv=SC.companyView((await contextFor(id,{scn:s,answers})).ctx);
+    if(!s.jobs(answers,cv).some(j=>j.tid===tid))continue;
+    const r=await runScenario(req,id,s,answers,true,tid),made=r.jobs.filter(j=>j.file);
+    if(made.length){await log(id,req.user.id,`prepared ${made.length} document${made.length===1?'':'s'} for "${s.title}"`);
+     const j=made[0];return res.json({file:{...j.file,pdf:j.pdf||null},files:made.map(m=>({...m.file,pdf:m.pdf||null,title:m.title})),missing:j.missing||[],clauses:0,filled:j.filled,people:r.people,rest:j.missing||[],wizard:s.id})}}
+   const hint=WIZ_OF[tid]||'directors';fail(409,`This form is made by the "${(await getWizard(hint,true)||{title:hint}).title}" wizard. Open Prepare documents on the case, answer its questions, and press Prepare.`)}
   const values={...(t.docx_defaults||{}),...E.packageValues(x.ctx)};
   let r;try{r=await E.docxFill(t.docx_data,values)}catch(e){fail(400,'Could not fill this Word template: '+e.message)}
   const name=(item?item.name:t.name).replace(/[\\/:*?"<>|]+/g,' ').trim()||'Document';
@@ -355,8 +367,8 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const row=await one('SELECT scn FROM cases WHERE id=$1',[caseId]),scn={...(row.scn||{}),[s.id]:answers};await q('UPDATE cases SET scn=$1::jsonb WHERE id=$2',[JSON.stringify(scn),caseId])};
  const tplFor=tid=>one(`SELECT id,name,docx_data,docx_defaults FROM templates WHERE docx_data IS NOT NULL AND keywords LIKE $1 ORDER BY id LIMIT 1`,[tid.toLowerCase()+' %']);
  // work out (and optionally save) every document of a scenario
- const runScenario=async(req,caseId,s,answers,generate)=>{
-  const base=await contextFor(caseId,{scn:s,answers}),cv=SC.companyView(base.ctx),jobs=s.jobs(answers,cv),warnings=s.warn(answers,cv),out=[];
+ const runScenario=async(req,caseId,s,answers,generate,only)=>{
+  const base=await contextFor(caseId,{scn:s,answers}),cv=SC.companyView(base.ctx),jobs=s.jobs(answers,cv).filter(j=>!only||j.tid===only),warnings=s.warn(answers,cv),out=[];
   for(const j of jobs){
    const t=j.template_id?await one('SELECT id,name,docx_data,docx_defaults FROM templates WHERE id=$1 AND docx_data IS NOT NULL',[j.template_id]):await tplFor(j.tid),row={tid:j.tid||'',name:j.name,who:j.who||'',title:j.who?`${j.name}: ${SC.tc(j.who)}`:j.name};
    if(!t){out.push({...row,error:'The official Word templates are not imported yet (open Templates and press Import).'});continue}

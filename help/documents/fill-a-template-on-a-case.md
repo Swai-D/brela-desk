@@ -6,11 +6,13 @@ order: 13
 ---
 This is for one document at a time (the wizards make several at once).
 
+> **Official forms and resolutions use the wizard.** When you choose an official template (Forms 131, 213a, 213b, 57a, 57b and the resolutions and notices), **Prepare** changes to **Answer the questions** and opens the matching wizard of [Prepare documents](help:documents/prepare-documents). You get exactly the same document wherever you start. Only your own templates follow the steps below.
+
 ## Steps
 
 1. On a case, press the **robot icon** on a checklist item, or **Prepare a document** above the list.
 2. Choose the **Template** (items suggest one from its match words). Name the **Document name**.
-3. Press **Prepare**.
+3. Press **Prepare** (**Answer the questions** for an official template).
    - **Approved** template: **No AI used**, filled instantly.
    - **Draft** template: the AI prepares it using the template as the format guide. Tick **Use the AI even though this template is approved** to regenerate an approved one.
    - **No template**: the AI writes it in the standard layout.
