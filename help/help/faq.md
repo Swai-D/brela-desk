@@ -62,6 +62,8 @@ order: 21
 
 **A form is not covered by any wizard. What now?** A Manager can add a wizard ([Document wizards](help:settings/document-wizards)), or fill the template with the robot icon ([Fill a template](help:documents/fill-a-template-on-a-case)).
 
+**Can I use my own Word or PDF as a template?** A Word file: yes, with its exact layout. Highlight the changing details yellow in `[SQUARE BRACKETS]`, then **Templates → From my Word file** ([guide](help:documents/template-from-word-file)). A PDF cannot be filled as it is: save it as .docx from Word first, or use **From an accepted document** (text template, layout not kept).
+
 **What is an approved template?** One that fills instantly with no AI ([Versions and approval](help:documents/template-versions-and-approval)).
 
 **My company has five directors but the form only shows three. What happens?** The app adds a block for every director on the Company tab, and removes the empty ones for a company with fewer. [How document filling works](help:documents/how-document-filling-works).

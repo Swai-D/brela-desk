@@ -78,7 +78,7 @@ function mount(el,o){
      <button type="button" data-c="ul" title="Bullet list"><i class="bx bx-list-ul"></i></button><button type="button" data-c="table" title="Insert table"><i class="bx bx-table"></i></button><button type="button" data-c="pb" title="Page break"><i class="bx bx-file-blank"></i></button><span class="tp-tb-sep"></span>
      <button type="button" data-c="undo" title="Undo"><i class="bx bx-undo"></i></button><button type="button" data-c="redo" title="Redo"><i class="bx bx-redo"></i></button></div>`:''}
     <div class="tp-desk"><div class="tp-paper" id="te-paper" ${can?'contenteditable="true"':''} spellcheck="true" aria-label="Template page"></div></div>
-    ${t.has_docx?'<div class="alert alert-warning py-2 small mt-2 mb-0"><i class="bx bx-info-circle me-1"></i>This is an official BRELA form: its printed layout comes from the original Word file (see Word / PDF). Edits here change the template text the system reads, not that layout.</div>':''}<div class="form-text mt-2">${can?'Edit the page like a Word document. Everything you change here is saved into the template text. Blue tags are fields that fill in automatically; yellow ones are gaps a person completes.':'This is how the template reads as a page.'}</div></div>`);
+    ${t.has_docx?'<div class="alert alert-warning py-2 small mt-2 mb-0"><i class="bx bx-info-circle me-1"></i>This template uses a Word file: its printed layout comes from that file (see Word / PDF). Edits here change the template text the system reads, not that layout.</div>':''}<div class="form-text mt-2">${can?'Edit the page like a Word document. Everything you change here is saved into the template text. Blue tags are fields that fill in automatically; yellow ones are gaps a person completes.':'This is how the template reads as a page.'}</div></div>`);
   host.insertBefore(pPage,pText.nextSibling);
   const pWord=el2(`<div id="te-p-word" class="d-none"><div class="tp-docbar"><div class="tp-doc-note" id="te-wnote"></div><div class="d-flex flex-wrap gap-2">
      <button type="button" class="btn btn-light btn-sm" id="te-dl"><i class="bx bx-download me-1"></i>Download Word</button>
@@ -107,7 +107,7 @@ function mount(el,o){
   pPage.querySelectorAll('.tp-tb button').forEach(x=>{x.onmousedown=e=>e.preventDefault();x.onclick=()=>{paper.focus();if(lastRange&&!paper.contains(getSelection().anchorNode)){const s=getSelection();s.removeAllRanges();s.addRange(lastRange)}cmd[x.dataset.c]();if(!/^(table|pb)$/.test(x.dataset.c))sync()}});
 
   const note=pWord.querySelector('#te-wnote');
-  const officialMsg='This is the official BRELA Word form, shown exactly as it prints. Its layout is fixed. To change the wording or layout, download it, edit it in Word and upload it back.';
+  const officialMsg='This is the Word file of this template, shown exactly as it prints. Its layout is fixed. To change the wording or layout, download it, edit it in Word and upload it back.';
   const liveMsg='This is the document exactly as Word and PDF will show it, built from your template text. Unknown details appear as yellow gaps.';
   const stale=()=>{blob=null;blobKey=''};
 
@@ -138,7 +138,7 @@ function mount(el,o){
       try{
         if(t.has_docx){
           if(!confirm('Replace the official form with this Word file? The template text is updated from it and a new version is saved.'))return;
-          const r=await api(`/templates/${id}/upload-docx`,{body:fd});toast('Word form replaced','success');if(o.reopen)o.reopen()}
+          const r=await api(`/templates/${id}/upload-docx`,{body:fd});toast('Word form replaced'+(r.questions_added?`; ${r.questions_added} new wizard question${r.questions_added===1?'':'s'} added`:''),'success');if(o.reopen)o.reopen()}
         else{
           const r=await api('/templates/docx-to-html',{body:fd});const tmp=document.createElement('div');tmp.innerHTML=r.html;const nb=htmlToBody(tmp);
           if(!nb.trim())throw new Error('The Word file has no text');
