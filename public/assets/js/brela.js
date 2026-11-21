@@ -254,7 +254,7 @@ function bindCompany(root,d,clientId,reload){
  const ce=root.querySelector('#cp-edit');if(ce)ce.onclick=()=>kvModal('Company details',d.client.profile||{},async(set,remove)=>{await api(`/clients/${clientId}/profile`,{method:'PATCH',body:{set,remove}});await reload()});
  const pa=root.querySelector('#pp-add');if(pa)pa.onclick=()=>personModal(clientId,null,reload);
  root.querySelectorAll('.pe').forEach(b=>b.onclick=()=>personModal(clientId,(d.people||[]).find(p=>p.id==b.dataset.id),reload));
- root.querySelectorAll('.pd').forEach(b=>b.onclick=async()=>{if(!confirm('Remove this person?'))return;try{await api('/people/'+b.dataset.id,{method:'DELETE'});await reload()}catch(e){alert(e.message)}})}
+ root.querySelectorAll('.pd').forEach(b=>b.onclick=async()=>{if(!await ask('The person is removed from this client. This cannot be undone.',{danger:true,ok:'Yes, remove',title:'Remove this person?'}))return;try{await api('/people/'+b.dataset.id,{method:'DELETE'});toast('Person removed','success');await reload()}catch(e){toast(e.message,'error')}})}
 
 
 /* ---- Prepare documents: pick what is happening, answer a few questions, get every document filled ---- */
@@ -312,7 +312,7 @@ function bindCaseDetails(root,id,cx,reload){
  const e=root.querySelector('#cd-edit');if(e)e.onclick=()=>kvModal('Details for this case',cx.data||{},async(set,remove)=>{await api(`/cases/${id}/data`,{method:'PATCH',body:{set,remove}});await reload()});
  const s=root.querySelector('#cd-smart');if(s)s.onclick=()=>smartFill(id,cx,reload)}
 function smartFill(id,cx,done){
- if(!AIS.configured)return alert('The AI is not set up yet. A Manager can add an API key in Settings → AI assistant.');
+ if(!AIS.configured)return toast('The AI is not set up yet. A Manager can add an API key in Settings → AI assistant.','error');
  modal('Smart fill from a message',`<p class="text-muted">Paste what the client sent (WhatsApp, email, notes). The AI picks out company details and people, and you review them before anything is saved.</p><textarea id="sf-t" class="form-control" rows="9" placeholder="Paste the client's message here..."></textarea><small class="text-muted d-block mt-2"><i class="bx bx-shield-quarter"></i> The pasted text is sent to your AI provider (${esc(AIS.provider_label||'')}). Paste only what is needed.</small>`,'Read it',async m=>{
   const r=await api(`/cases/${id}/ai/extract`,{body:{text:m.querySelector('#sf-t').value}});
   const rows=Object.entries(r.values),ppl=r.people;if(!rows.length&&!ppl.length)throw new Error('Nothing useful was found in that text.');
@@ -327,7 +327,7 @@ function smartFill(id,cx,done){
 
 /* ---- prepare a document: choose template -> AI / instant fill -> fill the gaps -> save as Word -> teach ---- */
 async function aiDoc(caseId,item,onDone){
- let tpls=[];try{tpls=await api(`/cases/${caseId}/ai/suggest?name=${encodeURIComponent(item?item.name:'')}`)}catch(e){return alert(e.message)}
+ let tpls=[];try{tpls=await api(`/cases/${caseId}/ai/suggest?name=${encodeURIComponent(item?item.name:'')}`)}catch(e){return toast(e.message,'error')}
  const best=tpls[0]&&tpls[0].score>=3?tpls[0]:null,st={text:'',tid:best?String(best.id):'',manual:false,mode:'',runId:null,docName:item?item.name:'',tpl:null,saved:false},id='ad'+Date.now();
  const opts_=`<option value="">No template: the AI writes it in the standard layout</option>`+tpls.map(t=>`<option value="${t.id}" ${String(t.id)===st.tid?'selected':''}>${esc(t.name)} · ${t.has_docx?'official Word form':t.status==='APPROVED'?'approved (instant)':'draft'}${best&&t.id===best.id?' · suggested':''}</option>`).join('');
  const {el,m}=bigModal(id,`<div class="modal-header"><h5 class="modal-title"><i class="bx bx-bot me-1"></i>Prepare a document${item?': '+esc(item.name):''}</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">
@@ -350,7 +350,7 @@ async function aiDoc(caseId,item,onDone){
  const gapsUi=()=>{const miss=gapsOf(g('#ad-text').value);g('#ad-gapcount').innerHTML=miss.length?`<span class="text-warning"><i class="bx bx-error-circle"></i> ${miss.length} gap${miss.length===1?'':'s'} still to fill: ${miss.map(k=>esc(keyLabel(k))).join(', ')}</span>`:'<span class="text-success"><i class="bx bx-check-circle"></i> No gaps left</span>';
   g('#ad-gaps').innerHTML=miss.length?`<div class="card border-warning mb-3"><div class="card-body py-3"><b>Fill the gaps</b> <small class="text-muted">(these were not in the details on file)</small><div class="row g-2 mt-1">${miss.map(k=>`<div class="col-md-6"><label class="form-label small mb-0">${esc(keyLabel(k))}</label><input class="form-control form-control-sm gapv" data-k="${esc(k)}" autocomplete="off"></div>`).join('')}</div><div class="d-flex justify-content-between align-items-center mt-2"><div class="form-check"><input class="form-check-input" type="checkbox" id="gap-rem" checked><label class="form-check-label small" for="gap-rem">Remember these on this case (next time they are filled automatically)</label></div><button class="btn btn-sm btn-warning" id="gap-apply">Fill in</button></div></div></div>`:'';
   const ga=g('#gap-apply');if(ga)ga.onclick=async()=>{const values={};el.querySelectorAll('.gapv').forEach(i=>{if(i.value.trim())values[i.dataset.k]=i.value.trim()});if(!Object.keys(values).length)return;
-   try{const r=await api(`/cases/${caseId}/ai/apply-gaps`,{body:{text:g('#ad-text').value,values,remember:g('#gap-rem').checked}});g('#ad-text').value=r.text;gapsUi()}catch(e){alert(e.message)}}};
+   try{const r=await api(`/cases/${caseId}/ai/apply-gaps`,{body:{text:g('#ad-text').value,values,remember:g('#gap-rem').checked}});g('#ad-text').value=r.text;gapsUi()}catch(e){toast(e.message,'error')}}};
  g('#ad-text').addEventListener('input',()=>{st.manual=true;gapsUi()});
  const docxGen=async t=>{g('#ad-go').disabled=true;g('#ad-go').innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Preparing...';
   try{const r=await api(`/cases/${caseId}/ai/generate-docx`,{body:{template_id:t.id,item_id:item?item.id:undefined}});
@@ -360,7 +360,7 @@ async function aiDoc(caseId,item,onDone){
     ${(r.people||[]).length?`<div class="alert alert-warning py-2"><b><i class="bx bx-user-exclamation me-1"></i>Missing on the Company tab</b> (left yellow in the Word file):<ul class="mb-0 mt-1 ps-3">${r.people.map(p=>`<li><b>${esc(p.name)}</b>: ${esc(p.fields.join(', '))}</li>`).join('')}</ul><div class="small mt-1">Open the client, then <b>Company</b> &rarr; the person &rarr; edit, add them, then press Prepare again.</div></div>`:''}
     ${(r.rest||r.missing).length?`<div class="alert alert-warning py-2"><b>${(r.rest||r.missing).length} detail${(r.rest||r.missing).length===1?'':'s'} not on file</b>, left as yellow [LABELS] in the Word file: <code>${(r.rest||r.missing).map(esc).join('</code>, <code>')}</code><div class="small mt-1">Add them on the case under <b>Details for documents</b> (lowercase, e.g. <code>${esc((r.rest||r.missing)[0].toLowerCase())}</code>), then press Prepare again.</div></div>`:''}`;
    g('#ad-foot').innerHTML='<button class="btn btn-primary" data-bs-dismiss="modal">Done</button>'}
-  catch(e){alert(e.message);g('#ad-go').disabled=false;g('#ad-go').innerHTML='<i class="bx bx-bot me-1"></i>Prepare'}};
+  catch(e){toast(e.message,'error');g('#ad-go').disabled=false;g('#ad-go').innerHTML='<i class="bx bx-bot me-1"></i>Prepare'}};
  const generate=async()=>{const t=T();if(t&&t.wizard){m.hide();return scenarioModal(caseId,t.wizard,onDone)}if(t&&t.has_docx)return docxGen(t);g('#ad-go').disabled=true;g('#ad-go').innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Preparing...';
   try{const r=await api(`/cases/${caseId}/ai/generate`,{body:{template_id:t?t.id:undefined,mode:g('#ad-force').checked?'ai':'auto',doc_name:g('#ad-n').value,instructions:g('#ad-i').value}});
    Object.assign(st,{text:r.text,mode:r.mode,runId:r.run_id,tpl:r.template,docName:r.doc_name,manual:false});
@@ -369,8 +369,8 @@ async function aiDoc(caseId,item,onDone){
    gapsUi();
    g('#ad-foot').innerHTML=`<button class="btn btn-light" id="ad-back">Back</button><span class="flex-grow-1"></span><button class="btn btn-primary" id="ad-save"><i class="bx bx-save me-1"></i>Save to case as Word (.docx)</button>`;
    g('#ad-back').onclick=()=>{g('#ad-edit').classList.add('d-none');g('#ad-setup').classList.remove('d-none');g('#ad-foot').innerHTML='<button class="btn btn-light" data-bs-dismiss="modal">Close</button><button class="btn btn-primary" id="ad-go"><i class="bx bx-bot me-1"></i>Prepare</button>';g('#ad-go').onclick=generate;info()};
-   g('#ad-save').onclick=save}catch(e){alert(e.message);g('#ad-go').disabled=false;g('#ad-go').innerHTML='<i class="bx bx-bot me-1"></i>Prepare'}};
- async function save(){const text=g('#ad-text').value,miss=gapsOf(text);if(miss.length&&!confirm(`${miss.length} gap(s) are still unfilled and will be highlighted in the Word file. Save anyway? (The checklist item will not be ticked until the gaps are filled.)`))return;
+   g('#ad-save').onclick=save}catch(e){toast(e.message,'error');g('#ad-go').disabled=false;g('#ad-go').innerHTML='<i class="bx bx-bot me-1"></i>Prepare'}};
+ async function save(){const text=g('#ad-text').value,miss=gapsOf(text);if(miss.length&&!await ask(`${miss.length} gap(s) are still unfilled and will be highlighted in the Word file. Save anyway? (The checklist item will not be ticked until the gaps are filled.)`,{ok:'Save anyway',icon:'bx-error',title:'Some gaps are unfilled'}))return;
   g('#ad-save').disabled=true;
   try{const r=await api(`/cases/${caseId}/ai/save`,{body:{text,item_id:item?item.id:undefined,filename:st.docName,template_id:st.tpl?st.tpl.id:undefined,mode:st.mode,manual_edits:st.manual}});
    st.saved=true;g('#ad-save').classList.add('d-none');g('#ad-back').classList.add('d-none');
@@ -380,17 +380,17 @@ async function aiDoc(caseId,item,onDone){
     ${ready?`<div class="alert alert-info">This template came out clean ${r.template.clean_runs} times in a row without any manual edits. It is ready to <b>approve</b> (Templates page), after which it fills instantly without the AI.</div>`:''}
     ${canTeach?`<button class="btn btn-soft-primary" id="ad-teach"><i class="bx bx-brain me-1"></i>Teach the template from my corrected version</button> <small class="text-muted ms-2">Turns this finished document into a better template so next time the AI (or an instant fill) gets it right.</small>`:''}`;
    g('#ad-foot').innerHTML='<button class="btn btn-primary" data-bs-dismiss="modal">Done</button>';
-   const tb=g('#ad-teach');if(tb)tb.onclick=()=>teachTemplate(caseId,st.tpl,text,tpls,st.docName)}catch(e){alert(e.message);g('#ad-save').disabled=false}}
+   const tb=g('#ad-teach');if(tb)tb.onclick=()=>teachTemplate(caseId,st.tpl,text,tpls,st.docName)}catch(e){toast(e.message,'error');g('#ad-save').disabled=false}}
  g('#ad-go').onclick=generate;
 }
 /* ---- teach a template from a corrected document ---- */
 async function teachTemplate(caseId,tpl,text,tpls,docName){
- let r;try{r=await api(`/cases/${caseId}/ai/learn`,{body:{text,template_id:tpl?tpl.id:undefined,use_ai:true}})}catch(e){return alert(e.message)}
+ let r;try{r=await api(`/cases/${caseId}/ai/learn`,{body:{text,template_id:tpl?tpl.id:undefined,use_ai:true}})}catch(e){return toast(e.message,'error')}
  modal('Teach the template',`<p class="text-muted">${r.ai_used?'The AI turned your corrected document into a template: details that change from client to client became fields.':'Details we already know became fields automatically. Add more fields by hand where needed.'} Check it, then save${tpl?' as a new version of "'+esc(tpl.name)+'"':' as a new template'}.</p>${tpl?'':`<div class="mb-2"><label class="form-label">Template name</label><input id="tt-n" class="form-control" value="${esc(docName||'')}"></div>`}<textarea id="tt-b" class="form-control" rows="16" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px">${esc(r.body)}</textarea><div class="mt-2"><label class="form-label">What did you change? <small class="text-muted">(optional note)</small></label><input id="tt-note" class="form-control" placeholder="e.g. BRELA asked for clause 5 to be reworded"></div><div class="form-check mt-2"><input class="form-check-input" type="checkbox" id="tt-ap"><label class="form-check-label" for="tt-ap">Approve it right away (documents will then fill instantly, without the AI)</label></div>`,'Save template',async m=>{
   const body=m.querySelector('#tt-b').value,note=val(m,'#tt-note');let id=tpl&&tpl.id;
   if(id)await api('/templates/'+id,{method:'PUT',body:{body,note:note||'Learned from a corrected document',source:'learned'}});
   else{const n=val(m,'#tt-n');if(!n)throw new Error('Give the template a name');id=(await api('/templates',{body:{name:n,body,note:note||'Created from a corrected document',source:'ai'}})).id}
-  if(m.querySelector('#tt-ap').checked)await api(`/templates/${id}/approve`,{body:{}});alert('Template saved.')},'xl')}
+  if(m.querySelector('#tt-ap').checked)await api(`/templates/${id}/approve`,{body:{}});toast('Template saved.','success')},'xl')}
 
 /* ---- template editor ---- */
 async function templateEditor(id,done){
@@ -435,7 +435,7 @@ async function templateEditor(id,done){
  el.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{if(el._tpInsert&&el._tpInsert(c.dataset.ins)){fl();return}const s=b.selectionStart,e=b.selectionEnd;b.value=b.value.slice(0,s)+c.dataset.ins+b.value.slice(e);b.focus();b.selectionStart=b.selectionEnd=s+c.dataset.ins.length;dirty=true;fl()});
  const fs=el.querySelector('#te-fs');if(fs)fs.oninput=()=>{const v=fs.value.trim().toLowerCase().replace(/\s+/g,'_');let n=0;el.querySelectorAll('#te-flist .chip').forEach(c=>{const hit=!v||c.dataset.k.replace(/\s+/g,'_').includes(v);c.classList.toggle('d-none',!hit);if(hit)n++});el.querySelectorAll('.tp-fg').forEach(g=>g.classList.toggle('d-none',!g.querySelector('.chip:not(.d-none)')));el.querySelector('#te-fnone').classList.toggle('d-none',n>0)};
  const reopen=async()=>{bootstrap.Modal.getInstance(el).hide();await done(id);setTimeout(()=>templateEditor(id,done),400)};
- const ap=el.querySelector('#te-ap');if(ap)ap.onclick=async()=>{if(dirty)return alert('Save your changes first, then approve.');try{await api(`/templates/${id}/approve`,{body:{approved:t.status!=='APPROVED'}});await reopen()}catch(e){alert(e.message)}};
+ const ap=el.querySelector('#te-ap');if(ap)ap.onclick=async()=>{if(dirty)return toast('Save your changes first, then approve.','error');try{await api(`/templates/${id}/approve`,{body:{approved:t.status!=='APPROVED'}});await reopen()}catch(e){toast(e.message,'error')}};
  const rs=el.querySelector('#te-rest');if(rs)rs.onclick=async()=>{if(!await ask('It becomes a new version and the template goes back to draft.',{ok:'Yes, restore',icon:'bx-history',title:'Restore this version?'}))return;try{await api(`/templates/${id}/restore`,{body:{version:+el.querySelector('#te-v').value}});toast('Version restored','success');await reopen()}catch(e){toast(e.message,'error')}}}
 
 /* ---- create a template from an accepted document ---- */
@@ -497,7 +497,7 @@ async function aiSettingsCard(){
   const sel=$('ai-model'),other=$('ai-model-o');sel.onchange=()=>other.classList.toggle('d-none',sel.value!=='__other');if(!models.length)sel.value='__other';
   $('ai-temp').oninput=e=>$('ai-temp-v').textContent=e.target.value;
   $('ai-reset').onclick=e=>{e.preventDefault();$('ai-prompt').value=d.defaults.system_prompt};
-  const cl=$('ai-clear');if(cl)cl.onclick=async e=>{e.preventDefault();if(!confirm('Remove the saved API key for '+P.label+'?'))return;try{d=await api('/ai/settings',{method:'PUT',body:{provider:p,clear_key:true}});await refreshStatus();msg='<span class="text-success">Key removed.</span>';render()}catch(x){alert(x.message)}};
+  const cl=$('ai-clear');if(cl)cl.onclick=async e=>{e.preventDefault();if(!await ask('Documents that need the AI will not work until a new key is added.',{danger:true,ok:'Yes, remove',title:'Remove the saved API key for '+P.label+'?'}))return;try{d=await api('/ai/settings',{method:'PUT',body:{provider:p,clear_key:true}});await refreshStatus();msg='<span class="text-success">Key removed.</span>';render()}catch(x){toast(x.message,'error')}};
   $('ai-prov').onchange=()=>{const c=collect();d.settings={...d.settings,...c,provider:$('ai-prov').value};live=[];msg='';render()};
   const save=async()=>{const c=collect();d=await api('/ai/settings',{method:'PUT',body:c});await refreshStatus()};
   $('ai-save').onclick=async()=>{try{await save();usage=await api('/ai/usage').catch(()=>usage);msg='<span class="text-success">Saved ✓</span>';render()}catch(e){$('ai-msg').innerHTML=`<span class="text-danger">${esc(e.message)}</span>`}};
