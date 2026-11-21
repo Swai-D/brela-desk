@@ -109,5 +109,36 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
   ok('no optional wording is left highlighted once the wizard has decided',r2.clauses===0&&/at nominal value/.test(x2),r2.clauses)}
  {const T4=fs.readFileSync(path.join(PKG,'templates',fs.readdirSync(path.join(PKG,'templates')).find(f=>f.startsWith('T04')))),r=await E.docxFill(T4,{...man.defaults,...data.common,...data.T04,CLAUSE_PAY_BANK:'no'}),x=(await mammoth.extractRawText({buffer:r.buffer})).value;
   ok('removing "or into a bank account..." leaves clean punctuation (no ",.")',/registered office of the company\./.test(x)&&!/company,\./.test(x),x.slice(0,10))}
+ // ---- your own Word file becomes a template (exact layout) with its own wizard
+ {const JZ=require('jszip'),NS='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const run=(t,h)=>`<w:r>${h?'<w:rPr><w:highlight w:val="yellow"/></w:rPr>':''}<w:t xml:space="preserve">${t}</w:t></w:r>`,para=(...r)=>`<w:p>${r.join('')}</w:p>`;
+  const mk=async body=>{const z=new JZ();z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
+   z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+   z.file('word/document.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="${NS}"><w:body>${body}</w:body></w:document>`);return z.generateAsync({type:'nodebuffer'})};
+  const doc=await mk(para(run('LETTER OF ENGAGEMENT'))+para(run('Date: '),run('[LETTER ',1),run('DATE]',1))+para(run('To: '),run('[COMPANY NAME]',1))+para(run('Fee TZS '),run('[ENGAGEMENT FEE]',1),run(' for '),run('[SCOPE OF WORK]',1))+para(run('Site: '),run('[SITE CONTACT, IF ANY]',1))+para(run('Pay '),run('within 14 days',1),run('.')));
+  const sc=await E.docxScan(doc),keys=sc.labels.map(l=>l.key);
+  ok('a Word file is scanned: a label split over runs is joined, optional labels and own yellow wording are found',keys.join()==='LETTER_DATE,COMPANY_NAME,ENGAGEMENT_FEE,SCOPE_OF_WORK,SITE_CONTACT_OPT'&&sc.labels[4].optional&&sc.clauses.length===1&&sc.clauses[0].text==='within 14 days',[keys,sc.clauses]);
+  const ck_='CLAUSE_'+sc.clauses[0].key,f1=await E.docxFill(doc,{COMPANY_NAME:'ACME LTD',LETTER_DATE:'21 November 2026',ENGAGEMENT_FEE:'1,200,000',SCOPE_OF_WORK:'Filing',[ck_]:'no'},{custom:true}),t1=(await mammoth.extractRawText({buffer:f1.buffer})).value;
+  ok('your own file is filled in place: labels replaced, optional blank, wording left out cleanly',/Date: 21 November 2026/.test(t1)&&/To: ACME LTD/.test(t1)&&/Fee TZS 1,200,000 for Filing/.test(t1)&&/Site: *\n/.test(t1+'\n')&&/Pay\./.test(t1)&&f1.missing.length===0&&f1.clauses===0,t1);
+  const f2=await E.docxFill(doc,{COMPANY_NAME:'ACME LTD'},{custom:true});
+  ok('a label with no value stays yellow and is reported by its field name',f2.missing.includes('LETTER_DATE')&&f2.missing.includes('ENGAGEMENT_FEE'),f2.missing);
+  const up_=async(buf,fields)=>{const fd=new FormData();fd.append('file',new Blob([buf]),'Letter of engagement.docx');for(const [k,v] of Object.entries(fields||{}))fd.append(k,v);const r=await fetch(B+'/templates/from-word',{method:'POST',headers:{cookie:ck},body:fd});return{s:r.status,j:await r.json()}};
+  await as('juma@test.co',UP);const nope=await up_(doc,{name:'Letter of engagement'});ok('staff cannot make templates from a Word file',nope.s===403,nope.s);
+  await as('boss@test.co',AP);
+  const bad=await up_(await mk(para(run('No labels here'))),{name:'Plain'});ok('a Word file with no yellow [LABELS] is refused with the way to prepare it',bad.s===400&&/yellow/.test(bad.j.error),bad.j);
+  const r1=await up_(doc,{name:'Letter of engagement',match:'engagement, letter'});
+  const st=Object.fromEntries((r1.j.fields||[]).map(f=>[f.key,f.status]));
+  ok('your Word file becomes a template and a wizard: Company details fill by themselves, the rest are asked',r1.s===200&&st.COMPANY_NAME==='company'&&st.LETTER_DATE==='asked'&&st.SITE_CONTACT_OPT==='optional'&&r1.j.asked===5&&r1.j.clauses[0]==='within 14 days',r1.j);
+  ok('the same name cannot be used twice',(await up_(doc,{name:'Letter of engagement'})).s===409);
+  const tl=(await call('GET','/templates')).j.find(t=>t.name==='Letter of engagement');ok('the template list says which wizard makes it',tl&&tl.wizard===r1.j.wizard&&tl.has_docx,tl);
+  const cs=(await call('POST','/cases',{clientId:cl,caseTypeId:T})).j;
+  ok('the case will not make it without the required answers',(await call('POST',`/cases/${cs.id}/ai/generate-docx`,{template_id:tl.id})).s===409);
+  const wf=(await call('GET',`/cases/${cs.id}/scenarios/${r1.j.wizard}`)).j.def.fields,cf=wf.find(f=>/^clause_/.test(f.key));
+  ok('the wizard asks the missing details with the right kinds of answer',wf.find(f=>f.key==='letter_date').type==='date'&&wf.find(f=>f.key==='engagement_fee').type==='money'&&wf.find(f=>f.key==='site_contact_opt').req!==true&&cf&&cf.type==='choice',wf.map(f=>[f.key,f.type]));
+  const gg=await call('POST',`/cases/${cs.id}/scenarios/${r1.j.wizard}/generate`,{answers:{letter_date:'2026-11-21',engagement_fee:'1200000',scope_of_work:'Annual return',[cf.key]:'yes'}});
+  const jb=gg.j.jobs[0],fl=await fetch(`http://localhost:${PORT}/api/files/${jb.file.id}`,{headers:{cookie:ck}}),tx=(await mammoth.extractRawText({buffer:Buffer.from(await fl.arrayBuffer())})).value;
+  ok('the wizard fills your own Word file from the Company and the answers (dates formatted, money with commas, wording kept)',gg.s===200&&!jb.missing.length&&/Date: 21 November 2026/.test(tx)&&/Fee TZS 1,200,000 for Annual return/.test(tx)&&/Pay within 14 days\./.test(tx)&&/To: Kilimo Fresh Limited|To: KILIMO FRESH LIMITED/i.test(tx),[jb.missing,tx]);
+  const via=await call('POST',`/cases/${cs.id}/ai/generate-docx`,{template_id:tl.id});ok('the case page makes the same document through the same wizard',via.s===200&&via.j.wizard===r1.j.wizard,via.j);
+  await call('DELETE','/templates/'+tl.id);ok('deleting the template removes the wizard made for it',!(await call('GET','/wizards')).j.items.some(w=>w.id===r1.j.wizard));}
  ok('only real templates can be filled this way',(await call('POST',`/cases/${c.id}/ai/generate-docx`,{template_id:99999})).s===404);
 })();

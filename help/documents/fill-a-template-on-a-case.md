@@ -6,7 +6,7 @@ order: 13
 ---
 This is for one document at a time (the wizards make several at once).
 
-> **Official forms and resolutions use the wizard.** When you choose an official template (Forms 131, 213a, 213b, 57a, 57b and the resolutions and notices), **Prepare** changes to **Answer the questions** and opens the matching wizard of [Prepare documents](help:documents/prepare-documents). You get exactly the same document wherever you start. Only your own templates follow the steps below.
+> **Official forms, resolutions and your own Word templates use the wizard.** When you choose an official template (Forms 131, 213a, 213b, 57a, 57b and the resolutions and notices) or a template made from your own Word file, **Prepare** changes to **Answer the questions** and opens the matching wizard of [Prepare documents](help:documents/prepare-documents). You get exactly the same document wherever you start. Only your own templates follow the steps below.
 
 ## Steps
 

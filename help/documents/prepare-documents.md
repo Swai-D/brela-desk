@@ -19,6 +19,8 @@ order: 1
 
 The wizards are the only way to make the official forms, resolutions and notices. If you press the robot icon on a checklist item and choose an official template, the same wizard opens, so the result is identical wherever you start. Optional wording (for example "at nominal value") is decided by a question or by your answers, so the files come out without yellow marks. Yellow remains only for a detail that is truly missing, such as a person's nationality, and the **Check** step names it.
 
+Your own Word templates ([Make a template from your own Word file](help:documents/template-from-word-file)) appear here too, each with a wizard that was made for it.
+
 ## What you get
 
 - One Word file per document, named with the form and, for per-person forms, the person's name.

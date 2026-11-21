@@ -181,7 +181,29 @@ const CLAUSES=[
  {k:'REALLOT',re:/^re-allotted or otherwise disposed of$/i},
  {k:'UNISSUED',re:/^shall not be allotted, sold or otherwise disposed of/i}];
 const clauseOf=t=>{const x=String(t||'').replace(/\s+/g,' ').trim();return CLAUSES.find(c=>c.re.test(x))};
-async function docxFill(buf,values,{acceptClauses=false}={}){
+// [LABEL IN CAPITALS] (", IF ANY" = optional) -> the field name used by the app, or null when it is not a label
+const userClauseKey=t=>'U'+require('crypto').createHash('sha1').update(String(t).replace(/\s+/g,' ').trim().toLowerCase()).digest('hex').slice(0,8).toUpperCase();
+const labelKey=lab=>{const t=String(lab||'').replace(/\s+/g,' ').trim(),o=/,\s*IF ANY$/i.test(t),b=t.replace(/,\s*IF ANY$/i,'').trim();return /^[A-Z][A-Z0-9 ]*$/.test(b)?b.replace(/ /g,'_')+(o?'_OPT':''):null};
+// Word often splits one highlighted "[LABEL]" into several runs (spell-check, a change of font). Join consecutive highlighted runs when together they make a label.
+function joinLabelRuns(doc){
+ const rt=r=>Array.from(r.getElementsByTagNameNS(W_NS,'t')).map(t=>t.textContent).join('');
+ const hl=r=>{const rp=Array.from(r.childNodes).find(n=>n.nodeType===1&&n.localName==='rPr');return !!rp&&!!Array.from(rp.childNodes).find(n=>n.localName==='highlight')};
+ for(const p of Array.from(doc.getElementsByTagNameNS(W_NS,'p'))){
+  const kids=Array.from(p.childNodes).filter(n=>n.nodeType===1&&n.localName==='r');
+  for(let i=0;i<kids.length;i++){if(!hl(kids[i]))continue;let j=i;while(j+1<kids.length&&hl(kids[j+1])&&kids[j+1].previousSibling===kids[j])j++;
+   if(j>i){const txt=kids.slice(i,j+1).map(rt).join('');if(/^\s*\[[^\[\]]+\]\s*$/.test(txt)){const ts=Array.from(kids[i].getElementsByTagNameNS(W_NS,'t'));let t0=ts[0];if(!t0){t0=doc.createElementNS(W_NS,'w:t');kids[i].appendChild(t0)}t0.textContent=txt.trim();t0.setAttributeNS(XML_NS,'xml:space','preserve');for(const x of ts.slice(1))kids[i].removeChild(x);for(let k=i+1;k<=j;k++)p.removeChild(kids[k])}}
+   i=j}}}
+// What a Word file asks for: its [LABELS] and its optional wording, so a template can be made from it
+async function docxScan(buf){
+ const JSZip=require('jszip'),{DOMParser}=require('@xmldom/xmldom'),zip=await JSZip.loadAsync(buf),labels=new Map(),clausesFound=[];
+ const rt=r=>Array.from(r.getElementsByTagNameNS(W_NS,'t')).map(t=>t.textContent).join('');
+ const hl=r=>{const rp=Array.from(r.childNodes).find(n=>n.nodeType===1&&n.localName==='rPr');return !!rp&&!!Array.from(rp.childNodes).find(n=>n.localName==='highlight')};
+ for(const f of docxTargets(zip)){const doc=new DOMParser().parseFromString(await zip.file(f).async('string'),'text/xml');joinLabelRuns(doc);
+  for(const p of Array.from(doc.getElementsByTagNameNS(W_NS,'p'))){const runs=Array.from(p.childNodes).filter(n=>n.nodeType===1&&n.localName==='r');
+   runs.forEach((r,i)=>{if(!hl(r))return;const t=rt(r),m=t.match(/^\[\s*([^\[\]]+?)\s*\]$/),wrapped=0<i&&i<runs.length-1&&rt(runs[i-1])==='['&&rt(runs[i+1])===']',lab=m?m[1].replace(/\s+/g,' '):wrapped?t.trim():null,key=lab?labelKey(lab):null;
+    if(key){const e=labels.get(key)||{label:lab,key,optional:/_OPT$/.test(key),count:0};e.count++;labels.set(key,e)}else if(t.trim()&&!clauseOf(t))clausesFound.push(t.replace(/\s+/g,' ').trim())})}}
+ return{labels:[...labels.values()],clauses:[...new Set(clausesFound)].map(text=>({key:userClauseKey(text),text}))}}
+async function docxFill(buf,values,{acceptClauses=false,custom=false}={}){
  const JSZip=require('jszip'),{DOMParser,XMLSerializer}=require('@xmldom/xmldom');
  const zip=await JSZip.loadAsync(buf);
  values={...values};
@@ -192,6 +214,7 @@ async function docxFill(buf,values,{acceptClauses=false}={}){
  const q=t=>`{${W_NS}}${t}`;
  for(const f of docxTargets(zip)){
   const doc=new DOMParser().parseFromString(await zip.file(f).async('string'),'text/xml');
+  if(custom)joinLabelRuns(doc);
   if(values.__merge_name)mergeNameRows(doc,values);
   restructureSlots(doc,values);
   const del=[];
@@ -202,8 +225,9 @@ async function docxFill(buf,values,{acceptClauses=false}={}){
    const unhl=r=>{const rPr=Array.from(r.childNodes).find(n=>n.nodeType===1&&n.namespaceURI===W_NS&&n.localName==='rPr');if(rPr)Array.from(rPr.childNodes).filter(n=>n.localName==='highlight').forEach(h=>rPr.removeChild(h))};
    const inCell=p!==p.ownerElement&&(()=>{for(let a=p.parentNode;a&&a.nodeType===1;a=a.parentNode)if(a.namespaceURI===W_NS&&a.localName==='tc')return true;return false})();
    for(let i=0;i<runs.length;i++){const r=runs[i];if(!isHl(r))continue;
-    const wrapped=0<i&&i<runs.length-1&&rtext(runs[i-1])==='['&&rtext(runs[i+1])===']';
-    const lab=rtext(r),key=l2k[lab]||(wrapped&&/, IF ANY$/.test(lab)&&/^[A-Z0-9 ,]+$/.test(lab)?lab.replace(/, IF ANY$/,'').replace(/ /g,'_')+'_OPT':null);
+    const sm=custom?rtext(r).match(/^\[\s*([^\[\]]+?)\s*\]$/):null;// your own Word file: the whole [LABEL] sits in one highlighted run
+    const wrapped=!!sm||(0<i&&i<runs.length-1&&rtext(runs[i-1])==='['&&rtext(runs[i+1])===']');
+    const lab=sm?sm[1].replace(/\s+/g,' '):rtext(r),key=l2k[lab]||(wrapped&&/, IF ANY$/.test(lab)&&/^[A-Z0-9 ,]+$/.test(lab)?lab.replace(/, IF ANY$/,'').replace(/ /g,'_')+'_OPT':null)||(custom&&wrapped?labelKey(lab):null);
     if(wrapped&&key){
      const val=values[key];
      if((val===undefined||val===null)&&!/_OPT$/.test(key)){missing.add(key);continue}// an optional ("IF ANY") detail nobody has is left blank, not yellow
@@ -213,9 +237,9 @@ async function docxFill(buf,values,{acceptClauses=false}={}){
      ts[0].textContent=v;ts[0].setAttributeNS(XML_NS,'xml:space','preserve');
      for(const extra of ts.slice(1))r.removeChild(extra);
      unhl(r);
-     p.removeChild(runs[i-1]);p.removeChild(runs[i+1]);
+     if(!sm){p.removeChild(runs[i-1]);p.removeChild(runs[i+1])}
      if(v===''&&!/_OPT$/.test(key)&&!inCell)del.push(p)}
-    else if(!wrapped){const cl=clauseOf(rtext(r));
+    else if(!wrapped){const cl=clauseOf(rtext(r))||(custom&&rtext(r).trim()?{k:userClauseKey(rtext(r))}:null);
      if(cl){const on=String(values['CLAUSE_'+cl.k]??'yes').toLowerCase()!=='no';
       if(on)unhl(r);else{const pr=runs[i-1],nx=runs[i+1];p.removeChild(r);
        // no stray space before the punctuation that follows
@@ -336,4 +360,4 @@ async function extractText(buf,name='',mime=''){
  if(text.length<20){const e=new Error('No readable text found in this file (scanned documents are not supported yet: paste the text instead).');e.status=400;throw e}
  return text.slice(0,60000)}
 
-module.exports={fields,render,gaps,applyGaps,reverse,buildContext,withhold,suggestScore,textToDocx,extractText,personScope,SENSITIVE_KEY,ROLE_LISTS,natName,mergePeople,personNeeds,labelFromKey,docxFill,docxToPdf,docxTargets,packageValues,docxTextToBody};
+module.exports={fields,render,gaps,applyGaps,reverse,buildContext,withhold,suggestScore,textToDocx,extractText,personScope,SENSITIVE_KEY,ROLE_LISTS,natName,mergePeople,personNeeds,labelFromKey,docxFill,docxScan,labelKey,docxToPdf,docxTargets,packageValues,docxTextToBody};

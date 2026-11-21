@@ -99,7 +99,8 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  const bodyOf=async t=>(await one('SELECT body FROM template_versions WHERE template_id=$1 AND version=$2',[t.id,t.version])).body;
  const kindOf=k=>['FORM','DOCUMENT'].includes(k)?k:'DOCUMENT';
  const newVersion=async(t,body,note,source,user)=>{const v=t.version+1;await q('INSERT INTO template_versions(template_id,version,body,note,source,created_by) VALUES($1,$2,$3,$4,$5,$6)',[t.id,v,body,note||null,source,user]);await q(`UPDATE templates SET version=$2,status='DRAFT',clean_runs=0,updated_at=now() WHERE id=$1`,[t.id,v]);return v};
- app.get('/api/templates',wrap(async(req,res)=>{const qs=String(req.query.q||'').trim();res.json((await q(`${TLIST} WHERE ($1='' OR t.name ILIKE '%'||$1||'%' OR t.keywords ILIKE '%'||$1||'%') ORDER BY t.name`,[qs])).map(t=>({...t,wizard:WIZ_OF[tidOfTemplate(t)]||null})))}));
+ app.get('/api/templates',wrap(async(req,res)=>{const qs=String(req.query.q||'').trim(),own={};for(const w of await q('SELECT id,docs FROM wizards WHERE active ORDER BY position,created_at'))for(const d of (w.docs||[]))if(d.template_id&&!own[d.template_id])own[d.template_id]=w.id;
+  res.json((await q(`${TLIST} WHERE ($1='' OR t.name ILIKE '%'||$1||'%' OR t.keywords ILIKE '%'||$1||'%') ORDER BY t.name`,[qs])).map(t=>({...t,wizard:WIZ_OF[tidOfTemplate(t)]||own[t.id]||null})))}));
  app.get('/api/templates/:id',wrap(async(req,res)=>{
   const t=await one(`${TLIST} WHERE t.id=$1`,[+req.params.id]);if(!t)fail(404,'Template not found');
   const extra=await one('SELECT ai_notes FROM templates WHERE id=$1',[t.id]),body=await bodyOf(t),versions=await q('SELECT v.version,v.note,v.source,v.created_at,u.name AS by FROM template_versions v LEFT JOIN users u ON u.id=v.created_by WHERE v.template_id=$1 ORDER BY v.version DESC',[t.id]);
@@ -122,7 +123,10 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  app.post('/api/templates/:id/restore',need(...SR),wrap(async(req,res)=>{
   const t=await one('SELECT * FROM templates WHERE id=$1',[+req.params.id]);if(!t)fail(404,'Template not found');const old=await one('SELECT body FROM template_versions WHERE template_id=$1 AND version=$2',[t.id,+req.body.version]);if(!old)fail(404,'That version does not exist');
   res.json({ok:1,version:await newVersion(t,old.body,`Restored version ${+req.body.version}`,'manual',req.user.id)})}));
- app.delete('/api/templates/:id',need('MANAGER'),wrap(async(req,res)=>{const t=await one('SELECT name FROM templates WHERE id=$1',[+req.params.id]);if(!t)fail(404,'Template not found');await q('DELETE FROM templates WHERE id=$1',[+req.params.id]);await audit(req,'template.delete',t.name);res.json({ok:1})}));
+ app.delete('/api/templates/:id',need('MANAGER'),wrap(async(req,res)=>{const t=await one('SELECT name FROM templates WHERE id=$1',[+req.params.id]);if(!t)fail(404,'Template not found');// a wizard made for this template goes with it; other wizards just lose the document
+  for(const w of await q('SELECT id,engine,docs FROM wizards')){const keep=(w.docs||[]).filter(d=>+d.template_id!==+req.params.id);if(keep.length===(w.docs||[]).length)continue;
+   if(!keep.length&&!w.engine)await q('DELETE FROM wizards WHERE id=$1',[w.id]);else await q('UPDATE wizards SET docs=$2::jsonb WHERE id=$1',[w.id,JSON.stringify(keep)])}
+  await q('DELETE FROM templates WHERE id=$1',[+req.params.id]);await audit(req,'template.delete',t.name);res.json({ok:1})}));
  app.post('/api/templates/:id/preview',wrap(async(req,res)=>{
   const t=await one('SELECT * FROM templates WHERE id=$1',[+req.params.id]);if(!t)fail(404,'Template not found');const body=await bodyOf(t);
   const ctx=req.body.case_id?(await contextFor(+req.body.case_id)).ctx:{values:{today:new Date().toDateString()},lists:{}};res.json(E.render(body,ctx))}));
@@ -150,10 +154,50 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   if(!req.file)fail(400,'Choose a Word (.docx) file');const name=Buffer.from(req.file.originalname,'latin1').toString('utf8');if(!/\.docx$/i.test(name))fail(400,'Use a .docx file');
   let raw;try{raw=(await require('mammoth').extractRawText({buffer:req.file.buffer})).value}catch{fail(400,'This Word file could not be read')}
   const l2k={};for(const k of Object.keys(t.docx_defaults||{}))l2k[E.labelFromKey(k)]=k;
+  if(!tidOfTemplate(t))for(const l of (await E.docxScan(req.file.buffer).catch(()=>({labels:[]}))).labels)l2k[l.label]=l.key;
   const body=E.docxTextToBody(raw,l2k);if(!body.trim())fail(400,'The Word file has no text');
   await q('UPDATE templates SET docx_name=$2,docx_data=$3,updated_at=now() WHERE id=$1',[t.id,name.slice(0,200),req.file.buffer]);
   const version=body!==await bodyOf(t)?await newVersion(t,body,'Word form replaced with an edited file','manual',req.user.id):t.version;
-  await audit(req,'template.docx',`${t.name}: Word form replaced (${name})`);res.json({ok:1,version,body})}));
+  let added=0;
+  if(!tidOfTemplate(t)){ // your own Word file: new [LABELS] in the edited file get their questions
+   try{const sc=await E.docxScan(req.file.buffer),wid=await wizardOfTemplateId(t.id),row=wid&&await one('SELECT fields FROM wizards WHERE id=$1',[wid]);
+    if(row){const have=new Set((row.fields||[]).map(f=>f.key)),nf=wizardFieldsFor(sc,await knownKeys()).fields.filter(f=>!have.has(f.key));
+     if(nf.length){await q('UPDATE wizards SET fields=$2::jsonb,updated_at=now() WHERE id=$1',[wid,JSON.stringify([...(row.fields||[]),...nf])]);added=nf.length}}}catch{}}
+  await audit(req,'template.docx',`${t.name}: Word form replaced (${name})`);res.json({ok:1,version,body,questions_added:added})}));
+
+ // ---------- your own Word file as a template: the [LABELS] you highlighted yellow are filled from the Company, the rest become wizard questions
+ const guessType=l=>/\b(DATE|DAY)\b/.test(l)?'date':/\bTIME\b/.test(l)?'time':/\b(AMOUNT|FEE|PRICE|COST|SALARY|RENT|PAYMENT|TOTAL|BALANCE|CAPITAL)\b/.test(l)?'money':/\b(NUMBER OF|QUANTITY|QTY|COUNT)\b/.test(l)?'number':/\b(SCOPE|DESCRIPTION|PURPOSE|DETAILS|REASON|NOTES?|TERMS|ADDRESS)\b/.test(l)?'longtext':'text';
+ const sentence=l=>{const t=String(l||'').replace(/,\s*IF ANY$/i,'').toLowerCase();return t.charAt(0).toUpperCase()+t.slice(1)};
+ const knownKeys=async()=>{const k=new Set(COMMON_KEYS.map(x=>x.toUpperCase()));
+  for(const r of await q(`SELECT DISTINCT jsonb_object_keys(profile) AS k FROM clients WHERE jsonb_typeof(profile)='object'`))k.add(String(r.k).toUpperCase());
+  const P=n=>({full_name:'Person '+n,roles:['director','secretary','shareholder'],nationality:'Tanzanian',address:'x',dob:'1990-01-01',shares:'1',occupation:'x',previous_names:'x',other_directorships:'x',email:'x',phone:'x'}),ctx=E.buildContext({client:{name:'x',phone:'x',email:'x'},profile:{},people:[P(1),P(2),P(3)]});
+  for(const x of Object.keys(ctx.values))k.add(x.toUpperCase());for(const x of Object.keys(E.packageValues(ctx)))k.add(x);return k};
+ const wizardFieldsFor=(sc,known)=>{
+  const fields=[],out=[];
+  for(const l of sc.labels){const lk=l.key.toLowerCase(),isKnown=known.has(l.key)||known.has(l.key.replace(/_OPT$/,''));
+   if(isKnown||lk.length>58||!/^[a-z][a-z0-9_]*$/.test(lk)){out.push({label:l.label,key:l.key,status:'company'});continue}
+   const type=guessType(l.label.toUpperCase()),f={key:lk,label:sentence(l.label)+(l.optional?' (optional)':''),type,group:'Details',maps_to:lk};
+   if(!l.optional)f.req=true;if(type==='date')f.fmt='date';if(type==='money')f.fmt='money';fields.push(f);out.push({label:l.label,key:l.key,status:l.optional?'optional':'asked'})}
+  for(const c of sc.clauses){const k='clause_'+c.key.toLowerCase();fields.push({key:k,label:`Include: “${c.text.slice(0,110)}”`,type:'choice',group:'Optional wording',maps_to:k,opts:[['yes','Include it'],['no','Leave it out']]})}
+  return{fields,out}};
+ app.post('/api/templates/from-word',need(...SR),up,wrap(async(req,res)=>{
+  if(!req.file)fail(400,'Choose a Word (.docx) file');const fname=Buffer.from(req.file.originalname,'latin1').toString('utf8');if(!/\.docx$/i.test(fname))fail(400,'Use a .docx file');
+  const b=req.body||{},name=(clean(b.name)||fname.replace(/\.docx$/i,'')).slice(0,120);
+  if(await one('SELECT 1 FROM templates WHERE lower(name)=lower($1)',[name]))fail(409,'A template with this name already exists. Choose another name.');
+  let sc,raw;try{sc=await E.docxScan(req.file.buffer);raw=(await require('mammoth').extractRawText({buffer:req.file.buffer})).value}catch{fail(400,'This Word file could not be read. Re-save it in Word and try again.')}
+  if(!sc.labels.length)fail(400,'No yellow [LABELS] were found. In Word, type each detail that changes in capitals inside square brackets, for example [CLIENT NAME], select it and apply the yellow highlight. Then upload the file again.');
+  const known=await knownKeys(),l2k=Object.fromEntries(sc.labels.map(l=>[l.label,l.key])),body=E.docxTextToBody(raw,l2k);
+  const match=clean(b.match)||name.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().split(' ').filter(w=>w.length>2).join(', '),kw=(/^[tf]0\d[ab]?\s/i.test(match)?'x ':'')+match.replace(/,/g,' ');
+  const t=await one(`INSERT INTO templates(name,kind,description,ai_notes,keywords,docx_name,docx_data,docx_defaults,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,'{}'::jsonb,$8) RETURNING id`,[name,b.kind==='FORM'?'FORM':'DOCUMENT',clean(b.description).slice(0,400)||'Your own Word file: yellow [LABELS] are filled from the Company and the wizard',null,kw.slice(0,300),fname.slice(0,200),req.file.buffer,req.user.id]);
+  await q('INSERT INTO template_versions(template_id,version,body,note,source,created_by) VALUES($1,1,$2,$3,$4,$5)',[t.id,body||name,'Made from an uploaded Word file','manual',req.user.id]);
+  // the wizard that asks for what the Company does not hold
+  const {fields,out}=wizardFieldsFor(sc,known);
+  const w=await cleanWizard({title:name,description:`Fills "${name}" from the Company and your answers.`,icon:'bx-file',match,fields,docs:[{template_id:t.id,name}],active:true},null);
+  let wid=w.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'wizard',n=1;await ensureWizards();while(await one('SELECT 1 FROM wizards WHERE id=$1',[wid]))wid=wid.replace(/-\d+$/,'')+'-'+(++n);
+  const pos=(await one('SELECT coalesce(max(position),0)+1 AS n FROM wizards')).n;
+  await q('INSERT INTO wizards(id,title,description,icon,match,fields,docs,rules,checks,position,active) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8::jsonb,$9::jsonb,$10,$11)',[wid,w.title,w.description,w.icon,w.match,JSON.stringify(w.fields),JSON.stringify(w.docs),JSON.stringify(w.rules),JSON.stringify(w.checks),pos,true]);
+  await audit(req,'template.fromword',`${name}: ${sc.labels.length} label(s), ${fields.length} question(s)`);
+  res.json({id:t.id,name,wizard:wid,fields:out,clauses:sc.clauses.map(c=>c.text),asked:fields.length})}));
 
  // ---------- AI helpers
  async function guard(req,kind){
@@ -270,6 +314,7 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
 
  // the official package templates and the wizard that makes each of them
  const WIZ_OF={T01:'directors',T02:'directors',F01:'directors',F02:'directors',F03:'shares',F04:'shares',T03:'shares',T04:'shares',T05:'shares',T06A:'shares',T06B:'shares',T07A:'shares',T07B:'shares',T08:'shares',F05:'annual'};
+ const wizardOfTemplateId=async id=>{const r=await one(`SELECT id FROM wizards WHERE active AND docs @> $1::jsonb ORDER BY position,created_at LIMIT 1`,[JSON.stringify([{template_id:+id}])]);return r?r.id:null};
  const tidOfTemplate=t=>{const m=String((t&&t.keywords)||'').match(/^([tf]0\d[ab]?) /i);return m?m[1].toUpperCase():null};
  const saveDocx=async(req,x,t,r,name,item)=>{
   const id=x.c.id,f=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'template') RETURNING id,filename`,
@@ -289,16 +334,18 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const item=b.item_id?await one('SELECT id,name FROM case_docs WHERE id=$1 AND case_id=$2',[+b.item_id,id]):null;
   if(b.item_id&&!item)fail(400,'That checklist item is not on this case');
   // one way to make documents: an official form is made by its wizard from the saved answers, so the result is the same everywhere
-  const tid=tidOfTemplate(t);
-  if(tid){
-   for(const w of await wizRows(true)){const s=SC.compose(w),answers=await savedAnswers(id,s.id),cv=SC.companyView((await contextFor(id,{scn:s,answers})).ctx);
-    if(!s.jobs(answers,cv).some(j=>j.tid===tid))continue;
-    const r=await runScenario(req,id,s,answers,true,tid),made=r.jobs.filter(j=>j.file);
-    if(made.length){await log(id,req.user.id,`prepared ${made.length} document${made.length===1?'':'s'} for "${s.title}"`);
-     const j=made[0];return res.json({file:{...j.file,pdf:j.pdf||null},files:made.map(m=>({...m.file,pdf:m.pdf||null,title:m.title})),missing:j.missing||[],clauses:0,filled:j.filled,people:r.people,rest:j.missing||[],wizard:s.id})}}
-   const hint=WIZ_OF[tid]||'directors';fail(409,`This form is made by the "${(await getWizard(hint,true)||{title:hint}).title}" wizard. Open Prepare documents on the case, answer its questions, and press Prepare.`)}
+  const pkg=tidOfTemplate(t),own=!pkg,tid=pkg||String(t.id);
+  for(const w of await wizRows(true)){const s=SC.compose(w),answers=await savedAnswers(id,s.id),cv=SC.companyView((await contextFor(id,{scn:s,answers})).ctx);
+   if(!s.jobs(answers,cv).some(j=>pkg?j.tid===pkg:String(j.template_id)===tid))continue;
+   const need_=s.fields.filter(f=>f.req&&!f.show&&!String(answers[f.key]||'').trim());
+   if(need_.length)fail(409,`Answer the required questions of "${s.title}" first: ${need_.map(f=>f.label).join(', ')}.`);
+   const r=await runScenario(req,id,s,answers,true,tid),made=r.jobs.filter(j=>j.file);
+   if(made.length){await log(id,req.user.id,`prepared ${made.length} document${made.length===1?'':'s'} for "${s.title}"`);
+    const j=made[0];return res.json({file:{...j.file,pdf:j.pdf||null},files:made.map(m=>({...m.file,pdf:m.pdf||null,title:m.title})),missing:j.missing||[],clauses:0,filled:j.filled,people:r.people,rest:j.missing||[],wizard:s.id})}}
+  const wid=pkg?(WIZ_OF[pkg]||'directors'):await wizardOfTemplateId(t.id);
+  if(wid){const w=await getWizard(wid,true);fail(409,`This ${pkg?'form':'template'} is made by the "${w?w.title:wid}" wizard. Open Prepare documents on the case, answer its questions, and press Prepare.`)}
   const values={...(t.docx_defaults||{}),...E.packageValues(x.ctx)};
-  let r;try{r=await E.docxFill(t.docx_data,values)}catch(e){fail(400,'Could not fill this Word template: '+e.message)}
+  let r;try{r=await E.docxFill(t.docx_data,values,{custom:own})}catch(e){fail(400,'Could not fill this Word template: '+e.message)}
   const name=(item?item.name:t.name).replace(/[\\/:*?"<>|]+/g,' ').trim()||'Document';
   const f=await saveDocx(req,x,t,r,name,item);
   const needs=E.personNeeds(r.missing,x.ctx);
@@ -368,13 +415,13 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  const tplFor=tid=>one(`SELECT id,name,docx_data,docx_defaults FROM templates WHERE docx_data IS NOT NULL AND keywords LIKE $1 ORDER BY id LIMIT 1`,[tid.toLowerCase()+' %']);
  // work out (and optionally save) every document of a scenario
  const runScenario=async(req,caseId,s,answers,generate,only)=>{
-  const base=await contextFor(caseId,{scn:s,answers}),cv=SC.companyView(base.ctx),jobs=s.jobs(answers,cv).filter(j=>!only||j.tid===only),warnings=s.warn(answers,cv),out=[];
+  const base=await contextFor(caseId,{scn:s,answers}),cv=SC.companyView(base.ctx),jobs=s.jobs(answers,cv).filter(j=>!only||j.tid===only||(j.template_id&&String(j.template_id)===String(only))),warnings=s.warn(answers,cv),out=[];
   for(const j of jobs){
    const t=j.template_id?await one('SELECT id,name,docx_data,docx_defaults FROM templates WHERE id=$1 AND docx_data IS NOT NULL',[j.template_id]):await tplFor(j.tid),row={tid:j.tid||'',name:j.name,who:j.who||'',title:j.who?`${j.name}: ${SC.tc(j.who)}`:j.name};
    if(!t){out.push({...row,error:'The official Word templates are not imported yet (open Templates and press Import).'});continue}
    const x=await contextFor(caseId,{scn:s,answers,over:j.over}),values={...(t.docx_defaults||{}),...E.packageValues(x.ctx)};
    for(const k of x.blanks)if(values[k]===undefined||values[k]===null)values[k]='';
-   let r;try{r=await E.docxFill(t.docx_data,values)}catch(e){out.push({...row,error:'Could not fill this template: '+e.message});continue}
+   let r;try{r=await E.docxFill(t.docx_data,values,{custom:!!j.template_id})}catch(e){out.push({...row,error:'Could not fill this template: '+e.message});continue}
    row.missing=r.missing.filter(m=>!/^\?/.test(m)).map(m=>E.labelFromKey(m));row.filled=r.filled;
    if(generate){
     const fn=row.title.replace(/[\\/:*?"<>|]+/g,' ').trim(),item=FORMKEY[j.tid]?await one(`SELECT id,name FROM case_docs WHERE case_id=$1 AND name ILIKE $2 ORDER BY done,id LIMIT 1`,[caseId,'%'+FORMKEY[j.tid]+'%']):null;

@@ -5,6 +5,8 @@ keywords: from document, accepted document, upload word, pdf, paste text, create
 order: 12
 role: SENIOR
 ---
+> This makes a **text** template: the layout of your file is not kept. To keep your own layout and fill it inside the Word file, use [Make a template from your own Word file](help:documents/template-from-word-file).
+
 ## Steps
 
 1. **Templates → From an accepted document**.
