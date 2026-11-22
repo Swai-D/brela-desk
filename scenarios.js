@@ -315,6 +315,30 @@ const BUILTIN=[
   return w.filter(x=>!/^Deliver Form 99/.test(x))},
  people(a,c){return signP(a,c,'Form 99')}},
 
+{id:'incorp',title:'Memorandum and Articles of Association',icon:'bx-book-bookmark',match:/memorandum|articles|incorporat/i,desc:'Fills the senior\'s Memorandum and Articles of Association template from the company details already saved (name, share capital, shareholders). The template has two subscriber rows: the first is a person from the Company tab; the second is for a corporate subscriber.',
+ fields:[F('region','Registered office is in','choice',{opts:[['mainland','Tanzania Mainland'],['zanzibar','Tanzania Zanzibar']],group:'The company'}),
+  F('objects','Objects (one per line: ISIC class name and code)','longtext',{req:true,ph:'Computer programming activities (6201)\nBusiness and other management consultancy activities (7020)',group:'The company'}),
+  F('authorised_capital','Authorised share capital','money',{ph:'The company\'s saved share capital',help:'Leave empty to use the share capital saved on the Company tab.',group:'Share capital'}),F('total_shares','Total number of shares','number',{ph:'The company\'s saved number of shares',group:'Share capital'}),F('nominal_value','Nominal value of each share','money',{ph:'Capital divided by the number of shares',group:'Share capital'}),
+  F('subscriber_1','First subscriber (a person)','person',{from:'shareholders',req:true,group:'Subscribers'}),F('subscriber_1_shares','Shares taken by the first subscriber','number',{req:true,group:'Subscribers'}),
+  F('sub2_name','Second subscriber: company name','text',{help:'Leave all four second-subscriber answers empty if the company has no corporate subscriber, then delete that row in Word.',group:'Subscribers'}),F('sub2_address','Second subscriber: address','text',{group:'Subscribers'}),F('sub2_signatory','Second subscriber: director who signs','text',{group:'Subscribers'}),F('sub2_shares','Second subscriber: shares taken','number',{group:'Subscribers'}),
+  F('drawn_name','Drawn by: name','text',{req:true,group:'Drawn by'}),F('drawn_role','Drawn by: role','text',{ph:'SUBSCRIBER',group:'Drawn by'}),F('drawn_pobox','Drawn by: P.O. Box number','text',{req:true,group:'Drawn by'}),F('drawn_city','Drawn by: city','text',{ph:'Dar es Salaam',group:'Drawn by'})],
+ jobs:()=>[{tid:'M01',name:'Memorandum and Articles of Association'}],
+ derive(a,c){const V={},B=[],v=c.values||{},cap=num(a.authorised_capital)||num(v.share_capital),sh=num(a.total_shares)||num(v.number_of_shares),nom=num(a.nominal_value)||num(v.share_value)||(cap&&sh?cap/sh:0);
+  V.registered_office_region=a.region==='zanzibar'?'Tanzania Zanzibar':'Tanzania Mainland';V.objects=String(a.objects||'').trim();
+  if(cap)V.authorised_share_capital=comma(cap);if(sh)V.total_number_of_shares=comma(sh);if(nom)V.nominal_share_value=comma(nom);
+  const p=(c.shareholders||[]).find(x=>same(x.full_name,a.subscriber_1))||{full_name:a.subscriber_1||''};V.subscriber_1_name=up(p.full_name);if(p.address)V.subscriber_1_address=up(niceAddr(p.address));if(num(a.subscriber_1_shares))V.subscriber_1_shares=comma(num(a.subscriber_1_shares));
+  const s2=x=>String(x||'').trim();if(s2(a.sub2_name))V.subscriber_2_name=up(s2(a.sub2_name));if(s2(a.sub2_address))V.subscriber_2_address=up(niceAddr(a.sub2_address));if(s2(a.sub2_signatory))V.subscriber_2_signatory=up(s2(a.sub2_signatory));if(num(a.sub2_shares))V.subscriber_2_shares=comma(num(a.sub2_shares));
+  V.drawn_by_name=up(s2(a.drawn_name));V.drawn_by_role=up(s2(a.drawn_role)||'SUBSCRIBER');V.drawn_by_po_box_number=s2(a.drawn_pobox);V.drawn_by_city=up(s2(a.drawn_city)||'Dar es Salaam');return{V,B}},
+ warn(a,c){const w=[],v=c.values||{},cap=num(a.authorised_capital)||num(v.share_capital),sh=num(a.total_shares)||num(v.number_of_shares),nom=num(a.nominal_value)||num(v.share_value);
+  if(!(cap&&sh))w.push('The company has no saved share capital or number of shares. Enter them above or on the Company tab, or they stay highlighted.');
+  const tot=num(a.subscriber_1_shares)+num(a.sub2_shares);if(sh&&tot>sh)w.push('The subscribers take more shares than the total number of shares.');
+  if(cap&&sh&&nom&&Math.abs(cap-sh*nom)>0.5)w.push('Authorised capital is not the number of shares times the nominal value.');
+  if(!(a.sub2_name||a.sub2_address||a.sub2_signatory||a.sub2_shares))w.push('No second subscriber was entered. Delete the second subscriber row in both tables in Word.');
+  else if(!(a.sub2_name&&a.sub2_address&&a.sub2_signatory&&num(a.sub2_shares)))w.push('The second subscriber is incomplete. Answer all four questions or leave them all empty.');
+  if(!(c.shareholders||[]).length)w.push('The company has no shareholders saved, so the first subscriber cannot be chosen from the Company tab.');
+  return w},
+ people(){return[]}},
+
 {id:'transfer',title:'Transfer of shares',icon:'bx-transfer',match:/transfer/i,desc:'The directors\' resolution acknowledging and registering transfers of shares (up to four). Check the Articles\' transfer rules, the stamped instruments and the TRA clearance first. Afterwards update Form 131 and, where the owners change, the beneficial-owner forms (15b, 15c, 15f).',
  fields:[...[1,2,3,4].flatMap(i=>[F(`transfer_${i}_transferor`,`Transfer ${i}: seller (transferor)`,'person',{from:'shareholders',req:i===1,group:`Transfer ${i}`}),F(`transfer_${i}_transferee`,`Transfer ${i}: buyer (transferee)`,'person',{from:'any',req:i===1,group:`Transfer ${i}`}),F(`transfer_${i}_shares`,`Transfer ${i}: number of shares`,'number',{req:i===1,group:`Transfer ${i}`})]),
   F('transfer_articles','Articles governing the form and registration of transfers','text',{req:true,ph:'articles 22 to 27 of the Company\'s Articles of Association',help:'Take this from the company\'s own Articles.',group:'Meeting and documents'}),

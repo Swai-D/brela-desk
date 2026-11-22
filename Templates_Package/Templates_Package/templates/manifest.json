@@ -6711,8 +6711,8 @@
    "file": "M01_Memorandum_and_Articles_of_Association.docx",
    "title": "Memorandum and Articles of Association",
    "category": "Incorporation",
-   "status": "Senior's own Word template (private company limited by shares); loaded as it is, with no wizard yet",
-   "use_rules": "Fill the yellow details by hand in Word (company name, ISIC objects and codes, registered office, share capital, subscribers, witnesses). Choose or delete the highlighted alternative clauses. The incorporation date and certificate number are filled in after BRELA registers the company.",
+   "status": "Senior's own Word template (private company limited by shares); only the highlighted labels were renamed so the wizard can fill them",
+   "use_rules": "Made by the Memorandum and Articles wizard. The first subscriber row is a person from the Company tab, the second is a corporate subscriber; delete a row that is not used. The incorporation date and certificate number are filled in after BRELA registers the company. Choose or delete the highlighted alternative clauses.",
    "clauses_to_confirm": [
     "by default, be two (2) years unless otherwise agreed in writing at the time of appointment",
     "The resignation shall take effect fourteen (14) days after receipt of the notice",
@@ -6720,7 +6720,120 @@
     "offices of Chairman shall continue for a maximum term of one (1) year",
     "offices of Secretary shall continue for a maximum term of two (2) years"
    ],
-   "placeholders": []
+   "placeholders": [
+    {
+     "key": "REGISTERED_OFFICE_REGION",
+     "label": "REGISTERED OFFICE REGION",
+     "description": "Tanzania Mainland or Tanzania Zanzibar",
+     "example": "Tanzania Mainland",
+     "optional": false
+    },
+    {
+     "key": "OBJECTS",
+     "label": "OBJECTS",
+     "description": "The objects, one per line (ISIC class name and code)",
+     "example": "Computer programming activities (6201)",
+     "optional": false
+    },
+    {
+     "key": "AUTHORISED_SHARE_CAPITAL",
+     "label": "AUTHORISED SHARE CAPITAL",
+     "description": "Authorised share capital (number)",
+     "example": "30,000,000",
+     "optional": false
+    },
+    {
+     "key": "TOTAL_NUMBER_OF_SHARES",
+     "label": "TOTAL NUMBER OF SHARES",
+     "description": "Total number of shares",
+     "example": "1,000",
+     "optional": false
+    },
+    {
+     "key": "NOMINAL_SHARE_VALUE",
+     "label": "NOMINAL SHARE VALUE",
+     "description": "Nominal value of each share",
+     "example": "30,000",
+     "optional": false
+    },
+    {
+     "key": "SUBSCRIBER_1_NAME",
+     "label": "SUBSCRIBER 1 NAME",
+     "description": "First subscriber",
+     "example": "JUMA HASSAN MREMA",
+     "optional": false
+    },
+    {
+     "key": "SUBSCRIBER_1_ADDRESS",
+     "label": "SUBSCRIBER 1 ADDRESS",
+     "description": "First subscriber's address",
+     "example": "P.O. BOX 1, DAR ES SALAAM",
+     "optional": false
+    },
+    {
+     "key": "SUBSCRIBER_1_SHARES",
+     "label": "SUBSCRIBER 1 SHARES",
+     "description": "Shares taken by the first subscriber",
+     "example": "500",
+     "optional": false
+    },
+    {
+     "key": "SUBSCRIBER_2_NAME",
+     "label": "SUBSCRIBER 2 NAME",
+     "description": "Second (corporate) subscriber",
+     "example": "EXAMPLE HOLDINGS LIMITED",
+     "optional": false
+    },
+    {
+     "key": "SUBSCRIBER_2_ADDRESS",
+     "label": "SUBSCRIBER 2 ADDRESS",
+     "description": "Second subscriber's address",
+     "example": "P.O. BOX 2, DAR ES SALAAM",
+     "optional": false
+    },
+    {
+     "key": "SUBSCRIBER_2_SHARES",
+     "label": "SUBSCRIBER 2 SHARES",
+     "description": "Shares taken by the second subscriber",
+     "example": "500",
+     "optional": false
+    },
+    {
+     "key": "SUBSCRIBER_2_SIGNATORY",
+     "label": "SUBSCRIBER 2 SIGNATORY",
+     "description": "Director who signs for the second subscriber",
+     "example": "SALMA JUMA MREMA",
+     "optional": false
+    },
+    {
+     "key": "DRAWN_BY_NAME",
+     "label": "DRAWN BY NAME",
+     "description": "Who drew the document",
+     "example": "DAVY SWAI",
+     "optional": false
+    },
+    {
+     "key": "DRAWN_BY_ROLE",
+     "label": "DRAWN BY ROLE",
+     "description": "Role of the person who drew it",
+     "example": "SUBSCRIBER",
+     "optional": false
+    },
+    {
+     "key": "DRAWN_BY_PO_BOX_NUMBER",
+     "label": "DRAWN BY PO BOX NUMBER",
+     "description": "P.O. Box number",
+     "example": "1234",
+     "optional": false
+    },
+    {
+     "key": "DRAWN_BY_CITY",
+     "label": "DRAWN BY CITY",
+     "description": "City",
+     "example": "DAR ES SALAAM",
+     "optional": false
+    }
+   ]
   }
  ]
 }

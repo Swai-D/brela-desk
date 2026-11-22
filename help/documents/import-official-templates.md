@@ -17,7 +17,7 @@ Importing again is safe: it adds the templates that are missing and leaves the o
 
 The package also holds forms that do not have a wizard yet (for example Forms 213c, 107, 15a, 15b, 15c and 15f). They are imported and shown in **Templates** (Forms 114, 33a, 09, 68, 173a and 99 come with a resolution, T10 to T15, made by their wizards), but nobody can generate them until a wizard exists for them, and the package marks them as pending the senior's review.
 
-The package also holds **Memorandum and Articles of Association**, the senior's own Word template for a private company limited by shares. It has no wizard. Open it in **Templates** and complete the yellow details in Word by hand; a case fills only the details it already knows (for example the company name).
+The package also holds **Memorandum and Articles of Association**, the senior's own Word template. Its wizard fills the company name, objects, share capital and subscribers; see [Memorandum and Articles](help:documents/wizard-memorandum-and-articles).
 
 ## If it fails
 
