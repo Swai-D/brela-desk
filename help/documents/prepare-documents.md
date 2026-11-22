@@ -43,6 +43,7 @@ Starting from a checklist item? The robot icon takes you to the right wizard, or
 | **Increase of share capital** | [Increase of capital (Form 68)](help:documents/wizard-share-capital-increase) |
 | **Appointment of auditor** | [Appointment of auditor (Form 173a)](help:documents/wizard-appointment-of-auditor) |
 | **Mortgage or charge** | [Mortgage or charge (Form 99)](help:documents/wizard-mortgage-or-charge) |
+| **Memorandum and Articles of Association** | [Memorandum and Articles](help:documents/wizard-memorandum-and-articles) |
 | **Transfer of shares** | [Share transfer](help:documents/wizard-share-transfer) |
 | **Annual return** | [Annual return](help:documents/wizard-annual-return) |
 | Wizards your Manager added | [Custom wizards](help:settings/document-wizards) |
