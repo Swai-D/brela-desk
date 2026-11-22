@@ -37,8 +37,8 @@ Starting from a checklist item? The robot icon takes you to the right wizard, or
 | **Change of directors** | [Change of directors](help:documents/wizard-change-of-directors) |
 | **Change of company secretary** | [Change of company secretary](help:documents/wizard-change-of-secretary) |
 | **Call on shares, forfeiture and re-allotment** | [Shares: call, forfeiture, re-allotment](help:documents/wizard-shares-calls-forfeiture) |
-| **Change of registered office** | [Registered office (Form 114)](help:documents/wizard-registered-office) |
-| **Change of company name** | [Company name (Form 33a)](help:documents/wizard-company-name) |
+| **Change of registered office** | [Registered office (resolution and Form 114)](help:documents/wizard-registered-office) |
+| **Change of company name** | [Company name (special resolution and Form 33a)](help:documents/wizard-company-name) |
 | **Transfer of shares** | [Share transfer](help:documents/wizard-share-transfer) |
 | **Annual return** | [Annual return](help:documents/wizard-annual-return) |
 | Wizards your Manager added | [Custom wizards](help:settings/document-wizards) |
