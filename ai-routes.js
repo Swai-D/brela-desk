@@ -245,12 +245,12 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const t=b.template_id?await one('SELECT id,name FROM templates WHERE id=$1',[+b.template_id]):null;
   let name=clean(b.filename)||`${(item&&item.name)||(t&&t.name)||'Document'}`;name=name.replace(/[\\/:*?"<>|]+/g,' ').replace(/\.docx$/i,'').trim().slice(0,120)||'Document';
   const buf=await E.textToDocx(text,{title:name}),gp=E.gaps(text);
-  const f=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'ai') RETURNING id,filename`,[c.client_id,id,item?item.id:null,`${name}.docx`,'application/vnd.openxmlformats-officedocument.wordprocessingml.document',buf.length,buf,req.user.id]);
-  if(item&&!gp.length)await q('UPDATE case_docs SET done=TRUE WHERE id=$1',[item.id]);
+  const f=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source,missing) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'ai',$9) RETURNING id,filename`,[c.client_id,id,item?item.id:null,`${name}.docx`,'application/vnd.openxmlformats-officedocument.wordprocessingml.document',buf.length,buf,req.user.id,gp.length]);
+  if(item)await q('UPDATE case_docs SET done=FALSE WHERE id=$1',[item.id]);
   await log(id,req.user.id,`prepared "${name}" with ${b.mode==='fill'?'a template':'AI'}${t?` (template: ${t.name})`:''}${gp.length?`, ${gp.length} gap(s) still to fill`:''}`);
   if(t){await q('UPDATE templates SET uses=uses+1,clean_runs=CASE WHEN $2 THEN clean_runs+1 ELSE 0 END WHERE id=$1',[t.id,!b.manual_edits&&!gp.length])}
   const tpl=t?await one('SELECT uses,clean_runs,status FROM templates WHERE id=$1',[t.id]):null;
-  res.json({file:f,gaps:gp.length,ticked:!!(item&&!gp.length),template:tpl})}));
+  res.json({file:f,gaps:gp.length,ticked:false,needs_check:!!item,template:tpl})}));
 
  // teach: turn the corrected final document into an improved template (proposal only, nothing is saved here)
  app.post('/api/cases/:id/ai/learn',need(...SR),wrap(async(req,res)=>{
@@ -319,13 +319,14 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  const needWizard=(msg,data)=>{const e=new Error(msg);e.status=409;e.data=data;throw e};
  const tidOfTemplate=t=>{const m=String((t&&t.keywords)||'').match(/^([tf]0\d[ab]?) /i);return m?m[1].toUpperCase():null};
  const saveDocx=async(req,x,t,r,name,item)=>{
-  const id=x.c.id,f=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'template') RETURNING id,filename`,
-   [x.c.client_id,id,item?item.id:null,`${name}.docx`,'application/vnd.openxmlformats-officedocument.wordprocessingml.document',r.buffer.length,r.buffer,req.user.id]);
+  const id=x.c.id,f=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source,missing) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'template',$9) RETURNING id,filename`,
+   [x.c.client_id,id,item?item.id:null,`${name}.docx`,'application/vnd.openxmlformats-officedocument.wordprocessingml.document',r.buffer.length,r.buffer,req.user.id,r.missing.length]);
   // a PDF copy next to the Word file (best effort: the server may not have a converter)
   const pdfBuf=await E.docxToPdf(r.buffer);
-  if(pdfBuf){const pf=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'template') RETURNING id,filename`,
-   [x.c.client_id,id,item?item.id:null,`${name}.pdf`,'application/pdf',pdfBuf.length,pdfBuf,req.user.id]);f.pdf={id:pf.id,filename:pf.filename}}
-  if(item&&!r.missing.length)await q('UPDATE case_docs SET done=TRUE WHERE id=$1',[item.id]);
+  if(pdfBuf){const pf=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source,missing) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'template',$9) RETURNING id,filename`,
+   [x.c.client_id,id,item?item.id:null,`${name}.pdf`,'application/pdf',pdfBuf.length,pdfBuf,req.user.id,r.missing.length]);f.pdf={id:pf.id,filename:pf.filename}}
+  // a generated document is never 'done' by itself: a second person checks it first (POST /api/files/:id/check)
+  if(item)await q('UPDATE case_docs SET done=FALSE WHERE id=$1',[item.id]);
   await AI.record({userId:req.user.id,caseId:id,templateId:t.id,kind:'fill',mode:'docx',output:`filled ${r.filled}, ${r.missing.length} missing`});
   await log(id,req.user.id,`filled official Word template "${t.name}"${item?` for "${item.name}"`:''} (${r.filled} detail${r.filled===1?'':'s'} placed${r.missing.length?`, ${r.missing.length} still missing`:''})`);
   await q('UPDATE templates SET uses=uses+1 WHERE id=$1',[t.id]);return f};

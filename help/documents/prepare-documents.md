@@ -46,7 +46,16 @@ Starting from a checklist item? The robot icon takes you to the right wizard, or
 - **Generate again replaces** the files with the same name; it does not pile up copies. To keep an old version, rename or download it first.
 - Anything you edit in a generated file by hand is lost when you generate again. Prefer correcting the answer or the company data.
 - The Articles of Association details (quorum, notice) are asked once and **remembered on the client**; they are used in later cases.
-- Warnings are advice, not locks. They explain legal checks (for example at least 2 directors). You may still generate if you are sure.
+- Warnings are advice, not locks. They explain legal checks (for example at least 2 directors). When there are warnings, **Generate** first shows them in a dialog called **Please check first**. Press **Generate anyway** only if you are sure, or **Cancel** to fix the cause.
+
+## A colleague checks every generated document
+
+A generated document is never ticked off on its own. Next to each file you see **Needs check**. A second person opens it, reads it and presses **Mark as checked**, then confirms with **Yes, it is correct**. The file then shows **Checked by** and the person's name, the PDF copy is checked together with the Word file, and the checklist item is ticked.
+
+- The person who generated the document cannot check it. Ask a colleague. A Manager may check their own document.
+- If details are still highlighted in yellow, the check asks you to confirm that they were filled in or handled by hand.
+- If you **generate again**, the new files need a new check, and the item is un-ticked until then.
+- A case cannot move to **Ready to Submit** while an item is not ticked, so this check cannot be skipped by accident.
 
 ## Always check before signing
 

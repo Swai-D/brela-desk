@@ -79,12 +79,19 @@ Directors:
  // ================= saving as a Word document
  const gapped=(await call('POST',`/cases/${c.id}/ai/generate`,{template_id:t1,mode:'ai'})).j;
  let sv=(await call('POST',`/cases/${c.id}/ai/save`,{text:gapped.text,item_id:item.id,filename:'MEMARTS draft',template_id:t1,mode:'ai'})).j;
- ok('saving with gaps still left stores the file but does not tick the checklist item',sv.file.filename==='MEMARTS draft.docx'&&sv.gaps>=1&&sv.ticked===false&&(await call('GET','/cases/'+c.id)).j.docs.find(x=>x.id===item.id).done===false);
+ ok('saving with gaps still left stores the file but does not tick the checklist item',sv.file.filename==='MEMARTS draft.docx'&&sv.gaps>=1&&sv.ticked===false&&sv.needs_check===true&&(await call('GET','/cases/'+c.id)).j.docs.find(x=>x.id===item.id).done===false);
  const fileRes=await fetch(B+'/files/'+sv.file.id,{headers:{cookie:ck}}),buf=Buffer.from(await fileRes.arrayBuffer()),back=(await mammoth.extractRawText({buffer:buf})).value;
  ok('the saved file is a real Word document attached to the checklist item',buf.slice(0,2).toString()==='PK'&&back.includes('Name of company')===false&&back.includes('Director: Zawadi Mushi')&&(await call('GET','/cases/'+c.id)).j.docs.find(x=>x.id===item.id).files.some(f=>f.id===sv.file.id),back);
  const filled=(await call('POST',`/cases/${c.id}/ai/apply-gaps`,{text:gapped.text,values:{business_activity:'Retail of farm produce'}})).j.text;
  sv=(await call('POST',`/cases/${c.id}/ai/save`,{text:filled,item_id:item.id,template_id:t1,mode:'ai'})).j;
- ok('a complete document ticks the item, and the history says how it was made',sv.gaps===0&&sv.ticked===true&&(await call('GET','/cases/'+c.id)).j.activity.some(x=>/prepared ".*" with AI \(template: Memorandum/.test(x.text)),sv);
+ ok('a complete document waits for a second person to check it, and the history says how it was made',sv.gaps===0&&sv.ticked===false&&sv.needs_check===true&&(await call('GET','/cases/'+c.id)).j.docs.find(x=>x.id===item.id).done===false&&(await call('GET','/cases/'+c.id)).j.activity.some(x=>/prepared ".*" with AI \(template: Memorandum/.test(x.text)),sv);
+ {const caseNow=async()=>(await call('GET','/cases/'+c.id)).j,saved=sv.file.id,me=(await call('GET','/me')).j;
+  // the person who generated a document cannot check it (unless a Manager); a colleague can, and then the item counts as done
+  const own=await call('POST',`/files/${saved}/check`,{confirm_missing:1});
+  ok('the person who made a document cannot check it themselves (unless they are a Manager)',me.level==='MANAGER'?own.s===200:own.s===403,own);
+  if(me.level!=='MANAGER'){await as('boss@test.co',AP);const ok2=await call('POST',`/files/${saved}/check`,{confirm_missing:1});
+   ok('a colleague checks it and the checklist item is then done',ok2.s===200&&(await caseNow()).docs.find(x=>x.id===item.id).done===true,ok2.j);await as(me.email||'sia@test.co',UP)}
+  else ok('the checklist item is done once the document is checked',(await caseNow()).docs.find(x=>x.id===item.id).done===true);}
  ok('a clean run (no manual edits, no gaps) counts towards trusting the template',sv.template.uses===2&&sv.template.clean_runs===1,sv.template);
  await call('POST',`/cases/${c.id}/ai/save`,{text:filled,template_id:t1});await call('POST',`/cases/${c.id}/ai/save`,{text:filled,template_id:t1});
  ok('three clean runs in a row: ready to approve',(await call('GET','/templates/'+t1)).j.clean_runs===3);

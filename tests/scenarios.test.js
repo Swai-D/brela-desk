@@ -42,6 +42,22 @@ const text=async f=>{const r=await fetch(`${B}/files/${f.id}`,{headers:{cookie:c
  ok('Form 213b for a resigning director',/ALI OMARI/.test(f213b)&&/KAZI/.test(f213b)&&/29 SEPTEMBER 2026/.test(f213b),f213b.slice(0,1200));
  ok('files are linked to the Form 213a / 213b checklist items when the case has them, and answers are saved',(await call('GET',`/cases/${cs.id}/scenarios/directors`)).j.answers.chairman==='BAKARI JUMA LEO');
  ok('generating again replaces the files instead of piling up copies',(await call('POST',`/cases/${cs.id}/scenarios/directors/generate`,{answers:A})).s===200&&(await call('GET',`/cases/${cs.id}`)).j.docs.flatMap(d=>d.files).filter(f=>/Form 213a/.test(f.filename)).length<=2||true);
+ // review step: generated documents need a second person's check
+ {const files=async()=>(await call('GET',`/cases/${cs.id}`)).j.docs.flatMap(d=>d.files).concat((await call('GET',`/cases/${cs.id}`)).j.files||[]),gens=(await call('GET',`/clients/${cid}`)).j.files.filter(f=>f.source==='template');
+  ok('generated documents start as "needs check" and record how many details are still missing',gens.length>=6&&gens.every(f=>!f.checked_by&&typeof f.missing==='number'),gens.slice(0,2));
+  const f0=gens.find(f=>/\.docx$/.test(f.filename)&&!f.missing)||gens.find(f=>/\.docx$/.test(f.filename));
+  await call('POST','/users',{name:'Checker Junior',email:'chk.junior@test.co',role:'JUNIOR',password:'Secret123!'});
+  const boss=ck;await call('POST','/login',{email:'chk.junior@test.co',password:'Secret123!'});
+  const need=f0.missing?await call('POST',`/files/${f0.id}/check`,{}):null;
+  ok('a document with details still missing is not checked without a confirmation',!f0.missing||(need.s===409&&need.j.need_confirm===true),need&&need.j);
+  const c1=await call('POST',`/files/${f0.id}/check`,{confirm_missing:1});
+  ok('a colleague can check a generated document',c1.s===200,c1.j);
+  const after=(await call('GET',`/clients/${cid}`)).j.files.filter(f=>f.source==='template'),base=f0.filename.replace(/\.[^.]+$/,'');
+  ok('checking the Word file also checks its PDF copy and records who checked',after.filter(f=>f.filename.replace(/\.[^.]+$/,'')===base).every(f=>f.checked_by&&f.checked_by_name==='Checker Junior'),after.filter(f=>f.filename.startsWith(base)));
+  ok('a document cannot be checked twice',(await call('POST',`/files/${f0.id}/check`,{confirm_missing:1})).s===409);
+  ck=boss;
+  const up=await call('GET',`/clients/${cid}`);const f1=up.j.files.find(f=>f.source==='template'&&!f.checked_by);
+  ok('a Manager may check a document they generated themselves',(await call('POST',`/files/${f1.id}/check`,{confirm_missing:1})).s===200);}
  // warnings
  const w=await call('PUT',`/cases/${cs.id}/scenarios/directors`,{answers:{resign:'ALI OMARI KAZI|CHAUSIKU SAID MWITA|BAKARI JUMA LEO',members_meeting_date:'2026-09-29'}});
  ok('warns when fewer than 2 directors would be left',w.j.warnings.some(x=>/at least 2/.test(x)),w.j.warnings);

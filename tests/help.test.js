@@ -53,7 +53,7 @@ const pub=path.join(__dirname,'..','public');
 
  // ---- getting-started checklist
  const ob=await call('GET','/onboarding');
- ok('the checklist lists steps for a Manager with progress',ob.s===200&&ob.j.steps.length===10&&ob.j.total===10&&typeof ob.j.percent==='number'&&ob.j.steps.every(x=>x.title&&x.href&&all.some(a=>a.category+'/'+a.slug===x.guide)),ob.j);
+ ok('the checklist lists steps for a Manager with progress',ob.s===200&&ob.j.steps.length===11&&ob.j.total===11&&typeof ob.j.percent==='number'&&ob.j.steps.every(x=>x.title&&x.href&&all.some(a=>a.category+'/'+a.slug===x.guide)),ob.j);
  const before=ob.j.done;
  const cl=(await call('POST','/clients',{name:'Checklist Test Ltd',phone:'255700000099'})).j;
  const T=(await call('GET','/bootstrap')).j.types[0].id;await call('POST','/cases',{clientId:cl.id,caseTypeId:T});
@@ -64,7 +64,7 @@ const pub=path.join(__dirname,'..','public');
  const jr=await call('POST','/users',{name:'Staff Checklist',email:'staff.cl@test.co',role:'JUNIOR',password:'Secret123!'});
  const ck0=ck;await call('POST','/logout',{});ck='';await call('POST','/login',{email:'staff.cl@test.co',password:'Secret123!'});
  const st=await call('GET','/onboarding');
- ok('a Staff member sees only the steps for them (no templates, team, WhatsApp, AI)',st.s===200&&st.j.steps.length===6&&!st.j.steps.some(x=>['templates','team','whatsapp','ai'].includes(x.key)),st.j.steps&&st.j.steps.map(x=>x.key));
+ ok('a Staff member sees only the steps for them (no templates, team, WhatsApp, AI)',st.s===200&&st.j.steps.length===7&&!st.j.steps.some(x=>['templates','team','whatsapp','ai'].includes(x.key)),st.j.steps&&st.j.steps.map(x=>x.key));
  await call('POST','/logout',{});ck='';await call('POST','/login',{email:'boss@test.co',password:AP});
  ok('the Dashboard shows the checklist and the Help can bring it back',/async function checklistCard/.test(fs.readFileSync(path.join(pub,'assets/js/brela.js'),'utf8'))&&/checklistCard\(\)/.test(fs.readFileSync(path.join(pub,'assets/js/brela.js'),'utf8'))&&/hc-ob/.test(fs.readFileSync(path.join(pub,'assets/js/help.js'),'utf8')));
  ok('the project rule to update the Help with every change is written down',/Every change to the app updates the Help/.test(fs.readFileSync(path.join(__dirname,'..','CLAUDE.md'),'utf8')));

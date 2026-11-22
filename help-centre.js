@@ -57,6 +57,7 @@ const STEPS=[
  {key:'company',title:'Import a company from BRELA',hint:'Paste the Company Details page and the people and activities are saved.',href:'clients.html',guide:'clients/import-from-brela',level:'STAFF'},
  {key:'case',title:'Create your first case',hint:'Choose the client and what is changing.',href:'cases-board.html',guide:'cases/create-a-case',level:'STAFF'},
  {key:'wizard',title:'Prepare documents with a wizard',hint:'Answer a few questions and the forms are filled.',href:'cases-board.html',guide:'documents/prepare-documents',level:'STAFF'},
+ {key:'check',title:'Check a colleague\'s generated document',hint:'Open it, compare it with the company details and press Mark as checked.',href:'cases-board.html',guide:'documents/prepare-documents',level:'STAFF'},
  {key:'team',title:'Add your team members',hint:'Create their logins and choose their roles.',href:'settings.html#team',guide:'settings/team-and-roles',level:'MANAGER'},
  {key:'whatsapp',title:'Connect WhatsApp (optional)',hint:'Receive client documents and send alerts.',href:'settings.html#wa',guide:'whatsapp/whatsapp-setup',level:'MANAGER'},
  {key:'ai',title:'Set up the AI assistant (optional)',hint:'Only for Smart fill and drafting templates; the wizards do not need it.',href:'settings.html#ai',guide:'settings/ai-settings',level:'MANAGER'}];
@@ -71,6 +72,7 @@ module.exports=(app,{wrap,fail,q,one,WA})=>{
    company:await n('SELECT count(*)::int AS n FROM client_people')>0,
    case:await n('SELECT count(*)::int AS n FROM cases')>0,
    wizard:await n("SELECT count(*)::int AS n FROM files WHERE source='template'")>0,
+   check:await n("SELECT count(*)::int AS n FROM files WHERE source IN ('template','ai') AND checked_by IS NOT NULL")>0,
    team:await n('SELECT count(*)::int AS n FROM users WHERE active')>1,
    whatsapp:!!(WA&&WA.configured&&WA.configured()),
    ai:AIok}}};

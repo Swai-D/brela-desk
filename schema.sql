@@ -20,6 +20,10 @@ CREATE INDEX IF NOT EXISTS idx_files_case ON files(case_id);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS wa_opt_in BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE files ADD COLUMN IF NOT EXISTS source TEXT;
+-- review step: a generated document is 'checked' by a second person before its checklist item counts as done
+ALTER TABLE files ADD COLUMN IF NOT EXISTS checked_by INT REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE files ADD COLUMN IF NOT EXISTS checked_at TIMESTAMPTZ;
+ALTER TABLE files ADD COLUMN IF NOT EXISTS missing INT NOT NULL DEFAULT 0;
 ALTER TABLE files ADD COLUMN IF NOT EXISTS sender_phone TEXT;
 ALTER TABLE files ADD COLUMN IF NOT EXISTS sender_name TEXT;
 ALTER TABLE files ADD COLUMN IF NOT EXISTS note TEXT;

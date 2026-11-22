@@ -29,7 +29,7 @@ const app=express();app.set('trust proxy',1);app.disable('x-powered-by');app.use
 const rateLimit=require('express-rate-limit');
 if(process.env.NODE_ENV!=='test')app.use('/api',rateLimit({windowMs:60000,max:600,standardHeaders:true,legacyHeaders:false,message:{error:'Too many requests. Slow down a little.'}}));
 const wrap=f=>(req,res)=>f(req,res).catch(e=>{if(!e.status)console.error(e);res.status(e.status||500).json({error:e.status?e.message:'Server error',...(e.status&&e.data?e.data:{})})});
-const fail=(s,m)=>{const e=new Error(m);e.status=s;throw e};
+const fail=(s,m,data)=>{const e=new Error(m);e.status=s;if(data)e.data=data;throw e};
 const eastAfricaParts=()=>Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Dar_es_Salaam',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
 const eastAfricaDay=()=>{const p=eastAfricaParts();return`${p.year}-${p.month}-${p.day}`};
 const lockSlot=()=>{const hour=+eastAfricaParts().hour;return LOCK_SLOTS.find(s=>s.start<s.end?hour>=s.start&&hour<s.end:hour>=s.start||hour<s.end).id};
@@ -267,7 +267,7 @@ app.delete('/api/clients/:id',need('MANAGER'),wrap(async(req,res)=>{
   const id=+req.params.id,c=await one('SELECT name FROM clients WHERE id=$1',[id]);if(!c)fail(404,'Not found');
   if((await one('SELECT count(*)::int AS n FROM cases WHERE client_id=$1',[id])).n)fail(400,'This client has cases. Delete or move those cases first.');
   await q('DELETE FROM clients WHERE id=$1',[id]);await audit(req,'client.delete',`${c.name} (with their documents and saved logins)`);res.json({ok:1})}));
-const FILES='SELECT f.id,f.filename,f.mime,f.uploaded_by,f.size,f.case_doc_id,f.case_id,f.created_at,u.name AS by FROM files f LEFT JOIN users u ON u.id=f.uploaded_by';
+const FILES='SELECT f.id,f.filename,f.mime,f.uploaded_by,f.size,f.case_doc_id,f.case_id,f.created_at,f.source,f.missing,f.checked_by,f.checked_at,u.name AS by,cu.name AS checked_by_name FROM files f LEFT JOIN users u ON u.id=f.uploaded_by LEFT JOIN users cu ON cu.id=f.checked_by';
 // Paginated list with search (name, email, phone: digits match even when the number has spaces) and 'focus' (jump to the page holding one client)
 app.get('/api/clients',wrap(async(req,res)=>{
   const n0=parseInt(req.query.size),size=n0>0?Math.min(50,n0):10,qs=String(req.query.q||'').trim().slice(0,80),like='%'+qs.replace(/[\\%_]/g,m=>'\\'+m)+'%',digits=qs.replace(/\D/g,''),dl=digits.length>=3?'%'+digits+'%':'';
@@ -321,6 +321,20 @@ app.patch('/api/files/:id',wrap(async(req,res)=>{
   const f=await one('SELECT uploaded_by FROM files WHERE id=$1',[+req.params.id]);if(!f)fail(404,'Not found');
   if(!['MANAGER','SENIOR'].includes(req.user.level)&&f.uploaded_by!==req.user.id)fail(403,'Only the uploader, a Senior or a Manager can rename this');
   const n=String(req.body.filename||'').trim().slice(0,200);if(!n)fail(400,'Name required');await q('UPDATE files SET filename=$1 WHERE id=$2',[n,+req.params.id]);res.json({ok:1})}));
+// Review step: a document the app generated counts as done only after a second person has checked it.
+// The person who generated it cannot check it (a Manager may, because a small firm sometimes has no one else).
+app.post('/api/files/:id/check',wrap(async(req,res)=>{
+  const f=await one('SELECT f.id,f.filename,f.case_id,f.case_doc_id,f.uploaded_by,f.source,f.missing,f.checked_by FROM files f WHERE f.id=$1',[+req.params.id]);if(!f)fail(404,'Not found');
+  if(!['template','ai'].includes(f.source))fail(400,'Only documents made by the app need to be checked.');
+  if(!f.case_id)fail(400,'This document is not on a case.');
+  if(f.checked_by)fail(409,'This document has already been checked.');
+  if(f.uploaded_by===req.user.id&&req.user.level!=='MANAGER')fail(403,'A second person must check this document. Ask a colleague to open it and press "Mark as checked".');
+  if(f.missing>0&&!req.body.confirm_missing)fail(409,`${f.missing} detail${f.missing===1?'':'s'} ${f.missing===1?'is':'are'} still highlighted in yellow. Fill them in, or confirm that they were handled.`,{need_confirm:true,missing:f.missing});
+  const base=f.filename.replace(/\.[^.]+$/,'');
+  await q(`UPDATE files SET checked_by=$1,checked_at=now() WHERE case_id=$2 AND source IN ('template','ai') AND checked_by IS NULL AND (id=$3 OR (case_doc_id IS NOT DISTINCT FROM $4 AND regexp_replace(filename,'\\.[^.]+$','')=$5))`,[req.user.id,f.case_id,f.id,f.case_doc_id,base]);
+  if(f.case_doc_id)await q(`UPDATE case_docs SET done=NOT EXISTS(SELECT 1 FROM files g WHERE g.case_doc_id=$1 AND g.source IN ('template','ai') AND g.checked_by IS NULL AND g.id>$2) WHERE id=$1`,[f.case_doc_id,f.id]);
+  await log(f.case_id,req.user.id,`checked "${f.filename}"${f.uploaded_by===req.user.id?' (own document, checked by a Manager)':''}`);
+  await audit(req,'file.check',f.filename);res.json({ok:1})}));
 // ---- Doc Studio: each person's saved signatures (private to them) and saving edited PDFs back into the client folder / case
 const sigUpload=multer({storage:multer.memoryStorage(),limits:{fileSize:2*1024*1024}});
 const sigUp=(req,res,next)=>sigUpload.single('file')(req,res,e=>e?res.status(400).json({error:e.code==='LIMIT_FILE_SIZE'?'Signature image is too large (max 2 MB)':'Upload failed'}):next());
