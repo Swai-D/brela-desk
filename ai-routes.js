@@ -314,10 +314,10 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   res.json({created,skipped})}));
 
  // the official package templates and the wizard that makes each of them
- const WIZ_OF={T01:'directors',T02:'directors',F01:'directors',F02:'directors',F03:'shares',F04:'shares',T03:'shares',T04:'shares',T05:'shares',T06A:'shares',T06B:'shares',T07A:'shares',T07B:'shares',T08:'shares',F05:'annual'};
+ const WIZ_OF={T01:'directors',T02:'directors',F01:'directors',F02:'directors',F03:'shares',F04:'shares',T03:'shares',T04:'shares',T05:'shares',T06A:'shares',T06B:'shares',T07A:'shares',T07B:'shares',T08:'shares',F05:'annual',F07:'office',F09:'rename',T09:'transfer'};
  const wizardOfTemplateId=async id=>{const r=await one(`SELECT id FROM wizards WHERE active AND docs @> $1::jsonb ORDER BY position,created_at LIMIT 1`,[JSON.stringify([{template_id:+id}])]);return r?r.id:null};
  const needWizard=(msg,data)=>{const e=new Error(msg);e.status=409;e.data=data;throw e};
- const tidOfTemplate=t=>{const m=String((t&&t.keywords)||'').match(/^([tf]0\d[ab]?) /i);return m?m[1].toUpperCase():null};
+ const tidOfTemplate=t=>{const m=String((t&&t.keywords)||'').match(/^([tf]\d\d[ab]?) /i);return m?m[1].toUpperCase():null};
  const saveDocx=async(req,x,t,r,name,item)=>{
   const id=x.c.id,f=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source,missing) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'template',$9) RETURNING id,filename`,
    [x.c.client_id,id,item?item.id:null,`${name}.docx`,'application/vnd.openxmlformats-officedocument.wordprocessingml.document',r.buffer.length,r.buffer,req.user.id,r.missing.length]);
@@ -451,6 +451,9 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  app.post('/api/cases/:id/scenarios/:sid/generate',wrap(async(req,res)=>{
   const {id,s,c}=await loadScenario(req);if(!c)fail(404,'Case not found');
   const answers=cleanAnswers(s,(req.body||{}).answers);await saveAnswers(id,s,answers,c.client_id);
+  // the required questions are enforced here as well, not only on the screen (a hidden question is not required)
+  const need_=s.fields.filter(f=>f.req&&!f.show&&!String(answers[f.key]||'').trim());
+  if(need_.length)fail(400,`Answer the required questions first: ${need_.map(f=>f.label).join(', ')}.`);
   const r=await runScenario(req,id,s,answers,true),made=r.jobs.filter(j=>j.file).length;
   await log(id,req.user.id,`prepared ${made} document${made===1?'':'s'} for "${s.title}"`);
   res.json({answers,...r})}));

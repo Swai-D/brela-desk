@@ -81,7 +81,7 @@ const BUILTIN=[
   for(let i=0;i<7;i++){const p=mem[i];V[`member_${i+1}_name`]=p?p.full_name:'';V[`member_${i+1}_shares`]=p&&hold(p)?comma(hold(p)):'';if(!p){B.push(`MEMBER_${i+1}_NAME`,`MEMBER_${i+1}_SHARES`)}}
   // directors at the directors' meeting: the chairman first
   const att=[chair,...[...existing,...ap].filter(n=>!same(n,chair))].filter(Boolean);
-  for(let i=0;i<5;i++){const n=att[i];V[`attendee_${i+1}_name`]=n||'';V[`attendee_${i+1}_role_opt`]=n?(same(n,chair)?'Chairman of the Board of Directors':'Director'):'';if(!n)B.push(`ATTENDEE_${i+1}_NAME`)}
+  for(let i=0;i<Math.max(5,att.length);i++){const n=att[i];V[`attendee_${i+1}_name`]=n||'';V[`attendee_${i+1}_role_opt`]=n?(same(n,chair)?'Chairman of the Board of Directors':'Director'):'';if(!n)B.push(`ATTENDEE_${i+1}_NAME`)}
   V.absent_names='None.';V.absent_members_with_shares='None.';
   V.members_meeting_date=fmtD(md);V.members_meeting_time=a.members_meeting_time||'10:00';V.resignation_meeting_date=fmtD(rd);V.resignation_meeting_time=a.resignation_meeting_time||'11:00';
   V.appointment_filing_deadline=fmtD(addDays(md,14));V.resignation_filing_deadline=fmtD(addDays(rd,14));
@@ -167,7 +167,7 @@ const BUILTIN=[
   V.allottees_names_and_shares=joinAnd(atts.map(x=>`${tc(x.name)} (${comma(x.shares)} shares)`));
   // people at the meetings: the directors, chairman first
   const att=[chair,...c.directors.map(p=>p.full_name).filter(x=>!same(x,chair))].filter(Boolean);
-  for(let i=0;i<5;i++){const x=att[i];V[`attendee_${i+1}_name`]=x||'';V[`attendee_${i+1}_role_opt`]=x?(same(x,chair)?'Chairman of the Board of Directors':'Director'):'';if(!x)B.push(`ATTENDEE_${i+1}_NAME`)}
+  for(let i=0;i<Math.max(5,att.length);i++){const x=att[i];V[`attendee_${i+1}_name`]=x||'';V[`attendee_${i+1}_role_opt`]=x?(same(x,chair)?'Chairman of the Board of Directors':'Director'):'';if(!x)B.push(`ATTENDEE_${i+1}_NAME`)}
   const sec=(c.secretaries[0]||{}).full_name,mm=c.shareholders.slice().sort((x,y)=>(same(y.full_name,chair)-same(x.full_name,chair))||(same(y.full_name,sec)-same(x.full_name,sec)));
   for(let i=0;i<7;i++){const p=mm[i];V[`member_${i+1}_name`]=p?p.full_name:'';V[`member_${i+1}_shares`]=p&&hold(p)?comma(hold(p)):'';if(!p)B.push(`MEMBER_${i+1}_NAME`,`MEMBER_${i+1}_SHARES`)}
   V.absent_names='None.';V.absent_members_with_shares='None.';
@@ -184,6 +184,58 @@ const BUILTIN=[
   if(y('do_realloc')&&a.payment==='noncash'&&!a.consideration)w.push('Say what is given instead of cash (it goes on Form 57b).');
   return w},
  people(a){return[1,2,3,4].filter(i=>a['allottee_'+i]).map(i=>({name:a['allottee_'+i],need:['address'],why:'Form 57a'}))}},
+
+{id:'office',title:'Change of registered office',icon:'bx-map-pin',match:/office|address|registered/i,desc:'Form 114: the company moves its registered office. Needs a directors\' resolution approving the move, which you attach.',
+ fields:[F('new_address_1','New registered office: plot, street and ward','text',{req:true,ph:'Plot 24, Shebe Street, Temeke',group:'New office'}),F('new_address_2','P.O. Box (second line)','text',{ph:'P.O. Box 47',group:'New office'}),
+  F('new_town','Town or city','text',{req:true,ph:'Dar es Salaam',group:'New office'}),F('new_email','Company e-mail address','text',{req:true,group:'New office'}),F('new_phone','Contact phone','text',{req:true,ph:'0712 000 000',group:'New office'}),
+  F('change_date','The change takes effect on','date',{req:true,group:'When'}),F('signing_director','Director who signs the form','person',{from:'directors',ph:'First director, if left empty',group:'When'}),F('signing_date','Date the director signs','date',{ph:'Same as the effective date',group:'When'}),
+  F('resolution_ready','A directors\' resolution approving the change is ready to attach','bool',{req:true,group:'Before you generate'})],
+ jobs:()=>[{tid:'F07',name:'Form 114 - change of registered office'}],
+ derive(a,c){const V={},B=[],sd=a.signing_director||(c.directors[0]||{}).full_name||'';
+  V.change_date=up(fmtD(a.change_date));V.new_office_address_line_1=up(a.new_address_1);V.new_office_address_line_2_opt=up(a.new_address_2);V.new_office_town_city=up(a.new_town);V.new_office_email=String(a.new_email||'').trim();V.new_office_contact_phone=String(a.new_phone||'').trim();
+  V.signing_director_name=up(sd);V.signing_director_role='Director';V.signing_date=ordD(a.signing_date||a.change_date);return{V,B}},
+ warn(a,c){const w=[];if(a.change_date&&a.signing_date&&a.signing_date>a.change_date)w.push('The form is signed after the date the change takes effect. BRELA expects it to be filed within 14 days of the change.');
+  if(a.new_email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(a.new_email).trim()))w.push('The e-mail address does not look right.');if(!c.directors.length&&!a.signing_director)w.push('The company has no saved director to sign the form.');return w},
+ people(a,c){const sd=a.signing_director||(c.directors[0]||{}).full_name;return sd?[{name:sd,need:[],why:'Form 114'}]:[]}},
+
+{id:'rename',title:'Change of company name',icon:'bx-rename',match:/name/i,desc:'Form 33a: the company changes its name. The new name must already be reserved with BRELA and approved by a resolution, which you attach.',
+ fields:[F('new_name','New company name','text',{req:true,help:'Exactly as reserved with BRELA, including LIMITED.',group:'The new name'}),F('name_reserved','The new name is reserved with BRELA','bool',{req:true,group:'The new name'}),
+  F('resolution_date','Date of the resolution approving the change','date',{req:true,group:'Resolution'}),F('signing_director','Director who signs the form','person',{from:'directors',ph:'First director, if left empty',group:'Resolution'}),F('signing_date','Date the director signs','date',{ph:'Same as the resolution date',group:'Resolution'})],
+ jobs:()=>[{tid:'F09',name:'Form 33a - change of company name'}],
+ derive(a,c){const V={},B=[],sd=a.signing_director||(c.directors[0]||{}).full_name||'',old=String((c.values||{}).company_name||'').trim();
+  V.old_name=up(old);V.new_name=up(String(a.new_name||'').trim());V.resolution_date=fmtD(a.resolution_date);V.signing_director_name=up(sd);V.signing_date=ordD(a.signing_date||a.resolution_date);return{V,B}},
+ warn(a,c){const w=[],old=String((c.values||{}).company_name||'').trim(),nn=String(a.new_name||'').trim();
+  if(nn&&same(nn,old))w.push('The new name is the same as the current name.');
+  if(nn&&!/\b(limited|ltd|plc)\.?$/i.test(nn))w.push('The new name does not end with LIMITED, LTD or PLC. Check it against the name reserved with BRELA.');
+  if(!old)w.push('The company has no saved name, so the old name on the form will be empty.');return w},
+ people(a,c){const sd=a.signing_director||(c.directors[0]||{}).full_name;return sd?[{name:sd,need:[],why:'Form 33a'}]:[]}},
+
+{id:'transfer',title:'Transfer of shares',icon:'bx-transfer',match:/transfer/i,desc:'The directors\' resolution acknowledging and registering transfers of shares (up to four). Check the Articles\' transfer rules, the stamped instruments and the TRA clearance first. Afterwards update Form 131 and, where the owners change, the beneficial-owner forms (15b, 15c, 15f).',
+ fields:[...[1,2,3,4].flatMap(i=>[F(`transfer_${i}_transferor`,`Transfer ${i}: seller (transferor)`,'person',{from:'shareholders',req:i===1,group:`Transfer ${i}`}),F(`transfer_${i}_transferee`,`Transfer ${i}: buyer (transferee)`,'person',{from:'any',req:i===1,group:`Transfer ${i}`}),F(`transfer_${i}_shares`,`Transfer ${i}: number of shares`,'number',{req:i===1,group:`Transfer ${i}`})]),
+  F('transfer_articles','Articles governing the form and registration of transfers','text',{req:true,ph:'articles 22 to 27 of the Company\'s Articles of Association',help:'Take this from the company\'s own Articles.',group:'Meeting and documents'}),
+  F('agreements_date','Date of the share transfer agreements','date',{req:true,group:'Meeting and documents'}),F('docs_received_date','Date the company received the agreements, instruments and TRA documents','date',{req:true,group:'Meeting and documents'}),
+  F('meeting_date','Directors\' meeting: date','date',{req:true,help:'On or after the date the documents were received.',group:'Meeting and documents'}),F('meeting_time','Time','time',{ph:'09:00',group:'Meeting and documents'}),
+  F('chairman','Chairman of the meeting','person',{from:'directors',ph:'First director, if left empty',group:'Meeting and documents'}),
+  F('stamped','The transfer instruments are duly stamped and the TRA clearance is in hand','bool',{req:true,group:'Before you generate'}),
+  ...ART_FIELDS(['board_notice_provision','board_quorum_word','board_quorum_provision'])],
+ jobs:()=>[{tid:'T09',name:'Directors\' resolution - transfer of shares'}],
+ derive(a,c){const V={},B=[],chair=a.chairman||(c.directors[0]||{}).full_name||'';
+  V.transfer_meeting_date=fmtD(a.meeting_date);V.transfer_meeting_time=a.meeting_time||'09:00';V.transfer_agreements_date=fmtD(a.agreements_date);V.transfer_docs_received_date=fmtD(a.docs_received_date);V.transfer_articles=String(a.transfer_articles||'').trim();
+  [1,2,3,4].forEach(i=>{const f=a[`transfer_${i}_transferor`],t=a[`transfer_${i}_transferee`],n=num(a[`transfer_${i}_shares`]),used=f&&t&&n;V[`transfer_${i}_transferor`]=used?tc(f):'';V[`transfer_${i}_transferee`]=used?tc(t):'';V[`transfer_${i}_shares`]=used?comma(n):'';if(!used)B.push(`TRANSFER_${i}_TRANSFEROR`,`TRANSFER_${i}_TRANSFEREE`,`TRANSFER_${i}_SHARES`)});
+  V.chairman_name=chair;const att=[chair,...c.directors.map(p=>p.full_name).filter(x=>!same(x,chair))].filter(Boolean);
+  for(let i=0;i<Math.max(5,att.length);i++){const x=att[i];V[`attendee_${i+1}_name`]=x||'';V[`attendee_${i+1}_role_opt`]=x?(same(x,chair)?'Chairman of the Board of Directors':'Director'):'';if(!x)B.push(`ATTENDEE_${i+1}_NAME`)}
+  V.absent_names='None.';return{V,B}},
+ warn(a,c){const w=[],rows=[1,2,3,4].filter(i=>a[`transfer_${i}_transferor`]||a[`transfer_${i}_transferee`]||a[`transfer_${i}_shares`]);
+  for(const i of rows){const f=a[`transfer_${i}_transferor`],t=a[`transfer_${i}_transferee`],n=num(a[`transfer_${i}_shares`]);
+   if(!(f&&t&&n))w.push(`Transfer ${i} is incomplete: it needs the seller, the buyer and the number of shares, or it is left out.`);
+   else{if(same(f,t))w.push(`Transfer ${i}: the seller and the buyer are the same person.`);const h=hold((c.shareholders||[]).find(p=>same(p.full_name,f)));if(h&&n>h)w.push(`Transfer ${i}: ${tc(f)} holds ${comma(h)} shares but is transferring ${comma(n)}.`)}}
+  const sold={};for(const i of rows){const f=a[`transfer_${i}_transferor`];if(f)sold[f.toUpperCase()]=(sold[f.toUpperCase()]||0)+num(a[`transfer_${i}_shares`])}
+  for(const [k,n] of Object.entries(sold)){const h=hold((c.shareholders||[]).find(p=>same(p.full_name,k)));if(h&&n>h&&rows.filter(i=>same(a[`transfer_${i}_transferor`],k)).length>1)w.push(`${tc(k)} is transferring ${comma(n)} shares in total but holds ${comma(h)}.`)}
+  if(a.docs_received_date&&a.meeting_date&&a.meeting_date<a.docs_received_date)w.push('The directors\' meeting is before the date the documents were received.');
+  if(a.agreements_date&&a.docs_received_date&&a.docs_received_date<a.agreements_date)w.push('The documents were received before the date of the transfer agreements.');
+  if(!rows.length)w.push('Add at least one transfer.');
+  return w},
+ people(a,c){return[1,2,3,4].map(i=>a[`transfer_${i}_transferee`]).filter(Boolean).map(n=>({name:n,need:['address'],why:'the transfer'}))}},
 
 {id:'annual',title:'Annual return',icon:'bx-calendar-check',match:/annual/i,desc:'Form 131. Everything comes from the company\'s saved details; just check it and sign.',
  fields:[F('return_date','Return made up to','date',{ph:'Latest anniversary of incorporation',group:'Options'}),F('no_charges','There were no charges in the period','bool',{group:'Options'}),F('list_of_changes','A list of changes is enclosed','bool',{group:'Options'}),F('full_members','A full list of members is enclosed','bool',{group:'Options'})],

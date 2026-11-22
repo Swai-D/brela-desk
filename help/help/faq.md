@@ -52,6 +52,8 @@ order: 21
 
 **Why can't I press "Mark as checked" on my own document?** The person who generated it cannot check it. Ask a colleague; a Manager may check their own.
 
+**Which filings have a wizard?** Change of directors, change of company secretary, calls and forfeiture and re-allotment of shares, change of registered office (Form 114), change of company name (Form 33a), transfer of shares, and the annual return ([Prepare documents](help:documents/prepare-documents)).
+
 **Do the wizards use AI?** No ([The AI assistant](help:documents/ai-assistant)).
 
 **Which wizard do I use to appoint a director?** [Change of directors](help:documents/wizard-change-of-directors).

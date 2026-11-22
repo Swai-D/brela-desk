@@ -2103,6 +2103,270 @@
    ]
   },
   {
+   "id": "T09",
+   "file": "T09_Resolution_of_Directors_Share_Transfer.docx",
+   "title": "Resolution of Directors - Share Transfer (acknowledgment and registration)",
+   "category": "Directors' resolution",
+   "status": "From the senior's A & R sample (document 1), tokenised; not yet reviewed in the current set",
+   "use_rules": "Check the Articles' transfer procedure (pre-emption / director approval) first. Instrument duly stamped, TRA capital gains assessment and clearance in hand (s.79). The transfer then appears in the annual return.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "ATTENDEE_1_NAME",
+     "label": "ATTENDEE 1 NAME",
+     "description": "Person 1 present at the directors' meeting. \"\" deletes the line",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_1_ROLE_OPT",
+     "label": "ATTENDEE 1 ROLE, IF ANY",
+     "description": "Role of person 1",
+     "example": "Chairman of the Board of Directors",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_2_NAME",
+     "label": "ATTENDEE 2 NAME",
+     "description": "Person 2 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_2_ROLE_OPT",
+     "label": "ATTENDEE 2 ROLE, IF ANY",
+     "description": "Role of person 2",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_3_NAME",
+     "label": "ATTENDEE 3 NAME",
+     "description": "Person 3 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_3_ROLE_OPT",
+     "label": "ATTENDEE 3 ROLE, IF ANY",
+     "description": "Role of person 3",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_4_NAME",
+     "label": "ATTENDEE 4 NAME",
+     "description": "Person 4 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_4_ROLE_OPT",
+     "label": "ATTENDEE 4 ROLE, IF ANY",
+     "description": "Role of person 4",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_5_NAME",
+     "label": "ATTENDEE 5 NAME",
+     "description": "Person 5 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_5_ROLE_OPT",
+     "label": "ATTENDEE 5 ROLE, IF ANY",
+     "description": "Role of person 5",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_MEETING_DATE",
+     "label": "TRANSFER MEETING DATE",
+     "description": "Date of the directors' meeting that approves the transfers (on/after the date the documents were received)",
+     "example": "30 July 2026",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_NAMES",
+     "label": "ABSENT NAMES",
+     "description": "Directors/members absent, or 'None.'",
+     "example": "None.",
+     "optional": false,
+     "default": "None."
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "BOARD_NOTICE_PROVISION",
+     "label": "BOARD NOTICE PROVISION",
+     "description": "Provision of the Articles / Table A governing notice of directors' meetings. Take from the company's Articles (Table A reg. 88 applies unless varied)",
+     "example": "Regulation 88 of Table ‘A’ in the Schedule to the Companies Act, Cap. 212, R.E. 2023 (“the Act”), as applied to the Company by Article 1 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_WORD",
+     "label": "BOARD QUORUM WORD",
+     "description": "Directors' quorum in words (from the Articles)",
+     "example": "two",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_PROVISION",
+     "label": "BOARD QUORUM PROVISION",
+     "description": "Article fixing directors' quorum",
+     "example": "Article 7 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "CHAIRMAN_NAME",
+     "label": "CHAIRMAN NAME",
+     "description": "Chairman of the Board / of the meeting (must also appear in the attendee list)",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_DOCS_RECEIVED_DATE",
+     "label": "TRANSFER DOCS RECEIVED DATE",
+     "description": "Date the Company received the transfer agreements, instruments, TRA capital gains assessment, tax clearance and stamp duty certificate",
+     "example": "29 July 2026",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_AGREEMENTS_DATE",
+     "label": "TRANSFER AGREEMENTS DATE",
+     "description": "Date of the share transfer agreements",
+     "example": "22 April 2026",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_1_TRANSFEROR",
+     "label": "TRANSFER 1 TRANSFEROR",
+     "description": "Transferor 1. \"\" deletes the line",
+     "example": "Miqdad Ikbal Premji Manji",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_1_TRANSFEREE",
+     "label": "TRANSFER 1 TRANSFEREE",
+     "description": "Transferee 1",
+     "example": "Doreen James Meta",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_1_SHARES",
+     "label": "TRANSFER 1 SHARES",
+     "description": "Number of shares transferred in transfer 1",
+     "example": "100",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_2_TRANSFEROR",
+     "label": "TRANSFER 2 TRANSFEROR",
+     "description": "Transferor 2. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_2_TRANSFEREE",
+     "label": "TRANSFER 2 TRANSFEREE",
+     "description": "Transferee 2",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_2_SHARES",
+     "label": "TRANSFER 2 SHARES",
+     "description": "Number of shares transferred in transfer 2",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_3_TRANSFEROR",
+     "label": "TRANSFER 3 TRANSFEROR",
+     "description": "Transferor 3. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_3_TRANSFEREE",
+     "label": "TRANSFER 3 TRANSFEREE",
+     "description": "Transferee 3",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_3_SHARES",
+     "label": "TRANSFER 3 SHARES",
+     "description": "Number of shares transferred in transfer 3",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_4_TRANSFEROR",
+     "label": "TRANSFER 4 TRANSFEROR",
+     "description": "Transferor 4. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_4_TRANSFEREE",
+     "label": "TRANSFER 4 TRANSFEREE",
+     "description": "Transferee 4",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_4_SHARES",
+     "label": "TRANSFER 4 SHARES",
+     "description": "Number of shares transferred in transfer 4",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_ARTICLES",
+     "label": "TRANSFER ARTICLES",
+     "description": "Articles governing form, execution and registration of transfers (and any pre-emption / approval procedure) - from the Articles",
+     "example": "articles 22 to 27 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "TRANSFER_MEETING_TIME",
+     "label": "TRANSFER MEETING TIME",
+     "description": "Time (24h, EAT)",
+     "example": "09:00",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    }
+   ]
+  },
+  {
    "id": "F01",
    "file": "F01_Form_213a_Appointment_of_Director_or_Secretary.docx",
    "title": "Form 213a - Appointment of Director or Secretary",
@@ -2799,6 +3063,1878 @@
      "label": "OFFICER SIGN DATE",
      "description": "57b: company officer signing date",
      "example": "18 November 2026",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "F06",
+   "file": "F06_Form_213c_Change_of_Particulars_Director_or_Secretary.docx",
+   "title": "Form 213c - Change of Particulars (Director or Secretary)",
+   "category": "BRELA form",
+   "status": "BRELA template supplied; pending review",
+   "use_rules": "Change of name, address or other particulars of a director/secretary. Signed by a serving director.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_1",
+     "label": "COMPANY NAME LINE 1",
+     "description": "BRELA forms: company name, first line (box 1)",
+     "example": "RAHU MULTISERVICES",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_2",
+     "label": "COMPANY NAME LINE 2",
+     "description": "BRELA forms: company name, second line (box 2)",
+     "example": "COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "CHANGE_DATE",
+     "label": "CHANGE DATE",
+     "description": "Date the change takes effect (D MONTH YYYY, CAPITALS in forms)",
+     "example": "12 NOVEMBER 2026",
+     "optional": false
+    },
+    {
+     "key": "PERSON_NAME",
+     "label": "PERSON NAME",
+     "description": "Director/secretary whose particulars change: existing full name (CAPITALS)",
+     "example": "RAHIM ABUBAKAR AHMED",
+     "optional": false
+    },
+    {
+     "key": "PERSON_DOB",
+     "label": "PERSON DOB",
+     "description": "Date of birth (CAPITALS)",
+     "example": "31 JANUARY 1975",
+     "optional": false
+    },
+    {
+     "key": "NEW_FIRST_NAMES_OPT",
+     "label": "NEW FIRST NAMES, IF ANY",
+     "description": "New first name(s) if the NAME changes, else \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "NEW_SURNAME_OPT",
+     "label": "NEW SURNAME, IF ANY",
+     "description": "New surname if the name changes, else \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "NEW_ADDRESS_LINE_1_OPT",
+     "label": "NEW ADDRESS LINE 1, IF ANY",
+     "description": "New residential address line 1 if the ADDRESS changes",
+     "example": "PLOT 5, KIGAMBONI,",
+     "optional": true
+    },
+    {
+     "key": "NEW_ADDRESS_LINE_2_OPT",
+     "label": "NEW ADDRESS LINE 2, IF ANY",
+     "description": "Address line 2",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "NEW_ADDRESS_LINE_3_OPT",
+     "label": "NEW ADDRESS LINE 3, IF ANY",
+     "description": "Address line 3",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "OTHER_CHANGE_OPT",
+     "label": "OTHER CHANGE, IF ANY",
+     "description": "Any other change (specify), else \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "SIGNING_DATE",
+     "label": "SIGNING DATE",
+     "description": "Date the serving director signs (form text: 29th September 2026)",
+     "example": "29th September 2026",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_NAME",
+     "label": "SIGNING DIRECTOR NAME",
+     "description": "Serving director signing the form (CAPITALS)",
+     "example": "HUSSEIN MZEE KHATIBU",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_ROLE",
+     "label": "SIGNING DIRECTOR ROLE",
+     "description": "Role under the signature",
+     "example": "Director",
+     "optional": false,
+     "default": "Director"
+    }
+   ]
+  },
+  {
+   "id": "F07",
+   "file": "F07_Form_114_Change_of_Registered_Office.docx",
+   "title": "Form 114 - Change of Registered Office",
+   "category": "BRELA form",
+   "status": "BRELA template supplied; pending review",
+   "use_rules": "Board resolution first. State the new address and the date of change.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_1",
+     "label": "COMPANY NAME LINE 1",
+     "description": "BRELA forms: company name, first line (box 1)",
+     "example": "RAHU MULTISERVICES",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_2",
+     "label": "COMPANY NAME LINE 2",
+     "description": "BRELA forms: company name, second line (box 2)",
+     "example": "COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "CHANGE_DATE",
+     "label": "CHANGE DATE",
+     "description": "Date the change takes effect (D MONTH YYYY, CAPITALS in forms)",
+     "example": "12 NOVEMBER 2026",
+     "optional": false
+    },
+    {
+     "key": "NEW_OFFICE_ADDRESS_LINE_1",
+     "label": "NEW OFFICE ADDRESS LINE 1",
+     "description": "New registered office: plot / street / ward",
+     "example": "PLOT 24, SHEBE STREET, TEMEKE",
+     "optional": false
+    },
+    {
+     "key": "NEW_OFFICE_ADDRESS_LINE_2_OPT",
+     "label": "NEW OFFICE ADDRESS LINE 2, IF ANY",
+     "description": "Second address line, P.O. Box",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "NEW_OFFICE_EMAIL",
+     "label": "NEW OFFICE EMAIL",
+     "description": "Company e-mail address",
+     "example": "info@company.co.tz",
+     "optional": false
+    },
+    {
+     "key": "NEW_OFFICE_CONTACT_PHONE",
+     "label": "NEW OFFICE CONTACT PHONE",
+     "description": "Contact phone",
+     "example": "0712000000",
+     "optional": false
+    },
+    {
+     "key": "NEW_OFFICE_TOWN_CITY",
+     "label": "NEW OFFICE TOWN CITY",
+     "description": "Town / city",
+     "example": "DAR ES SALAAM",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DATE",
+     "label": "SIGNING DATE",
+     "description": "Date the serving director signs (form text: 29th September 2026)",
+     "example": "29th September 2026",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_NAME",
+     "label": "SIGNING DIRECTOR NAME",
+     "description": "Serving director signing the form (CAPITALS)",
+     "example": "HUSSEIN MZEE KHATIBU",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_ROLE",
+     "label": "SIGNING DIRECTOR ROLE",
+     "description": "Role under the signature",
+     "example": "Director",
+     "optional": false,
+     "default": "Director"
+    }
+   ]
+  },
+  {
+   "id": "F08",
+   "file": "F08_Form_68_Increase_in_Nominal_Capital.docx",
+   "title": "Form 68 - Increase in Nominal Capital",
+   "category": "BRELA form",
+   "status": "BRELA template supplied; pending review",
+   "use_rules": "Needs the resolution authorising the increase (the form refers to a special resolution) and a copy attached.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_1",
+     "label": "COMPANY NAME LINE 1",
+     "description": "BRELA forms: company name, first line (box 1)",
+     "example": "RAHU MULTISERVICES",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_2",
+     "label": "COMPANY NAME LINE 2",
+     "description": "BRELA forms: company name, second line (box 2)",
+     "example": "COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "RESOLUTION_DATE",
+     "label": "RESOLUTION DATE",
+     "description": "Date of the special/ordinary resolution as passed (D Month YYYY)",
+     "example": "12 November 2026",
+     "optional": false
+    },
+    {
+     "key": "INCREASE_AMOUNT",
+     "label": "INCREASE AMOUNT",
+     "description": "Form 68: amount of the increase, with currency",
+     "example": "TZS 50,000,000",
+     "optional": false
+    },
+    {
+     "key": "REGISTERED_CAPITAL",
+     "label": "REGISTERED CAPITAL",
+     "description": "Form 68: registered (existing) nominal capital, with currency",
+     "example": "TZS 50,000,000",
+     "optional": false
+    },
+    {
+     "key": "NEW_SHARES_CONDITION_1",
+     "label": "NEW SHARES CONDITION 1",
+     "description": "Form 68: condition (a) of the new shares (voting, dividend, winding-up rights)",
+     "example": "(a) The new shares shall rank equally in all respects with the existing ordinary shares.",
+     "optional": false
+    },
+    {
+     "key": "NEW_SHARES_CONDITION_2_OPT",
+     "label": "NEW SHARES CONDITION 2, IF ANY",
+     "description": "Condition (b), else \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "NEW_SHARES_CONDITION_3_OPT",
+     "label": "NEW SHARES CONDITION 3, IF ANY",
+     "description": "Condition (c), else \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "SIGNING_DATE",
+     "label": "SIGNING DATE",
+     "description": "Date the serving director signs (form text: 29th September 2026)",
+     "example": "29th September 2026",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_NAME",
+     "label": "SIGNING DIRECTOR NAME",
+     "description": "Serving director signing the form (CAPITALS)",
+     "example": "HUSSEIN MZEE KHATIBU",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_ROLE",
+     "label": "SIGNING DIRECTOR ROLE",
+     "description": "Role under the signature",
+     "example": "Director",
+     "optional": false,
+     "default": "Director"
+    }
+   ]
+  },
+  {
+   "id": "F09",
+   "file": "F09_Form_33a_Change_of_Company_Name.docx",
+   "title": "Form 33a - Change of Company Name",
+   "category": "BRELA form",
+   "status": "BRELA template supplied; pending review",
+   "use_rules": "Special resolution; new name must be reserved first; copy of the resolution attached.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "RESOLUTION_DATE",
+     "label": "RESOLUTION DATE",
+     "description": "Date of the special/ordinary resolution as passed (D Month YYYY)",
+     "example": "12 November 2026",
+     "optional": false
+    },
+    {
+     "key": "OLD_NAME",
+     "label": "OLD NAME",
+     "description": "Form 33a: existing company name",
+     "example": "OLD COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "NEW_NAME",
+     "label": "NEW NAME",
+     "description": "Form 33a: new company name (must be reserved with BRELA)",
+     "example": "NEW COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_NAME",
+     "label": "SIGNING DIRECTOR NAME",
+     "description": "Serving director signing the form (CAPITALS)",
+     "example": "HUSSEIN MZEE KHATIBU",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DATE",
+     "label": "SIGNING DATE",
+     "description": "Date the serving director signs (form text: 29th September 2026)",
+     "example": "29th September 2026",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "F10",
+   "file": "F10_Form_09_Change_of_Company_Objects.docx",
+   "title": "Form 09 - Change of Company Objects",
+   "category": "BRELA form",
+   "status": "BRELA template supplied; pending review",
+   "use_rules": "Special resolution; attach the resolution and the altered Memorandum.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_1",
+     "label": "COMPANY NAME LINE 1",
+     "description": "BRELA forms: company name, first line (box 1)",
+     "example": "RAHU MULTISERVICES",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_2",
+     "label": "COMPANY NAME LINE 2",
+     "description": "BRELA forms: company name, second line (box 2)",
+     "example": "COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "RESOLUTION_DATE",
+     "label": "RESOLUTION DATE",
+     "description": "Date of the special/ordinary resolution as passed (D Month YYYY)",
+     "example": "12 November 2026",
+     "optional": false
+    },
+    {
+     "key": "NEW_OBJECTS",
+     "label": "NEW OBJECTS",
+     "description": "Form 09: the new, amended or removed objects in full, numbered clearly",
+     "example": "1. Retail sale of ...",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DATE",
+     "label": "SIGNING DATE",
+     "description": "Date the serving director signs (form text: 29th September 2026)",
+     "example": "29th September 2026",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_NAME",
+     "label": "SIGNING DIRECTOR NAME",
+     "description": "Serving director signing the form (CAPITALS)",
+     "example": "HUSSEIN MZEE KHATIBU",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "F11",
+   "file": "F11_Form_173a_Appointment_of_Auditor.docx",
+   "title": "Form 173a - Appointment of Auditor",
+   "category": "BRELA form",
+   "status": "BRELA template supplied; pending review",
+   "use_rules": "After the general meeting that appoints the auditor; the auditor signs the consent.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_1",
+     "label": "COMPANY NAME LINE 1",
+     "description": "BRELA forms: company name, first line (box 1)",
+     "example": "RAHU MULTISERVICES",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_2",
+     "label": "COMPANY NAME LINE 2",
+     "description": "BRELA forms: company name, second line (box 2)",
+     "example": "COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "MEETING_TYPE",
+     "label": "MEETING TYPE",
+     "description": "Form 173a: Annual General Meeting (AGM) or Extraordinary General Meeting (EGM)",
+     "example": "Annual General Meeting (AGM)",
+     "optional": false
+    },
+    {
+     "key": "MEETING_DATE",
+     "label": "MEETING DATE",
+     "description": "Date of the general meeting that appointed the auditor",
+     "example": "27 June 2026",
+     "optional": false
+    },
+    {
+     "key": "AUDITOR_NAME",
+     "label": "AUDITOR NAME",
+     "description": "Auditor / audit firm",
+     "example": "DKL CONSULTANTS",
+     "optional": false
+    },
+    {
+     "key": "AUDITOR_REGISTRATION_NO",
+     "label": "AUDITOR REGISTRATION NO",
+     "description": "Registration number / practising certificate no.",
+     "example": "ACPA-PP 3384",
+     "optional": false
+    },
+    {
+     "key": "AUDITOR_ADDRESS",
+     "label": "AUDITOR ADDRESS",
+     "description": "Auditor address",
+     "example": "P.O. BOX 8424, DAR ES SALAAM",
+     "optional": false
+    },
+    {
+     "key": "APPOINTMENT_PERIOD",
+     "label": "APPOINTMENT PERIOD",
+     "description": "Period of appointment",
+     "example": "FROM 1 JANUARY 2026 TO THE NEXT AGM",
+     "optional": false
+    },
+    {
+     "key": "AUDITOR_SIGN_DATE",
+     "label": "AUDITOR SIGN DATE",
+     "description": "Date the auditor signs the consent",
+     "example": "27th June 2026",
+     "optional": false
+    },
+    {
+     "key": "AUDITOR_SIGNATORY_NAME",
+     "label": "AUDITOR SIGNATORY NAME",
+     "description": "Auditor's signatory (print name)",
+     "example": "LEONARD LEOPOLD",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DATE",
+     "label": "SIGNING DATE",
+     "description": "Date the serving director signs (form text: 29th September 2026)",
+     "example": "29th September 2026",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_NAME",
+     "label": "SIGNING DIRECTOR NAME",
+     "description": "Serving director signing the form (CAPITALS)",
+     "example": "HUSSEIN MZEE KHATIBU",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_ROLE",
+     "label": "SIGNING DIRECTOR ROLE",
+     "description": "Role under the signature",
+     "example": "Director",
+     "optional": false,
+     "default": "Director"
+    }
+   ]
+  },
+  {
+   "id": "F12",
+   "file": "F12_Form_107_Satisfaction_of_Mortgage_or_Charge.docx",
+   "title": "Form 107 - Declaration of Satisfaction of Mortgage or Charge",
+   "category": "BRELA form",
+   "status": "BRELA template supplied; pending review",
+   "use_rules": "Statutory declaration sworn before a commissioner for oaths or notary public.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_1",
+     "label": "COMPANY NAME LINE 1",
+     "description": "BRELA forms: company name, first line (box 1)",
+     "example": "RAHU MULTISERVICES",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_2",
+     "label": "COMPANY NAME LINE 2",
+     "description": "BRELA forms: company name, second line (box 2)",
+     "example": "COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "DECLARANT_NAME",
+     "label": "DECLARANT NAME",
+     "description": "Form 107: declarant full name",
+     "example": "HUSSEIN MZEE KHATIBU",
+     "optional": false
+    },
+    {
+     "key": "DECLARANT_ADDRESS",
+     "label": "DECLARANT ADDRESS",
+     "description": "Declarant address",
+     "example": "VIJIBWENI, KIGAMBONI",
+     "optional": false
+    },
+    {
+     "key": "DECLARANT_CAPACITY",
+     "label": "DECLARANT CAPACITY",
+     "description": "director / secretary / administrator / administrative receiver",
+     "example": "director",
+     "optional": false
+    },
+    {
+     "key": "SATISFACTION_EXTENT",
+     "label": "SATISFACTION EXTENT",
+     "description": "'full' or 'partially'",
+     "example": "full",
+     "optional": false
+    },
+    {
+     "key": "CHARGE_DATE_AND_DESCRIPTION",
+     "label": "CHARGE DATE AND DESCRIPTION",
+     "description": "Date and description of the charge",
+     "example": "Legal mortgage dated 5 March 2024",
+     "optional": false
+    },
+    {
+     "key": "CHARGE_REGISTRATION_DATE",
+     "label": "CHARGE REGISTRATION DATE",
+     "description": "Date the charge was registered at BRELA",
+     "example": "20 March 2024",
+     "optional": false
+    },
+    {
+     "key": "CHARGEE_NAME_AND_ADDRESS",
+     "label": "CHARGEE NAME AND ADDRESS",
+     "description": "Chargee / trustee name and address",
+     "example": "KCB BANK TANZANIA LIMITED, P.O. BOX 804, DAR ES SALAAM",
+     "optional": false
+    },
+    {
+     "key": "CHARGED_PROPERTY_PARTICULARS",
+     "label": "CHARGED PROPERTY PARTICULARS",
+     "description": "Particulars of property charged",
+     "example": "PLOT 24, BLOCK 24, TEMEKE",
+     "optional": false
+    },
+    {
+     "key": "DECLARED_AT",
+     "label": "DECLARED AT",
+     "description": "Place of the solemn declaration",
+     "example": "DAR ES SALAAM",
+     "optional": false
+    },
+    {
+     "key": "DECLARATION_DATE",
+     "label": "DECLARATION DATE",
+     "description": "Date of the declaration",
+     "example": "12 NOVEMBER 2026",
+     "optional": false
+    },
+    {
+     "key": "COMMISSIONER_NAME",
+     "label": "COMMISSIONER NAME",
+     "description": "Commissioner for oaths / notary public (print name)",
+     "example": "JOHN DOE",
+     "optional": false
+    },
+    {
+     "key": "COMMISSIONER_SIGN_DATE",
+     "label": "COMMISSIONER SIGN DATE",
+     "description": "Commissioner's date",
+     "example": "12 NOVEMBER 2026",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "F13",
+   "file": "F13_Form_99_Particulars_of_Mortgage_or_Charge.docx",
+   "title": "Form 99 - Particulars of Mortgage or Charge",
+   "category": "BRELA form",
+   "status": "BRELA template supplied; pending review",
+   "use_rules": "The form's own note: deliver the original instrument and these particulars within 42 days of creating the charge.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_1",
+     "label": "COMPANY NAME LINE 1",
+     "description": "BRELA forms: company name, first line (box 1)",
+     "example": "RAHU MULTISERVICES",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME_LINE_2",
+     "label": "COMPANY NAME LINE 2",
+     "description": "BRELA forms: company name, second line (box 2)",
+     "example": "COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "CHARGE_CREATION_DATE",
+     "label": "CHARGE CREATION DATE",
+     "description": "Form 99: date of creation of the charge. Lodge within 42 days with the original instrument",
+     "example": "5 March 2024",
+     "optional": false
+    },
+    {
+     "key": "CHARGE_INSTRUMENT_DESCRIPTION",
+     "label": "CHARGE INSTRUMENT DESCRIPTION",
+     "description": "Instrument creating the charge (Debenture, Mortgage, Legal Charge ...)",
+     "example": "Legal mortgage",
+     "optional": false
+    },
+    {
+     "key": "AMOUNT_SECURED",
+     "label": "AMOUNT SECURED",
+     "description": "Amount secured",
+     "example": "TZS 500,000,000",
+     "optional": false
+    },
+    {
+     "key": "MORTGAGEE_NAME_AND_ADDRESS",
+     "label": "MORTGAGEE NAME AND ADDRESS",
+     "description": "Mortgagee(s) names and addresses",
+     "example": "KCB BANK TANZANIA LIMITED, P.O. BOX 804, DAR ES SALAAM",
+     "optional": false
+    },
+    {
+     "key": "CHARGED_PROPERTY_PARTICULARS",
+     "label": "CHARGED PROPERTY PARTICULARS",
+     "description": "Particulars of property charged",
+     "example": "PLOT 24, BLOCK 24, TEMEKE",
+     "optional": false
+    },
+    {
+     "key": "COMMISSION_PARTICULARS",
+     "label": "COMMISSION PARTICULARS",
+     "description": "Commission, allowance or discount, or 'None'",
+     "example": "None",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DATE",
+     "label": "SIGNING DATE",
+     "description": "Date the serving director signs (form text: 29th September 2026)",
+     "example": "29th September 2026",
+     "optional": false
+    },
+    {
+     "key": "ON_BEHALF_PARTY",
+     "label": "ON BEHALF PARTY",
+     "description": "'the Company' or 'the Mortgagee/Chargee'",
+     "example": "the Company",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DIRECTOR_NAME",
+     "label": "SIGNING DIRECTOR NAME",
+     "description": "Serving director signing the form (CAPITALS)",
+     "example": "HUSSEIN MZEE KHATIBU",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "F14",
+   "file": "F14_Form_15b_Particulars_of_Beneficial_Owner.docx",
+   "title": "Form 15b - Particulars of Beneficial Owner",
+   "category": "BRELA form",
+   "status": "BRELA template supplied; pending review",
+   "use_rules": "One form per beneficial owner. Check after any change in shareholding.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_TYPE_DESCRIPTION",
+     "label": "COMPANY TYPE DESCRIPTION",
+     "description": "Type of company (BO forms, 15a)",
+     "example": "Private company limited by shares",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "BO_BECAME_DATE",
+     "label": "BO BECAME DATE",
+     "description": "Form 15b: date the person became a beneficial owner (DD/MM/YYYY)",
+     "example": "15/08/2023",
+     "optional": false
+    },
+    {
+     "key": "BO_FULL_NAME",
+     "label": "BO FULL NAME",
+     "description": "Beneficial owner: full name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_DOB_AND_PLACE",
+     "label": "BO DOB AND PLACE",
+     "description": "Beneficial owner: dob and place",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_PLACE_OF_WORK_AND_POSITION",
+     "label": "BO PLACE OF WORK AND POSITION",
+     "description": "Beneficial owner: place of work and position",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_PEP_STATUS",
+     "label": "BO PEP STATUS",
+     "description": "Politically exposed person? Yes/No (attach explanation if Yes)",
+     "example": "No",
+     "optional": false
+    },
+    {
+     "key": "BO_NATIONALITY",
+     "label": "BO NATIONALITY",
+     "description": "Beneficial owner: nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_ID_TYPE_AND_NUMBER",
+     "label": "BO ID TYPE AND NUMBER",
+     "description": "Beneficial owner: id type and number",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_ID_EXPIRY_DATE",
+     "label": "BO ID EXPIRY DATE",
+     "description": "Beneficial owner: id expiry date",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_ID_ISSUING_AUTHORITY",
+     "label": "BO ID ISSUING AUTHORITY",
+     "description": "Beneficial owner: id issuing authority",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_BUILDING_PLOT",
+     "label": "BO BUILDING PLOT",
+     "description": "Beneficial owner: building plot",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_STREET",
+     "label": "BO STREET",
+     "description": "Beneficial owner: street",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_WARD",
+     "label": "BO WARD",
+     "description": "Beneficial owner: ward",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_DISTRICT",
+     "label": "BO DISTRICT",
+     "description": "Beneficial owner: district",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_REGION",
+     "label": "BO REGION",
+     "description": "Beneficial owner: region",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_COUNTRY",
+     "label": "BO COUNTRY",
+     "description": "Beneficial owner: country",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_POSTCODE",
+     "label": "BO POSTCODE",
+     "description": "Beneficial owner: postcode",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_EMAIL",
+     "label": "BO EMAIL",
+     "description": "Beneficial owner: e-mail address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_POSTAL_ADDRESS",
+     "label": "BO POSTAL ADDRESS",
+     "description": "Beneficial owner: postal address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_PHONE",
+     "label": "BO PHONE",
+     "description": "Beneficial owner: mobile phone number",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_DECLARATION_DATE",
+     "label": "BO DECLARATION DATE",
+     "description": "Beneficial owner: declaration date",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_DECLARATION_RECEIVED_DATE",
+     "label": "BO DECLARATION RECEIVED DATE",
+     "description": "Beneficial owner: declaration received date",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_DIRECT_SHARES_PERCENT",
+     "label": "BO DIRECT SHARES PERCENT",
+     "description": "% of shares held directly (number only)",
+     "example": "70.2",
+     "optional": false
+    },
+    {
+     "key": "BO_INDIRECT_SHARES_PERCENT",
+     "label": "BO INDIRECT SHARES PERCENT",
+     "description": "% of shares held indirectly",
+     "example": "0",
+     "optional": false
+    },
+    {
+     "key": "BO_DIRECT_VOTING_PERCENT",
+     "label": "BO DIRECT VOTING PERCENT",
+     "description": "% of voting rights held directly",
+     "example": "70.2",
+     "optional": false
+    },
+    {
+     "key": "BO_INDIRECT_VOTING_PERCENT",
+     "label": "BO INDIRECT VOTING PERCENT",
+     "description": "% voting rights indirectly",
+     "example": "0",
+     "optional": false
+    },
+    {
+     "key": "BO_DIRECT_BOARD_RIGHT",
+     "label": "BO DIRECT BOARD RIGHT",
+     "description": "Direct right to appoint/remove a majority of the board: Yes/No",
+     "example": "Yes",
+     "optional": false
+    },
+    {
+     "key": "BO_INDIRECT_BOARD_RIGHT",
+     "label": "BO INDIRECT BOARD RIGHT",
+     "description": "Indirect right (Yes/No)",
+     "example": "No",
+     "optional": false
+    },
+    {
+     "key": "BO_DIRECT_INFLUENCE",
+     "label": "BO DIRECT INFLUENCE",
+     "description": "Direct significant influence or control (Yes/No)",
+     "example": "Yes",
+     "optional": false
+    },
+    {
+     "key": "BO_INDIRECT_INFLUENCE",
+     "label": "BO INDIRECT INFLUENCE",
+     "description": "Indirect significant influence (Yes/No)",
+     "example": "No",
+     "optional": false
+    },
+    {
+     "key": "NOMINEE_SHAREHOLDER_NAME_OPT",
+     "label": "NOMINEE SHAREHOLDER NAME, IF ANY",
+     "description": "Name of shareholder holding shares on behalf of the BO (indirect ownership)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "APPOINTED_DIRECTOR_NAME_OPT",
+     "label": "APPOINTED DIRECTOR NAME, IF ANY",
+     "description": "Director appointed by the BO (indirect ownership)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "ATTACHMENTS_OPT",
+     "label": "ATTACHMENTS, IF ANY",
+     "description": "List of attachments, else \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "LODGED_BY_NAME",
+     "label": "LODGED BY NAME",
+     "description": "Person lodging for the company",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "LODGED_BY_CAPACITY",
+     "label": "LODGED BY CAPACITY",
+     "description": "Director or Secretary",
+     "example": "Director",
+     "optional": false
+    },
+    {
+     "key": "INFORMATION_SOURCE",
+     "label": "INFORMATION SOURCE",
+     "description": "(a) provided by the beneficial owner or representative; (b) taken from an official register; (c) third party",
+     "example": "(a) provided by the beneficial owner",
+     "optional": false
+    },
+    {
+     "key": "LODGE_DATE",
+     "label": "LODGE DATE",
+     "description": "Date of lodging",
+     "example": "12 November 2026",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "F15",
+   "file": "F15_Form_15c_Ceasing_to_be_Beneficial_Owner.docx",
+   "title": "Form 15c - Notice of Ceasing to be a Beneficial Owner",
+   "category": "BRELA form",
+   "status": "BRELA template supplied; pending review",
+   "use_rules": "Up to 3 persons per form (the form says one form per beneficial owner).",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_TYPE_DESCRIPTION",
+     "label": "COMPANY TYPE DESCRIPTION",
+     "description": "Type of company (BO forms, 15a)",
+     "example": "Private company limited by shares",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "BO_1_NAME",
+     "label": "BO 1 NAME",
+     "description": "Beneficial owner 1: full name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_1_CEASED_DATE",
+     "label": "BO 1 CEASED DATE",
+     "description": "Beneficial owner 1: ceased date",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_1_REASON",
+     "label": "BO 1 REASON",
+     "description": "Beneficial owner 1: reason",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_2_NAME_OPT",
+     "label": "BO 2 NAME, IF ANY",
+     "description": "Beneficial owner 2: full name",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "BO_2_CEASED_DATE_OPT",
+     "label": "BO 2 CEASED DATE, IF ANY",
+     "description": "Beneficial owner 2: ceased date",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "BO_2_REASON_OPT",
+     "label": "BO 2 REASON, IF ANY",
+     "description": "Beneficial owner 2: reason",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "BO_3_NAME_OPT",
+     "label": "BO 3 NAME, IF ANY",
+     "description": "Beneficial owner 3: full name",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "BO_3_CEASED_DATE_OPT",
+     "label": "BO 3 CEASED DATE, IF ANY",
+     "description": "Beneficial owner 3: ceased date",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "BO_3_REASON_OPT",
+     "label": "BO 3 REASON, IF ANY",
+     "description": "Beneficial owner 3: reason",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "ATTACHMENTS_OPT",
+     "label": "ATTACHMENTS, IF ANY",
+     "description": "List of attachments, else \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "LODGED_BY_NAME",
+     "label": "LODGED BY NAME",
+     "description": "Person lodging for the company",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "LODGED_BY_CAPACITY",
+     "label": "LODGED BY CAPACITY",
+     "description": "Director or Secretary",
+     "example": "Director",
+     "optional": false
+    },
+    {
+     "key": "INFORMATION_SOURCE",
+     "label": "INFORMATION SOURCE",
+     "description": "(a) provided by the beneficial owner or representative; (b) taken from an official register; (c) third party",
+     "example": "(a) provided by the beneficial owner",
+     "optional": false
+    },
+    {
+     "key": "LODGE_DATE",
+     "label": "LODGE DATE",
+     "description": "Date of lodging",
+     "example": "12 November 2026",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "F16",
+   "file": "F16_Form_15f_Change_of_Beneficial_Owner_Particulars.docx",
+   "title": "Form 15f - Change of Beneficial Owner Particulars",
+   "category": "BRELA form",
+   "status": "BRELA template supplied; pending review",
+   "use_rules": "Up to 3 persons per form.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_TYPE_DESCRIPTION",
+     "label": "COMPANY TYPE DESCRIPTION",
+     "description": "Type of company (BO forms, 15a)",
+     "example": "Private company limited by shares",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "BO_1_NAME",
+     "label": "BO 1 NAME",
+     "description": "Beneficial owner 1: full name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_1_CHANGE_PARTICULARS",
+     "label": "BO 1 CHANGE PARTICULARS",
+     "description": "Beneficial owner 1: change particulars",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BO_2_NAME_OPT",
+     "label": "BO 2 NAME, IF ANY",
+     "description": "Beneficial owner 2: full name",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "BO_2_CHANGE_PARTICULARS_OPT",
+     "label": "BO 2 CHANGE PARTICULARS, IF ANY",
+     "description": "Beneficial owner 2: change particulars",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "BO_3_NAME_OPT",
+     "label": "BO 3 NAME, IF ANY",
+     "description": "Beneficial owner 3: full name",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "BO_3_CHANGE_PARTICULARS_OPT",
+     "label": "BO 3 CHANGE PARTICULARS, IF ANY",
+     "description": "Beneficial owner 3: change particulars",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "ATTACHMENTS_OPT",
+     "label": "ATTACHMENTS, IF ANY",
+     "description": "List of attachments, else \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "LODGED_BY_NAME",
+     "label": "LODGED BY NAME",
+     "description": "Person lodging for the company",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "LODGED_BY_CAPACITY",
+     "label": "LODGED BY CAPACITY",
+     "description": "Director or Secretary",
+     "example": "Director",
+     "optional": false
+    },
+    {
+     "key": "INFORMATION_SOURCE",
+     "label": "INFORMATION SOURCE",
+     "description": "(a) provided by the beneficial owner or representative; (b) taken from an official register; (c) third party",
+     "example": "(a) provided by the beneficial owner",
+     "optional": false
+    },
+    {
+     "key": "LODGE_DATE",
+     "label": "LODGE DATE",
+     "description": "Date of lodging",
+     "example": "12 November 2026",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "F17",
+   "file": "F17_Form_15a_Application_for_Registration_of_a_Company.docx",
+   "title": "Form 15a - Application for Registration of a Company",
+   "category": "BRELA form",
+   "status": "BRELA template supplied; pending review",
+   "use_rules": "Incorporation application: 2 directors, secretary, 2 shareholders per form.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "TRACKING_NUMBER_OPT",
+     "label": "TRACKING NUMBER, IF ANY",
+     "description": "ORS tracking number (assigned by BRELA)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "APPLICATION_DATE",
+     "label": "APPLICATION DATE",
+     "description": "Application date",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "APPLICANT_NATIONAL_ID",
+     "label": "APPLICANT NATIONAL ID",
+     "description": "Applicant: national id",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "APPLICANT_NAME",
+     "label": "APPLICANT NAME",
+     "description": "Applicant: full name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "APPLICANT_GENDER",
+     "label": "APPLICANT GENDER",
+     "description": "Applicant: gender (Male/Female)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "APPLICANT_DOB",
+     "label": "APPLICANT DOB",
+     "description": "Applicant: date of birth",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "APPLICANT_NATIONALITY",
+     "label": "APPLICANT NATIONALITY",
+     "description": "Applicant: nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "APPLICANT_EMAIL",
+     "label": "APPLICANT EMAIL",
+     "description": "Applicant: e-mail address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "APPLICANT_PHONE",
+     "label": "APPLICANT PHONE",
+     "description": "Applicant: mobile phone number",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "APPLICANT_CAN_UPDATE_ORS",
+     "label": "APPLICANT CAN UPDATE ORS",
+     "description": "Applicant: can this person update data in ORS? (Yes/No)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "APPLICANT_CAN_ASSIGN_ORS",
+     "label": "APPLICANT CAN ASSIGN ORS",
+     "description": "Applicant: can assign ors",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_TIN_OPT",
+     "label": "COMPANY TIN, IF ANY",
+     "description": "TIN, if issued",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "INCORPORATION_NO_OPT",
+     "label": "INCORPORATION NO, IF ANY",
+     "description": "Incorporation number (assigned by BRELA)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_TYPE_DESCRIPTION",
+     "label": "COMPANY TYPE DESCRIPTION",
+     "description": "Type of company (BO forms, 15a)",
+     "example": "Private company limited by shares",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_DATE_OPT",
+     "label": "INCORPORATION DATE, IF ANY",
+     "description": "Incorporation date (assigned)",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "ACCOUNTING_DATE",
+     "label": "ACCOUNTING DATE",
+     "description": "Accounting date (31 December ...)",
+     "example": "31 DECEMBER",
+     "optional": false
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "OFFICE_PO_BOX",
+     "label": "OFFICE PO BOX",
+     "description": "P.O. Box",
+     "example": "47",
+     "optional": false
+    },
+    {
+     "key": "OFFICE_EMAIL",
+     "label": "OFFICE EMAIL",
+     "description": "Company e-mail",
+     "example": "info@company.co.tz",
+     "optional": false
+    },
+    {
+     "key": "OFFICE_PHONE",
+     "label": "OFFICE PHONE",
+     "description": "Company phone",
+     "example": "0712000000",
+     "optional": false
+    },
+    {
+     "key": "BUSINESS_ACTIVITIES",
+     "label": "BUSINESS ACTIVITIES",
+     "description": "Business activities (names, ISIC codes)",
+     "example": "Management consultancy activities (7020)",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_CAN_UPDATE_ORS",
+     "label": "DIRECTOR 1 CAN UPDATE ORS",
+     "description": "Director 1: can this person update data in ORS? (Yes/No)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_ID_NUMBER",
+     "label": "DIRECTOR 1 ID NUMBER",
+     "description": "Director 1: national ID / passport number",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_TIN",
+     "label": "DIRECTOR 1 TIN",
+     "description": "Director 1: TIN",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_NAME",
+     "label": "DIRECTOR 1 NAME",
+     "description": "Director 1 full name (CAPITALS)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_GENDER",
+     "label": "DIRECTOR 1 GENDER",
+     "description": "Director 1: gender (Male/Female)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_DOB",
+     "label": "DIRECTOR 1 DOB",
+     "description": "Date of birth DD/MM/YYYY",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_NATIONALITY",
+     "label": "DIRECTOR 1 NATIONALITY",
+     "description": "Nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_EMAIL",
+     "label": "DIRECTOR 1 EMAIL",
+     "description": "Director 1: e-mail address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_PHONE",
+     "label": "DIRECTOR 1 PHONE",
+     "description": "Director 1: mobile phone number",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_1_RESIDENTIAL_ADDRESS",
+     "label": "DIRECTOR 1 RESIDENTIAL ADDRESS",
+     "description": "Director 1: residential address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_CAN_UPDATE_ORS",
+     "label": "DIRECTOR 2 CAN UPDATE ORS",
+     "description": "Director 2: can this person update data in ORS? (Yes/No)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_ID_NUMBER",
+     "label": "DIRECTOR 2 ID NUMBER",
+     "description": "Director 2: national ID / passport number",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_TIN",
+     "label": "DIRECTOR 2 TIN",
+     "description": "Director 2: TIN",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_NAME",
+     "label": "DIRECTOR 2 NAME",
+     "description": "Director 2 full name (CAPITALS)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_GENDER",
+     "label": "DIRECTOR 2 GENDER",
+     "description": "Director 2: gender (Male/Female)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_DOB",
+     "label": "DIRECTOR 2 DOB",
+     "description": "Date of birth DD/MM/YYYY",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_NATIONALITY",
+     "label": "DIRECTOR 2 NATIONALITY",
+     "description": "Nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_EMAIL",
+     "label": "DIRECTOR 2 EMAIL",
+     "description": "Director 2: e-mail address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_PHONE",
+     "label": "DIRECTOR 2 PHONE",
+     "description": "Director 2: mobile phone number",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "DIRECTOR_2_RESIDENTIAL_ADDRESS",
+     "label": "DIRECTOR 2 RESIDENTIAL ADDRESS",
+     "description": "Director 2: residential address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_CAN_UPDATE_ORS",
+     "label": "SECRETARY CAN UPDATE ORS",
+     "description": "Company secretary: can this person update data in ORS? (Yes/No)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_ID_NUMBER",
+     "label": "SECRETARY ID NUMBER",
+     "description": "Company secretary: national ID / passport number",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_TIN",
+     "label": "SECRETARY TIN",
+     "description": "Company secretary: TIN",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_GENDER",
+     "label": "SECRETARY GENDER",
+     "description": "Company secretary: gender (Male/Female)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_DOB",
+     "label": "SECRETARY DOB",
+     "description": "Company secretary: date of birth",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NATIONALITY",
+     "label": "SECRETARY NATIONALITY",
+     "description": "Company secretary: nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_EMAIL",
+     "label": "SECRETARY EMAIL",
+     "description": "Company secretary: e-mail address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_PHONE",
+     "label": "SECRETARY PHONE",
+     "description": "Company secretary: mobile phone number",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_RESIDENTIAL_ADDRESS",
+     "label": "SECRETARY RESIDENTIAL ADDRESS",
+     "description": "Company secretary: residential address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHARES_ISSUED",
+     "label": "SHARES ISSUED",
+     "description": "Number of shares issued in this class",
+     "example": "7,120",
+     "optional": false
+    },
+    {
+     "key": "SHARE_VALUE",
+     "label": "SHARE VALUE",
+     "description": "Nominal value per share",
+     "example": "5,000",
+     "optional": false
+    },
+    {
+     "key": "AGGREGATE_NOMINAL_VALUE",
+     "label": "AGGREGATE NOMINAL VALUE",
+     "description": "Aggregate nominal value (figures; form prints TZS.)",
+     "example": "35,600,000",
+     "optional": false
+    },
+    {
+     "key": "CURRENCY",
+     "label": "CURRENCY",
+     "description": "Currency",
+     "example": "TZS",
+     "optional": false
+    },
+    {
+     "key": "SHARES_ISSUED_TOTAL",
+     "label": "SHARES ISSUED TOTAL",
+     "description": "Total shares issued",
+     "example": "7,120",
+     "optional": false
+    },
+    {
+     "key": "AGGREGATE_NOMINAL_VALUE_TOTAL",
+     "label": "AGGREGATE NOMINAL VALUE TOTAL",
+     "description": "Total nominal value",
+     "example": "35,600,000",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_1_ID_NUMBER",
+     "label": "SHAREHOLDER 1 ID NUMBER",
+     "description": "Shareholder 1: national ID / passport number",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_1_TIN",
+     "label": "SHAREHOLDER 1 TIN",
+     "description": "Shareholder 1: TIN",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_1_NAME",
+     "label": "SHAREHOLDER 1 NAME",
+     "description": "Shareholder 1: full name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_1_GENDER",
+     "label": "SHAREHOLDER 1 GENDER",
+     "description": "Shareholder 1: gender (Male/Female)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_1_DOB",
+     "label": "SHAREHOLDER 1 DOB",
+     "description": "Shareholder 1: date of birth",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_1_NATIONALITY",
+     "label": "SHAREHOLDER 1 NATIONALITY",
+     "description": "Shareholder 1: nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_1_EMAIL",
+     "label": "SHAREHOLDER 1 EMAIL",
+     "description": "Shareholder 1: e-mail address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_1_PHONE",
+     "label": "SHAREHOLDER 1 PHONE",
+     "description": "Shareholder 1: mobile phone number",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_1_RESIDENTIAL_ADDRESS",
+     "label": "SHAREHOLDER 1 RESIDENTIAL ADDRESS",
+     "description": "Shareholder 1: residential address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_1_SHARES",
+     "label": "SHAREHOLDER 1 SHARES",
+     "description": "Shareholder 1: number of shares held",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_2_ID_NUMBER",
+     "label": "SHAREHOLDER 2 ID NUMBER",
+     "description": "Shareholder 2: national ID / passport number",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_2_TIN",
+     "label": "SHAREHOLDER 2 TIN",
+     "description": "Shareholder 2: TIN",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_2_NAME",
+     "label": "SHAREHOLDER 2 NAME",
+     "description": "Shareholder 2: full name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_2_GENDER",
+     "label": "SHAREHOLDER 2 GENDER",
+     "description": "Shareholder 2: gender (Male/Female)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_2_DOB",
+     "label": "SHAREHOLDER 2 DOB",
+     "description": "Shareholder 2: date of birth",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_2_NATIONALITY",
+     "label": "SHAREHOLDER 2 NATIONALITY",
+     "description": "Shareholder 2: nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_2_EMAIL",
+     "label": "SHAREHOLDER 2 EMAIL",
+     "description": "Shareholder 2: e-mail address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_2_PHONE",
+     "label": "SHAREHOLDER 2 PHONE",
+     "description": "Shareholder 2: mobile phone number",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_2_RESIDENTIAL_ADDRESS",
+     "label": "SHAREHOLDER 2 RESIDENTIAL ADDRESS",
+     "description": "Shareholder 2: residential address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_2_SHARES",
+     "label": "SHAREHOLDER 2 SHARES",
+     "description": "Shareholder 2: number of shares held",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DATE",
+     "label": "SIGNING DATE",
+     "description": "Date the serving director signs (form text: 29th September 2026)",
+     "example": "29th September 2026",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DATE_2",
+     "label": "SIGNING DATE 2",
+     "description": "Date of the second director's signature (15a)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SIGNING_DATE_SECRETARY",
+     "label": "SIGNING DATE SECRETARY",
+     "description": "Date of the secretary's signature (15a)",
+     "example": "",
      "optional": false
     }
    ]
