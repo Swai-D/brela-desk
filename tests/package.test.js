@@ -134,6 +134,17 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
   ok('your Word file becomes a template and a wizard: Company details fill by themselves, the rest are asked',r1.s===200&&st.COMPANY_NAME==='company'&&st.LETTER_DATE==='asked'&&st.SITE_CONTACT_OPT==='optional'&&r1.j.asked===5&&r1.j.clauses[0]==='within 14 days',r1.j);
   ok('the same name cannot be used twice',(await up_(doc,{name:'Letter of engagement'})).s===409);
   const tl=(await call('GET','/templates')).j.find(t=>t.name==='Letter of engagement');ok('the template list says which wizard makes it',tl&&tl.wizard===r1.j.wizard&&tl.has_docx,tl);
+  // replacing the Word file: a dry run says what would change, the old file is kept, and it can be restored
+  {const cp=await up_(doc,{name:'Letter copy for versions',match:'copy versions'}),tc=(await call('GET','/templates')).j.find(t=>t.name==='Letter copy for versions'),rep=async(buf,preview)=>{const fd=new FormData();fd.append('file',new Blob([buf]),'Letter v2.docx');const r=await fetch(B+`/templates/${tc.id}/upload-docx${preview?'?preview=1':''}`,{method:'POST',headers:{cookie:ck},body:fd});return{s:r.status,j:await r.json()}};
+   const broken=await mk(para(run('LETTER OF ENGAGEMENT'))+para(run('Date: '),run('[LETTER ',1),run('DATE]',1))+para(run('To: '),run('[COMPANY NAME]',1))+para(run('Fee TZS '),run('[ENGAGEMENT FEE]',1))+para(run('Ref '),run('[FILE REFERENCE]',1)));
+   const pv=await rep(broken,true);
+   ok('a dry run lists the fields a new Word file would lose and the new ones, and changes nothing',pv.s===200&&pv.j.preview&&pv.j.removed.includes('SCOPE OF WORK')&&pv.j.added.includes('FILE REFERENCE'),pv.j);
+   ok('the dry run did not replace the file or save a history entry',(await call('GET',`/templates/${tc.id}/docx-history`)).j.length===0);
+   const real=await rep(broken,false);ok('replacing works',real.s===200,real.j);
+   const hist=(await call('GET',`/templates/${tc.id}/docx-history`)).j;ok('the replaced file is kept in the history',hist.length===1&&hist[0].labels>=4,hist);
+   const rs=await call('POST',`/templates/${tc.id}/docx-restore/${hist[0].id}`,{});ok('the earlier file can be restored',rs.s===200&&rs.j.labels.added.includes('SCOPE OF WORK'),rs.j);
+   ok('restoring keeps the file that was replaced, so nothing is lost',(await call('GET',`/templates/${tc.id}/docx-history`)).j.length===2);
+   await as('juma@test.co',UP);ok('staff cannot replace, preview or restore',(await rep(broken,true)).s===403&&(await call('POST',`/templates/${tc.id}/docx-restore/${hist[0].id}`,{})).s===403);await as('boss@test.co',AP)}
   const cs=(await call('POST','/cases',{clientId:cl,caseTypeId:T})).j;
   ok('the case will not make it without the required answers',(await call('POST',`/cases/${cs.id}/ai/generate-docx`,{template_id:tl.id})).s===409);
   const wf=(await call('GET',`/cases/${cs.id}/scenarios/${r1.j.wizard}`)).j.def.fields,cf=wf.find(f=>/^clause_/.test(f.key));
