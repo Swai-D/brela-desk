@@ -6705,6 +6705,22 @@
      "optional": false
     }
    ]
+  },
+  {
+   "id": "M01",
+   "file": "M01_Memorandum_and_Articles_of_Association.docx",
+   "title": "Memorandum and Articles of Association",
+   "category": "Incorporation",
+   "status": "Senior's own Word template (private company limited by shares); loaded as it is, with no wizard yet",
+   "use_rules": "Fill the yellow details by hand in Word (company name, ISIC objects and codes, registered office, share capital, subscribers, witnesses). Choose or delete the highlighted alternative clauses. The incorporation date and certificate number are filled in after BRELA registers the company.",
+   "clauses_to_confirm": [
+    "by default, be two (2) years unless otherwise agreed in writing at the time of appointment",
+    "The resignation shall take effect fourteen (14) days after receipt of the notice",
+    "The officers of the company shall include, at a minimum",
+    "offices of Chairman shall continue for a maximum term of one (1) year",
+    "offices of Secretary shall continue for a maximum term of two (2) years"
+   ],
+   "placeholders": []
   }
  ]
 }
