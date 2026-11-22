@@ -47,6 +47,32 @@ const ART_FIELDS=keys=>ARTICLE_KEYS.filter(a=>keys.includes(a[0])).map(([key,lab
 
 // a member with no shares recorded would be listed as attending a members' meeting with 0 shares
 const noShares=c=>(c.shareholders||[]).filter(p=>!hold(p)).map(p=>tc(p.full_name));
+// The members' meeting shared by every members' resolution (change of name, objects, capital, auditor):
+// who is present, the notice wording and the chairman. special=true for a special resolution (s.146), false for an ordinary one (s.138).
+const MEETING_FIELDS=(what,group)=>[F('resolution_date',`${what}: date`,'date',{req:true,group}),F('resolution_time','Time','time',{ph:'10:00',group}),
+ F('chairman','Chairman of the meeting','person',{from:'directors',ph:'First director, if left empty',group}),
+ F('notice_kind','Notice of the meeting','choice',{opts:[['full','Full notice (not less than 21 days)'],['short','Shorter notice agreed by the members']],group}),
+ F('notice_date','Full notice: date it was given. Shorter notice: date the members agreed','date',{req:true,group}),
+ ...ART_FIELDS(['gm_notice_provision','gm_quorum_word','gm_quorum_provision'])];
+const membersMeeting=(a,c,V,B,special)=>{
+ const chair=a.chairman||(c.directors||[])[0]&&(c.directors[0]||{}).full_name||'',nd=fmtD(a.notice_date),gp=String(a.art_gm_notice_provision||(c.values||{}).gm_notice_provision||(ARTICLE_KEYS.find(x=>x[0]==='gm_notice_provision')||[])[2]||'').trim();
+ V.resolution_time=a.resolution_time||'10:00';V.chairman_name=chair;
+ V.notice_wording=special?(a.notice_kind==='short'?`With the written consent, given on ${nd}, of the members entitled to receive notice, the meeting was convened on shorter notice in accordance with ${gp}, and section 146(1) of the Act, notice specifying the intention to propose the resolution as a special resolution having been given.`:`Notice in writing specifying the intention to propose the resolution as a special resolution was given on ${nd}, not less than twenty-one days before the meeting, in accordance with section 146(1) of the Act.`)
+  :(a.notice_kind==='short'?`With the agreement of the members required by section 138(3) of the Act, given on ${nd}, the meeting was convened on shorter notice in accordance with ${gp}.`:`Notice in writing of the meeting was given on ${nd}, not less than twenty-one days before the meeting, in accordance with section 138 of the Act.`);
+ const sec=((c.secretaries||[])[0]||{}).full_name,mem=(c.shareholders||[]).slice().sort((x,y)=>(same(y.full_name,chair)-same(x.full_name,chair))||(same(y.full_name,sec)-same(x.full_name,sec)));
+ for(let i=0;i<7;i++){const p=mem[i];V[`member_${i+1}_name`]=p?p.full_name:'';V[`member_${i+1}_shares`]=p&&hold(p)?comma(hold(p)):'';if(!p)B.push(`MEMBER_${i+1}_NAME`,`MEMBER_${i+1}_SHARES`)}
+ V.absent_names='None.';V.absent_members_with_shares='None.';return chair};
+const meetingWarn=(a,c,w)=>{if(a.notice_kind!=='short'&&a.notice_date&&a.resolution_date&&diffDays(a.notice_date,a.resolution_date)<21)w.push('Full notice must be at least 21 days before the meeting (s.138 of the Companies Act). Choose "Shorter notice agreed by the members" if they agreed in writing, or move the meeting date.');
+ if(a.notice_date&&a.resolution_date&&a.notice_date>a.resolution_date)w.push('The notice date is after the meeting date.');
+ if(noShares(c).length)w.push(`${joinAnd(noShares(c))} ${noShares(c).length>1?'are saved as members but have':'is saved as a member but has'} no shares recorded, so the members' resolution will show 0 shares. Correct it on the Company tab.`)};
+// the directors' meeting shared by the directors' resolutions
+const boardMeeting=(a,c,V,B)=>{const chair=a.chairman||(c.directors[0]||{}).full_name||'';V.chairman_name=chair;V.meeting_date=fmtD(a.meeting_date);V.meeting_time=a.meeting_time||'09:00';
+ const att=[chair,...c.directors.map(p=>p.full_name).filter(x=>!same(x,chair))].filter(Boolean);
+ for(let i=0;i<Math.max(5,att.length);i++){const x=att[i];V[`attendee_${i+1}_name`]=x||'';V[`attendee_${i+1}_role_opt`]=x?(same(x,chair)?'Chairman of the Board of Directors':'Director'):'';if(!x)B.push(`ATTENDEE_${i+1}_NAME`)}
+ V.absent_names='None.';return chair};
+const SIGN=(group='Form')=>[F('signing_director','Director who signs the form','person',{from:'directors',ph:'First director, if left empty',group}),F('signing_date','Date the director signs','date',{ph:'Same as the meeting date',group})];
+const signV=(a,c,V,fallback)=>{const sd=a.signing_director||(c.directors[0]||{}).full_name||'';V.signing_director_name=up(sd);V.signing_director_role='Director';V.signing_date=ordD(a.signing_date||fallback);return sd};
+const signP=(a,c,why)=>{const sd=a.signing_director||(c.directors[0]||{}).full_name;return sd?[{name:sd,need:[],why}]:[]};
 const F=(key,label,type,o={})=>({key,label,type,...o});
 const YES=[['yes','Yes']];
 const BUILTIN=[
@@ -214,32 +240,80 @@ const BUILTIN=[
   if(a.new_email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(a.new_email).trim()))w.push('The e-mail address does not look right.');if(!c.directors.length&&!a.signing_director)w.push('The company has no saved director to sign the form.');return w},
  people(a,c){const sd=a.signing_director||(c.directors[0]||{}).full_name;return sd?[{name:sd,need:[],why:'Form 114'}]:[]}},
 
-{id:'rename',title:'Change of company name',icon:'bx-rename',match:/name/i,desc:'Form 33a: the company changes its name. The new name must already be reserved with BRELA and approved by a resolution, which you attach.',
+{id:'rename',title:'Change of company name',icon:'bx-rename',match:/name/i,desc:'The members\' special resolution and Form 33a: the company changes its name. The new name must already be reserved with BRELA; the Registrar must approve it in writing.',
  fields:[F('new_name','New company name','text',{req:true,help:'Exactly as reserved with BRELA, including LIMITED.',group:'The new name'}),F('name_reserved','The new name is reserved with BRELA','bool',{req:true,group:'The new name'}),
-  F('resolution_date','Members\' meeting that passes the special resolution: date','date',{req:true,group:'Members\' meeting'}),F('resolution_time','Time','time',{ph:'10:00',group:'Members\' meeting'}),
-  F('chairman','Chairman of the meeting','person',{from:'directors',ph:'First director, if left empty',group:'Members\' meeting'}),
-  F('notice_kind','Notice of the meeting','choice',{opts:[['full','Full notice (not less than 21 days)'],['short','Shorter notice agreed by the members']],group:'Members\' meeting'}),
-  F('notice_date','Full notice: date it was given. Shorter notice: date the members agreed','date',{req:true,group:'Members\' meeting'}),
-  F('signing_director','Director who signs the form','person',{from:'directors',ph:'First director, if left empty',group:'Form 33a'}),F('signing_date','Date the director signs','date',{ph:'Same as the meeting date',group:'Form 33a'}),
-  ...ART_FIELDS(['gm_notice_provision','gm_quorum_word','gm_quorum_provision'])],
+  ...MEETING_FIELDS("Members' meeting that passes the special resolution","Members' meeting"),...SIGN('Form 33a')],
  jobs:()=>[{tid:'T11',name:'Members\' special resolution - change of company name'},{tid:'F09',name:'Form 33a - change of company name'}],
- derive(a,c){const V={},B=[],sd=a.signing_director||(c.directors[0]||{}).full_name||'',old=String((c.values||{}).company_name||'').trim();
-  V.old_name=up(old);V.new_name=up(String(a.new_name||'').trim());V.resolution_date=fmtD(a.resolution_date);V.signing_director_name=up(sd);V.signing_date=ordD(a.signing_date||a.resolution_date);
-  // the members' special resolution (T11)
-  const chair=a.chairman||(c.directors[0]||{}).full_name||'',nd=fmtD(a.notice_date),gp=String(a.art_gm_notice_provision||(c.values||{}).gm_notice_provision||(ARTICLE_KEYS.find(x=>x[0]==='gm_notice_provision')||[])[2]||'').trim();
-  V.resolution_time=a.resolution_time||'10:00';V.chairman_name=chair;
-  V.notice_wording=a.notice_kind==='short'?`With the written consent, given on ${nd}, of the members entitled to receive notice, the meeting was convened on shorter notice in accordance with ${gp}, and section 146(1) of the Act, notice specifying the intention to propose the resolution as a special resolution having been given.`:`Notice in writing specifying the intention to propose the resolution as a special resolution was given on ${nd}, not less than twenty-one days before the meeting, in accordance with section 146(1) of the Act.`;
-  const sec=(c.secretaries[0]||{}).full_name,mem=c.shareholders.slice().sort((x,y)=>(same(y.full_name,chair)-same(x.full_name,chair))||(same(y.full_name,sec)-same(x.full_name,sec)));
-  for(let i=0;i<7;i++){const p=mem[i];V[`member_${i+1}_name`]=p?p.full_name:'';V[`member_${i+1}_shares`]=p&&hold(p)?comma(hold(p)):'';if(!p)B.push(`MEMBER_${i+1}_NAME`,`MEMBER_${i+1}_SHARES`)}
-  V.absent_names='None.';V.absent_members_with_shares='None.';return{V,B}},
- warn(a,c){const w=[],old=String((c.values||{}).company_name||'').trim(),nn=String(a.new_name||'').trim();
-  if(a.notice_kind!=='short'&&a.notice_date&&a.resolution_date&&diffDays(a.notice_date,a.resolution_date)<21)w.push('Full notice must be at least 21 days before the meeting (s.138 of the Companies Act). Choose "Shorter notice agreed by the members" if they agreed in writing, or move the meeting date.');
-  if(a.notice_date&&a.resolution_date&&a.notice_date>a.resolution_date)w.push('The notice date is after the meeting date.');
+ derive(a,c){const V={},B=[],old=String((c.values||{}).company_name||'').trim();
+  V.old_name=up(old);V.new_name=up(String(a.new_name||'').trim());V.resolution_date=fmtD(a.resolution_date);signV(a,c,V,a.resolution_date);membersMeeting(a,c,V,B,true);return{V,B}},
+ warn(a,c){const w=[],old=String((c.values||{}).company_name||'').trim(),nn=String(a.new_name||'').trim();meetingWarn(a,c,w);
   if(nn&&same(nn,old))w.push('The new name is the same as the current name.');
   if(nn&&!/\b(limited|ltd|plc)\.?$/i.test(nn))w.push('The new name does not end with LIMITED, LTD or PLC. Check it against the name reserved with BRELA.');
-  if(!old)w.push('The company has no saved name, so the old name on the form will be empty.');
-  if(noShares(c).length)w.push(`${joinAnd(noShares(c))} ${noShares(c).length>1?'are':'is'} saved as a member but has no shares recorded, so the members' resolution will show 0 shares. Correct it on the Company tab.`.replace('has no','has no').replace(/ but has no/,noShares(c).length>1?' but have no':' but has no'));return w},
- people(a,c){const sd=a.signing_director||(c.directors[0]||{}).full_name;return sd?[{name:sd,need:[],why:'Form 33a'}]:[]}},
+  if(!old)w.push('The company has no saved name, so the old name on the form will be empty.');return w},
+ people(a,c){return signP(a,c,'Form 33a')}},
+
+{id:'objects',title:'Change of company objects',icon:'bx-target-lock',match:/object/i,desc:'The members\' special resolution and Form 09: the company alters the objects in its Memorandum. Members may object to the court within 30 days; the altered Memorandum is delivered to the Registrar afterwards.',
+ fields:[F('new_objects','The objects as they will read after the change','longtext',{req:true,ph:'1. To carry on the business of ...\n2. ...',help:'Write the new, amended or removed objects in full, numbered clearly.',group:'The new objects'}),
+  F('memo_ready','The altered Memorandum is prepared to attach to Form 09','bool',{req:true,group:'The new objects'}),
+  ...MEETING_FIELDS("Members' meeting that passes the special resolution","Members' meeting"),...SIGN('Form 09')],
+ jobs:()=>[{tid:'T12',name:'Members\' special resolution - change of company objects'},{tid:'F10',name:'Form 09 - change of company objects'}],
+ derive(a,c){const V={},B=[];V.new_objects=String(a.new_objects||'').trim();V.resolution_date=fmtD(a.resolution_date);signV(a,c,V,a.resolution_date);membersMeeting(a,c,V,B,true);return{V,B}},
+ warn(a,c){const w=[];meetingWarn(a,c,w);return w},
+ people(a,c){return signP(a,c,'Form 09')}},
+
+{id:'capital',title:'Increase of share capital',icon:'bx-trending-up',match:/capital|increase/i,desc:'The members\' special resolution and Form 68: the company increases its nominal share capital. The Articles must allow it; notice goes to the Registrar within 30 days of the resolution.',
+ fields:[F('increase_amount','Amount of the increase','money',{req:true,group:'The increase'}),F('registered_capital','Existing nominal capital','money',{ph:'The company\'s saved share capital',help:'Leave empty to use the share capital saved on the Company tab.',group:'The increase'}),
+  F('capital_article','Article that authorises the company to increase its share capital','text',{req:true,ph:'Article 8 of the Company\'s Articles of Association',help:'Take this from the company\'s own Articles (s.66(1)).',group:'The increase'}),
+  F('condition_1','Condition (a) of the new shares','longtext',{req:true,ph:'(a) The new shares shall rank equally in all respects with the existing shares.',help:'Voting, dividend and winding-up rights of the new shares.',group:'Conditions of the new shares'}),F('condition_2','Condition (b), if any','longtext',{group:'Conditions of the new shares'}),F('condition_3','Condition (c), if any','longtext',{group:'Conditions of the new shares'}),
+  ...MEETING_FIELDS("Members' meeting that passes the special resolution","Members' meeting"),...SIGN('Form 68')],
+ jobs:()=>[{tid:'T13',name:'Members\' special resolution - increase of share capital'},{tid:'F08',name:'Form 68 - increase in nominal capital'}],
+ derive(a,c){const V={},B=[],cur=c.currency,inc=num(a.increase_amount),ex=num(a.registered_capital)||num((c.values||{}).share_capital);
+  V.increase_amount=inc?`${cur} ${comma(inc)}`:'';if(ex){V.registered_capital=`${cur} ${comma(ex)}`;V.new_total_capital=`${cur} ${comma(ex+inc)}`}
+  V.capital_article_provision=String(a.capital_article||'').trim();V.new_shares_condition_1=String(a.condition_1||'').trim();
+  [2,3].forEach(i=>{const x=String(a[`condition_${i}`]||'').trim();V[`new_shares_condition_${i}_opt`]=x;if(!x)B.push(`NEW_SHARES_CONDITION_${i}_OPT`)});
+  V.resolution_date=fmtD(a.resolution_date);signV(a,c,V,a.resolution_date);membersMeeting(a,c,V,B,true);return{V,B}},
+ warn(a,c){const w=[],ex=num(a.registered_capital)||num((c.values||{}).share_capital);meetingWarn(a,c,w);
+  if(a.increase_amount&&!num(a.increase_amount))w.push('The amount of the increase is not a number.');
+  if(!ex)w.push('The company has no saved share capital, so the existing capital and the new total are left highlighted for you to type in. Enter the existing capital above or correct the Company tab.');
+  if(a.resolution_date)w.push(`Notice of the increase goes to the Registrar within 30 days: by ${fmtD(addDays(a.resolution_date,30))} (s.68).`);return w},
+ people(a,c){return signP(a,c,'Form 68')}},
+
+{id:'auditor',title:'Appointment of auditor',icon:'bx-search-alt',match:/audit/i,desc:'The members\' resolution appointing the auditor and Form 173a. The auditor signs a consent on the form.',
+ fields:[F('meeting_type','Type of general meeting','choice',{opts:[['agm','Annual general meeting (AGM)'],['egm','Extraordinary general meeting (EGM)']],group:'The auditor'}),
+  F('auditor_name','Auditor or audit firm','text',{req:true,group:'The auditor'}),F('auditor_reg','Registration number or practising certificate no.','text',{req:true,group:'The auditor'}),F('auditor_address','Auditor\'s address','text',{req:true,ph:'P.O. Box 8424, Dar es Salaam',group:'The auditor'}),
+  F('appointed_from','Appointed from','date',{req:true,help:'The appointment runs until the next general meeting at which accounts are laid (s.173(1)).',group:'The auditor'}),
+  F('auditor_signatory','Auditor\'s signatory (print name)','text',{req:true,group:'The auditor'}),F('auditor_sign_date','Date the auditor signs the consent','date',{ph:'Same as the meeting date',group:'The auditor'}),
+  ...MEETING_FIELDS("General meeting that appoints the auditor","General meeting"),...SIGN('Form 173a')],
+ jobs:()=>[{tid:'T14',name:'Members\' resolution - appointment of auditor'},{tid:'F11',name:'Form 173a - appointment of auditor'}],
+ derive(a,c){const V={},B=[],egm=a.meeting_type==='egm',rd=a.resolution_date;
+  V.meeting_type=egm?'Extraordinary General Meeting (EGM)':'Annual General Meeting (AGM)';V.meeting_type_text=egm?'extraordinary general meeting':'annual general meeting';V.meeting_date=fmtD(rd);V.meeting_time=a.resolution_time||'10:00';
+  V.auditor_name=up(String(a.auditor_name||'').trim());V.auditor_registration_no=String(a.auditor_reg||'').trim();V.auditor_address=up(String(a.auditor_address||'').trim());
+  V.appointment_period=`FROM ${up(fmtD(a.appointed_from))} TO THE NEXT AGM`;V.appointment_period_text=`from ${fmtD(a.appointed_from)} until the next general meeting at which accounts are laid`;
+  V.auditor_sign_date=ordD(a.auditor_sign_date||rd);V.auditor_signatory_name=up(String(a.auditor_signatory||'').trim());signV(a,c,V,rd);membersMeeting(a,c,V,B,false);return{V,B}},
+ warn(a,c){const w=[];meetingWarn(a,c,w);
+  if(a.meeting_type==='egm')w.push('Auditors are normally appointed at the general meeting at which the accounts are laid (s.173(1)). A first auditor or a casual vacancy is filled by the directors (s.173(5), (6)). Check that a members\' appointment at an extraordinary meeting is what you need.');
+  if(a.appointed_from&&a.resolution_date&&a.appointed_from<a.resolution_date&&diffDays(a.appointed_from,a.resolution_date)>366)w.push('The appointment starts more than a year before the meeting.');return w},
+ people(a,c){return signP(a,c,'Form 173a')}},
+
+{id:'charge',title:'Mortgage or charge',icon:'bx-lock-alt',match:/charge|mortgage|debenture/i,desc:'The directors\' resolution approving a mortgage or charge and Form 99. Particulars and the original instrument go to the Registrar within 42 days of creating the charge.',
+ fields:[F('instrument','Instrument creating the charge','text',{req:true,ph:'Legal mortgage, debenture, legal charge ...',group:'The charge'}),F('creation_date','Date the charge is created','date',{req:true,group:'The charge'}),F('amount_secured','Amount secured','money',{req:true,group:'The charge'}),
+  F('mortgagee','Mortgagee or chargee: name and address','longtext',{req:true,ph:'KCB Bank Tanzania Limited, P.O. Box 804, Dar es Salaam',group:'The charge'}),F('property','Property charged','longtext',{req:true,ph:'Plot 24, Block 24, Temeke',group:'The charge'}),
+  F('commission','Commission, allowance or discount','text',{ph:'None',group:'The charge'}),F('on_behalf','Form 99 is delivered on behalf of','choice',{opts:[['company','The Company'],['chargee','The Mortgagee or Chargee']],group:'The charge'}),
+  F('borrowing_provision','Article that gives the directors power to borrow and to charge the company\'s property','text',{req:true,ph:'Article 12 of the Company\'s Articles of Association',help:'Take this from the company\'s own Articles.',group:'Directors\' resolution'}),
+  F('meeting_date','Directors\' meeting approving the charge: date','date',{req:true,help:'On or before the date the charge is created.',group:'Directors\' resolution'}),F('meeting_time','Time','time',{ph:'09:00',group:'Directors\' resolution'}),
+  F('chairman','Chairman of the meeting','person',{from:'directors',ph:'First director, if left empty',group:'Directors\' resolution'}),
+  F('instrument_ready','The original instrument is ready to be delivered with Form 99','bool',{req:true,group:'Before you generate'}),
+  ...SIGN('Form 99'),...ART_FIELDS(['board_notice_provision','board_quorum_word','board_quorum_provision'])],
+ jobs:()=>[{tid:'T15',name:'Directors\' resolution - approval of mortgage or charge'},{tid:'F13',name:'Form 99 - particulars of mortgage or charge'}],
+ derive(a,c){const V={},B=[];V.charge_instrument_description=(x=>/^(a|an|the)\s/i.test(x)?x:x?`a ${x.charAt(0).toLowerCase()}${x.slice(1)}`:x)(String(a.instrument||'').trim());V.charge_creation_date=fmtD(a.creation_date);V.amount_secured=num(a.amount_secured)?`${c.currency} ${comma(num(a.amount_secured))}`:'';
+  V.mortgagee_name_and_address=up(String(a.mortgagee||'').trim().replace(/\s*\n\s*/g,', '));V.charged_property_particulars=up(String(a.property||'').trim().replace(/\s*\n\s*/g,', '));V.commission_particulars=String(a.commission||'').trim()||'None';
+  V.on_behalf_party=a.on_behalf==='chargee'?'the Mortgagee/Chargee':'the Company';V.borrowing_powers_provision=String(a.borrowing_provision||'').trim();
+  signV(a,c,V,a.creation_date);boardMeeting(a,c,V,B);return{V,B}},
+ warn(a,c){const w=[];if(a.meeting_date&&a.creation_date&&a.meeting_date>a.creation_date)w.push('The directors\' meeting is after the date the charge is created. The directors should approve it first.');
+  if(a.amount_secured&&!num(a.amount_secured))w.push('The amount secured is not a number.');
+  if(a.creation_date){const due=addDays(a.creation_date,42);if(due<new Date().toISOString().slice(0,10))w.push(`More than 42 days have passed since the charge was created (the deadline was ${fmtD(due)}). Unregistered, it is void against a liquidator, administrator or creditor (s.99); ask the court to extend the time (s.108).`);else w.push(`Deliver Form 99 and the original instrument to the Registrar by ${fmtD(due)} (s.99(1)).`.replace(/^/,''))}
+  return w.filter(x=>!/^Deliver Form 99/.test(x))},
+ people(a,c){return signP(a,c,'Form 99')}},
 
 {id:'transfer',title:'Transfer of shares',icon:'bx-transfer',match:/transfer/i,desc:'The directors\' resolution acknowledging and registering transfers of shares (up to four). Check the Articles\' transfer rules, the stamped instruments and the TRA clearance first. Afterwards update Form 131 and, where the owners change, the beneficial-owner forms (15b, 15c, 15f).',
  fields:[...[1,2,3,4].flatMap(i=>[F(`transfer_${i}_transferor`,`Transfer ${i}: seller (transferor)`,'person',{from:'shareholders',req:i===1,group:`Transfer ${i}`}),F(`transfer_${i}_transferee`,`Transfer ${i}: buyer (transferee)`,'person',{from:'any',req:i===1,group:`Transfer ${i}`}),F(`transfer_${i}_shares`,`Transfer ${i}: number of shares`,'number',{req:i===1,group:`Transfer ${i}`})]),

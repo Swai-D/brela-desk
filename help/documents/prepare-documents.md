@@ -39,6 +39,10 @@ Starting from a checklist item? The robot icon takes you to the right wizard, or
 | **Call on shares, forfeiture and re-allotment** | [Shares: call, forfeiture, re-allotment](help:documents/wizard-shares-calls-forfeiture) |
 | **Change of registered office** | [Registered office (resolution and Form 114)](help:documents/wizard-registered-office) |
 | **Change of company name** | [Company name (special resolution and Form 33a)](help:documents/wizard-company-name) |
+| **Change of company objects** | [Change of objects (Form 09)](help:documents/wizard-change-of-objects) |
+| **Increase of share capital** | [Increase of capital (Form 68)](help:documents/wizard-share-capital-increase) |
+| **Appointment of auditor** | [Appointment of auditor (Form 173a)](help:documents/wizard-appointment-of-auditor) |
+| **Mortgage or charge** | [Mortgage or charge (Form 99)](help:documents/wizard-mortgage-or-charge) |
 | **Transfer of shares** | [Share transfer](help:documents/wizard-share-transfer) |
 | **Annual return** | [Annual return](help:documents/wizard-annual-return) |
 | Wizards your Manager added | [Custom wizards](help:settings/document-wizards) |

@@ -5835,6 +5835,876 @@
      "optional": false
     }
    ]
+  },
+  {
+   "id": "T12",
+   "file": "T12_Members_Special_Resolution_Change_of_Company_Objects.docx",
+   "title": "Members' Special Resolution - Change of Company Objects",
+   "category": "Members' resolution",
+   "status": "Drafted by AI from the house style of T01 (members' resolution); legal references checked against the Companies Act Cap. 212 R.E. 2023; pending the senior's review",
+   "use_rules": "Attach to Form 09. Special resolution (s.9(1)(a), s.146): three-fourths of the members voting; 21 days' notice unless shorter notice is agreed. Members may object to the court within 30 days (s.9(3)); the printed altered Memorandum goes to the Registrar within 14 days after that period (s.9(9)).",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "RESOLUTION_DATE",
+     "label": "RESOLUTION DATE",
+     "description": "Date of the special/ordinary resolution as passed (D Month YYYY)",
+     "example": "12 November 2026",
+     "optional": false
+    },
+    {
+     "key": "CHAIRMAN_NAME",
+     "label": "CHAIRMAN NAME",
+     "description": "Chairman of the Board / of the meeting (must also appear in the attendee list)",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_3_NAME",
+     "label": "MEMBER 3 NAME",
+     "description": "Member 3 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_4_NAME",
+     "label": "MEMBER 4 NAME",
+     "description": "Member 4 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_5_NAME",
+     "label": "MEMBER 5 NAME",
+     "description": "Member 5 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_6_NAME",
+     "label": "MEMBER 6 NAME",
+     "description": "Member 6 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_7_NAME",
+     "label": "MEMBER 7 NAME",
+     "description": "Member 7 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_NAMES",
+     "label": "ABSENT NAMES",
+     "description": "Directors/members absent, or 'None.'",
+     "example": "None.",
+     "optional": false
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "NOTICE_WORDING",
+     "label": "NOTICE WORDING",
+     "description": "The whole notice sentence: either the full 21 days' written notice (s.138, s.146) or shorter notice agreed by the members (s.138(3), s.146(1))",
+     "example": "Notice in writing specifying the intention to propose the resolution as a special resolution was given on 20 October 2026, not less than twenty-one days before the meeting, in accordance with section 146(1) of the Act.",
+     "optional": false
+    },
+    {
+     "key": "GM_QUORUM_WORD",
+     "label": "GM QUORUM WORD",
+     "description": "Members' quorum in words (from the Articles)",
+     "example": "two",
+     "optional": false
+    },
+    {
+     "key": "GM_QUORUM_PROVISION",
+     "label": "GM QUORUM PROVISION",
+     "description": "Article fixing members' quorum",
+     "example": "Article 4(b) of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "RESOLUTION_TIME",
+     "label": "RESOLUTION TIME",
+     "description": "Time (24h, EAT)",
+     "example": "10:00",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_1_NAME",
+     "label": "MEMBER 1 NAME",
+     "description": "Member 1 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_1_SHARES",
+     "label": "MEMBER 1 SHARES",
+     "description": "Shares held by member 1 (number, with commas)",
+     "example": "5,000",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_2_NAME",
+     "label": "MEMBER 2 NAME",
+     "description": "Member 2 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_2_SHARES",
+     "label": "MEMBER 2 SHARES",
+     "description": "Shares held by member 2 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_3_SHARES",
+     "label": "MEMBER 3 SHARES",
+     "description": "Shares held by member 3 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_4_SHARES",
+     "label": "MEMBER 4 SHARES",
+     "description": "Shares held by member 4 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_5_SHARES",
+     "label": "MEMBER 5 SHARES",
+     "description": "Shares held by member 5 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_6_SHARES",
+     "label": "MEMBER 6 SHARES",
+     "description": "Shares held by member 6 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_7_SHARES",
+     "label": "MEMBER 7 SHARES",
+     "description": "Shares held by member 7 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_MEMBERS_WITH_SHARES",
+     "label": "ABSENT MEMBERS WITH SHARES",
+     "description": "Members absent with their shares, or 'None.'",
+     "example": "None.",
+     "optional": false
+    },
+    {
+     "key": "NEW_OBJECTS",
+     "label": "NEW OBJECTS",
+     "description": "Form 09: the new, amended or removed objects in full, numbered clearly",
+     "example": "1. Retail sale of ...",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "T13",
+   "file": "T13_Members_Special_Resolution_Increase_of_Share_Capital.docx",
+   "title": "Members' Special Resolution - Increase of Share Capital",
+   "category": "Members' resolution",
+   "status": "Drafted by AI from the house style of T01 (members' resolution); legal references checked against the Companies Act Cap. 212 R.E. 2023; pending the senior's review",
+   "use_rules": "Attach to Form 68. The Articles must authorise the increase (s.66(1)); drafted as a special resolution (Form 68 refers to one). Notice to the Registrar within 30 days of the resolution with a printed copy of it (s.68).",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "INCREASE_AMOUNT",
+     "label": "INCREASE AMOUNT",
+     "description": "Form 68: amount of the increase, with currency",
+     "example": "TZS 50,000,000",
+     "optional": false
+    },
+    {
+     "key": "RESOLUTION_DATE",
+     "label": "RESOLUTION DATE",
+     "description": "Date of the special/ordinary resolution as passed (D Month YYYY)",
+     "example": "12 November 2026",
+     "optional": false
+    },
+    {
+     "key": "CHAIRMAN_NAME",
+     "label": "CHAIRMAN NAME",
+     "description": "Chairman of the Board / of the meeting (must also appear in the attendee list)",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_3_NAME",
+     "label": "MEMBER 3 NAME",
+     "description": "Member 3 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_4_NAME",
+     "label": "MEMBER 4 NAME",
+     "description": "Member 4 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_5_NAME",
+     "label": "MEMBER 5 NAME",
+     "description": "Member 5 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_6_NAME",
+     "label": "MEMBER 6 NAME",
+     "description": "Member 6 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_7_NAME",
+     "label": "MEMBER 7 NAME",
+     "description": "Member 7 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_NAMES",
+     "label": "ABSENT NAMES",
+     "description": "Directors/members absent, or 'None.'",
+     "example": "None.",
+     "optional": false
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "NOTICE_WORDING",
+     "label": "NOTICE WORDING",
+     "description": "The whole notice sentence: either the full 21 days' written notice (s.138, s.146) or shorter notice agreed by the members (s.138(3), s.146(1))",
+     "example": "Notice in writing specifying the intention to propose the resolution as a special resolution was given on 20 October 2026, not less than twenty-one days before the meeting, in accordance with section 146(1) of the Act.",
+     "optional": false
+    },
+    {
+     "key": "GM_QUORUM_WORD",
+     "label": "GM QUORUM WORD",
+     "description": "Members' quorum in words (from the Articles)",
+     "example": "two",
+     "optional": false
+    },
+    {
+     "key": "GM_QUORUM_PROVISION",
+     "label": "GM QUORUM PROVISION",
+     "description": "Article fixing members' quorum",
+     "example": "Article 4(b) of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "RESOLUTION_TIME",
+     "label": "RESOLUTION TIME",
+     "description": "Time (24h, EAT)",
+     "example": "10:00",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_1_NAME",
+     "label": "MEMBER 1 NAME",
+     "description": "Member 1 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_1_SHARES",
+     "label": "MEMBER 1 SHARES",
+     "description": "Shares held by member 1 (number, with commas)",
+     "example": "5,000",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_2_NAME",
+     "label": "MEMBER 2 NAME",
+     "description": "Member 2 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_2_SHARES",
+     "label": "MEMBER 2 SHARES",
+     "description": "Shares held by member 2 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_3_SHARES",
+     "label": "MEMBER 3 SHARES",
+     "description": "Shares held by member 3 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_4_SHARES",
+     "label": "MEMBER 4 SHARES",
+     "description": "Shares held by member 4 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_5_SHARES",
+     "label": "MEMBER 5 SHARES",
+     "description": "Shares held by member 5 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_6_SHARES",
+     "label": "MEMBER 6 SHARES",
+     "description": "Shares held by member 6 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_7_SHARES",
+     "label": "MEMBER 7 SHARES",
+     "description": "Shares held by member 7 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_MEMBERS_WITH_SHARES",
+     "label": "ABSENT MEMBERS WITH SHARES",
+     "description": "Members absent with their shares, or 'None.'",
+     "example": "None.",
+     "optional": false
+    },
+    {
+     "key": "CAPITAL_ARTICLE_PROVISION",
+     "label": "CAPITAL ARTICLE PROVISION",
+     "description": "Article of the Articles authorising the company to increase its share capital (from the client's Articles; s.66(1))",
+     "example": "Article 8 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "REGISTERED_CAPITAL",
+     "label": "REGISTERED CAPITAL",
+     "description": "Form 68: registered (existing) nominal capital, with currency",
+     "example": "TZS 50,000,000",
+     "optional": false
+    },
+    {
+     "key": "NEW_TOTAL_CAPITAL",
+     "label": "NEW TOTAL CAPITAL",
+     "description": "The new total nominal capital after the increase, with currency",
+     "example": "TZS 100,000,000",
+     "optional": false
+    },
+    {
+     "key": "NEW_SHARES_CONDITION_1",
+     "label": "NEW SHARES CONDITION 1",
+     "description": "Form 68: condition (a) of the new shares (voting, dividend, winding-up rights)",
+     "example": "(a) The new shares shall rank equally in all respects with the existing ordinary shares.",
+     "optional": false
+    },
+    {
+     "key": "NEW_SHARES_CONDITION_2_OPT",
+     "label": "NEW SHARES CONDITION 2, IF ANY",
+     "description": "Condition (b), else \"\"",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "NEW_SHARES_CONDITION_3_OPT",
+     "label": "NEW SHARES CONDITION 3, IF ANY",
+     "description": "Condition (c), else \"\"",
+     "example": "",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "id": "T14",
+   "file": "T14_Members_Resolution_Appointment_of_Auditor.docx",
+   "title": "Members' Resolution - Appointment of Auditor",
+   "category": "Members' resolution",
+   "status": "Drafted by AI from the house style of T01 (members' resolution); legal references checked against the Companies Act Cap. 212 R.E. 2023; pending the senior's review",
+   "use_rules": "Ordinary resolution at the general meeting where the accounts are laid (s.173(1)); the auditor must be qualified (s.178). Lodge Form 173a with the auditor's signed consent.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "AUDITOR_NAME",
+     "label": "AUDITOR NAME",
+     "description": "Auditor / audit firm",
+     "example": "DKL CONSULTANTS",
+     "optional": false
+    },
+    {
+     "key": "MEETING_DATE",
+     "label": "MEETING DATE",
+     "description": "Date of the general meeting that appointed the auditor",
+     "example": "27 June 2026",
+     "optional": false
+    },
+    {
+     "key": "CHAIRMAN_NAME",
+     "label": "CHAIRMAN NAME",
+     "description": "Chairman of the Board / of the meeting (must also appear in the attendee list)",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_3_NAME",
+     "label": "MEMBER 3 NAME",
+     "description": "Member 3 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_4_NAME",
+     "label": "MEMBER 4 NAME",
+     "description": "Member 4 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_5_NAME",
+     "label": "MEMBER 5 NAME",
+     "description": "Member 5 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_6_NAME",
+     "label": "MEMBER 6 NAME",
+     "description": "Member 6 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_7_NAME",
+     "label": "MEMBER 7 NAME",
+     "description": "Member 7 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_NAMES",
+     "label": "ABSENT NAMES",
+     "description": "Directors/members absent, or 'None.'",
+     "example": "None.",
+     "optional": false
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "NOTICE_WORDING",
+     "label": "NOTICE WORDING",
+     "description": "The whole notice sentence: either the full 21 days' written notice (s.138, s.146) or shorter notice agreed by the members (s.138(3), s.146(1))",
+     "example": "Notice in writing specifying the intention to propose the resolution as a special resolution was given on 20 October 2026, not less than twenty-one days before the meeting, in accordance with section 146(1) of the Act.",
+     "optional": false
+    },
+    {
+     "key": "GM_QUORUM_WORD",
+     "label": "GM QUORUM WORD",
+     "description": "Members' quorum in words (from the Articles)",
+     "example": "two",
+     "optional": false
+    },
+    {
+     "key": "GM_QUORUM_PROVISION",
+     "label": "GM QUORUM PROVISION",
+     "description": "Article fixing members' quorum",
+     "example": "Article 4(b) of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "MEETING_TYPE_TEXT",
+     "label": "MEETING TYPE TEXT",
+     "description": "Type of general meeting in lower case: 'annual general meeting' or 'extraordinary general meeting'",
+     "example": "annual general meeting",
+     "optional": false
+    },
+    {
+     "key": "MEETING_TIME",
+     "label": "MEETING TIME",
+     "description": "Time (24h, EAT)",
+     "example": "09:00",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_1_NAME",
+     "label": "MEMBER 1 NAME",
+     "description": "Member 1 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_1_SHARES",
+     "label": "MEMBER 1 SHARES",
+     "description": "Shares held by member 1 (number, with commas)",
+     "example": "5,000",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_2_NAME",
+     "label": "MEMBER 2 NAME",
+     "description": "Member 2 present at the members' meeting (1 = Chairman of meeting, 2 = Secretary of meeting). \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_2_SHARES",
+     "label": "MEMBER 2 SHARES",
+     "description": "Shares held by member 2 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_3_SHARES",
+     "label": "MEMBER 3 SHARES",
+     "description": "Shares held by member 3 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_4_SHARES",
+     "label": "MEMBER 4 SHARES",
+     "description": "Shares held by member 4 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_5_SHARES",
+     "label": "MEMBER 5 SHARES",
+     "description": "Shares held by member 5 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_6_SHARES",
+     "label": "MEMBER 6 SHARES",
+     "description": "Shares held by member 6 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MEMBER_7_SHARES",
+     "label": "MEMBER 7 SHARES",
+     "description": "Shares held by member 7 (number, with commas)",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ABSENT_MEMBERS_WITH_SHARES",
+     "label": "ABSENT MEMBERS WITH SHARES",
+     "description": "Members absent with their shares, or 'None.'",
+     "example": "None.",
+     "optional": false
+    },
+    {
+     "key": "AUDITOR_REGISTRATION_NO",
+     "label": "AUDITOR REGISTRATION NO",
+     "description": "Registration number / practising certificate no.",
+     "example": "ACPA-PP 3384",
+     "optional": false
+    },
+    {
+     "key": "AUDITOR_ADDRESS",
+     "label": "AUDITOR ADDRESS",
+     "description": "Auditor address",
+     "example": "P.O. BOX 8424, DAR ES SALAAM",
+     "optional": false
+    },
+    {
+     "key": "APPOINTMENT_PERIOD_TEXT",
+     "label": "APPOINTMENT PERIOD TEXT",
+     "description": "Period of the auditor's appointment in words (s.173(1): until the next general meeting at which accounts are laid)",
+     "example": "from 1 January 2026 until the next general meeting at which accounts are laid",
+     "optional": false
+    }
+   ]
+  },
+  {
+   "id": "T15",
+   "file": "T15_Resolution_of_Directors_Approval_of_Mortgage_or_Charge.docx",
+   "title": "Resolution of Directors - Approval of Mortgage or Charge",
+   "category": "Directors' resolution",
+   "status": "Drafted by AI from the house style of T09 (directors' resolution); legal references checked against the Companies Act Cap. 212 R.E. 2023; pending the senior's review",
+   "use_rules": "Check the Articles give the directors power to borrow and charge. Deliver Form 99 with the original instrument within 42 days of creating the charge (s.99(1), s.103); keep the company's own register of charges (s.111).",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Full registered company name",
+     "example": "RAHU MULTISERVICES COMPANY LIMITED",
+     "optional": false
+    },
+    {
+     "key": "INCORPORATION_NO",
+     "label": "INCORPORATION NO",
+     "description": "BRELA incorporation / company number",
+     "example": "167810861",
+     "optional": false
+    },
+    {
+     "key": "MEETING_DATE",
+     "label": "MEETING DATE",
+     "description": "Date of the general meeting that appointed the auditor",
+     "example": "27 June 2026",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_1_NAME",
+     "label": "ATTENDEE 1 NAME",
+     "description": "Person 1 present at the directors' meeting. \"\" deletes the line",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_1_ROLE_OPT",
+     "label": "ATTENDEE 1 ROLE, IF ANY",
+     "description": "Role of person 1",
+     "example": "Chairman of the Board of Directors",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_2_NAME",
+     "label": "ATTENDEE 2 NAME",
+     "description": "Person 2 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_2_ROLE_OPT",
+     "label": "ATTENDEE 2 ROLE, IF ANY",
+     "description": "Role of person 2",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_3_NAME",
+     "label": "ATTENDEE 3 NAME",
+     "description": "Person 3 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_3_ROLE_OPT",
+     "label": "ATTENDEE 3 ROLE, IF ANY",
+     "description": "Role of person 3",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_4_NAME",
+     "label": "ATTENDEE 4 NAME",
+     "description": "Person 4 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_4_ROLE_OPT",
+     "label": "ATTENDEE 4 ROLE, IF ANY",
+     "description": "Role of person 4",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ATTENDEE_5_NAME",
+     "label": "ATTENDEE 5 NAME",
+     "description": "Person 5 present at the directors' meeting. \"\" deletes the line",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ATTENDEE_5_ROLE_OPT",
+     "label": "ATTENDEE 5 ROLE, IF ANY",
+     "description": "Role of person 5",
+     "example": "Director",
+     "optional": true
+    },
+    {
+     "key": "ABSENT_NAMES",
+     "label": "ABSENT NAMES",
+     "description": "Directors/members absent, or 'None.'",
+     "example": "None.",
+     "optional": false
+    },
+    {
+     "key": "REGISTERED_OFFICE",
+     "label": "REGISTERED OFFICE",
+     "description": "Registered office on ONE line, ending with a full stop (forms: CAPITALS)",
+     "example": "Toangoma, Temeke, P.O. Box 47, Dar es Salaam, Tanzania.",
+     "optional": false
+    },
+    {
+     "key": "BOARD_NOTICE_PROVISION",
+     "label": "BOARD NOTICE PROVISION",
+     "description": "Provision of the Articles / Table A governing notice of directors' meetings. Take from the company's Articles (Table A reg. 88 applies unless varied)",
+     "example": "Regulation 88 of Table ‘A’ in the Schedule to the Companies Act, Cap. 212, R.E. 2023 (“the Act”), as applied to the Company by Article 1 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_WORD",
+     "label": "BOARD QUORUM WORD",
+     "description": "Directors' quorum in words (from the Articles)",
+     "example": "two",
+     "optional": false
+    },
+    {
+     "key": "BOARD_QUORUM_PROVISION",
+     "label": "BOARD QUORUM PROVISION",
+     "description": "Article fixing directors' quorum",
+     "example": "Article 7 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "CHAIRMAN_NAME",
+     "label": "CHAIRMAN NAME",
+     "description": "Chairman of the Board / of the meeting (must also appear in the attendee list)",
+     "example": "Hussein Mzee Khatibu",
+     "optional": false
+    },
+    {
+     "key": "CHARGE_INSTRUMENT_DESCRIPTION",
+     "label": "CHARGE INSTRUMENT DESCRIPTION",
+     "description": "Instrument creating the charge (Debenture, Mortgage, Legal Charge ...)",
+     "example": "Legal mortgage",
+     "optional": false
+    },
+    {
+     "key": "MORTGAGEE_NAME_AND_ADDRESS",
+     "label": "MORTGAGEE NAME AND ADDRESS",
+     "description": "Mortgagee(s) names and addresses",
+     "example": "KCB BANK TANZANIA LIMITED, P.O. BOX 804, DAR ES SALAAM",
+     "optional": false
+    },
+    {
+     "key": "AMOUNT_SECURED",
+     "label": "AMOUNT SECURED",
+     "description": "Amount secured",
+     "example": "TZS 500,000,000",
+     "optional": false
+    },
+    {
+     "key": "CHARGED_PROPERTY_PARTICULARS",
+     "label": "CHARGED PROPERTY PARTICULARS",
+     "description": "Particulars of property charged",
+     "example": "PLOT 24, BLOCK 24, TEMEKE",
+     "optional": false
+    },
+    {
+     "key": "BORROWING_POWERS_PROVISION",
+     "label": "BORROWING POWERS PROVISION",
+     "description": "Article of the Articles giving the directors power to borrow money and create charges (from the client's Articles)",
+     "example": "Article 12 of the Company’s Articles of Association",
+     "optional": false
+    },
+    {
+     "key": "MEETING_TIME",
+     "label": "MEETING TIME",
+     "description": "Time (24h, EAT)",
+     "example": "09:00",
+     "optional": false
+    },
+    {
+     "key": "CHARGE_CREATION_DATE",
+     "label": "CHARGE CREATION DATE",
+     "description": "Form 99: date of creation of the charge. Lodge within 42 days with the original instrument",
+     "example": "5 March 2024",
+     "optional": false
+    },
+    {
+     "key": "SECRETARY_NAME",
+     "label": "SECRETARY NAME",
+     "description": "Company Secretary / Secretary of the meeting",
+     "example": "Rahim Abubakar Ahmed",
+     "optional": false
+    }
+   ]
   }
  ]
 }
