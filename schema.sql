@@ -97,3 +97,6 @@ ALTER TABLE templates ADD COLUMN IF NOT EXISTS docx_defaults JSONB NOT NULL DEFA
 ALTER TABLE case_types ADD COLUMN IF NOT EXISTS options JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS options JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE case_docs ADD COLUMN IF NOT EXISTS grp TEXT;
+
+-- earlier Word files of a template: the old file is kept whenever the Word form is replaced, so it can be restored
+CREATE TABLE IF NOT EXISTS template_docx_history(id SERIAL PRIMARY KEY, template_id INT NOT NULL REFERENCES templates(id) ON DELETE CASCADE, docx_name TEXT, docx_data BYTEA NOT NULL, labels JSONB NOT NULL DEFAULT '[]', note TEXT, created_by INT REFERENCES users(id) ON DELETE SET NULL, created_at TIMESTAMPTZ DEFAULT now());

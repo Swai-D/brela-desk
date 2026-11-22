@@ -150,13 +150,28 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   if(!req.file)fail(400,'Choose a Word (.docx) file');if(!/\.docx$/i.test(Buffer.from(req.file.originalname,'latin1').toString('utf8')))fail(400,'Use a .docx file');
   let html;try{html=(await require('mammoth').convertToHtml({buffer:req.file.buffer})).value}catch{fail(400,'This Word file could not be read')}
   res.json({html})}));
+ // The labels of a Word file: what the template can fill. Used to show what a replacement would change before it goes live.
+ const labelsOf=async buf=>{try{return((await E.docxScan(buf)).labels||[]).map(l=>l.label)}catch{return[]}};
+ const diffLabels=(was,now)=>({removed:was.filter(x=>!now.includes(x)),added:now.filter(x=>!was.includes(x)),kept:now.filter(x=>was.includes(x)).length});
+ app.get('/api/templates/:id/docx-history',need(...SR),wrap(async(req,res)=>res.json(await q('SELECT h.id,h.docx_name,h.note,h.created_at,jsonb_array_length(h.labels)::int AS labels,u.name AS by FROM template_docx_history h LEFT JOIN users u ON u.id=h.created_by WHERE h.template_id=$1 ORDER BY h.id DESC LIMIT 20',[+req.params.id]))));
+ app.post('/api/templates/:id/docx-restore/:hid',need(...SR),wrap(async(req,res)=>{
+  const t=await one('SELECT * FROM templates WHERE id=$1',[+req.params.id]);if(!t||!t.docx_data)fail(404,'Template not found');
+  const h=await one('SELECT * FROM template_docx_history WHERE id=$1 AND template_id=$2',[+req.params.hid,t.id]);if(!h)fail(404,'That earlier file was not found');
+  const cur=await labelsOf(t.docx_data);
+  await q('INSERT INTO template_docx_history(template_id,docx_name,docx_data,labels,note,created_by) VALUES($1,$2,$3,$4::jsonb,$5,$6)',[t.id,t.docx_name,t.docx_data,JSON.stringify(cur),'Replaced by an earlier file (restored)',req.user.id]);
+  await q('UPDATE templates SET docx_name=$2,docx_data=$3,updated_at=now() WHERE id=$1',[t.id,h.docx_name,h.docx_data]);
+  await audit(req,'template.word-restore',`${t.name}: ${h.docx_name||'earlier file'}`);res.json({ok:1,labels:diffLabels(cur,await labelsOf(h.docx_data))})}));
  app.post('/api/templates/:id/upload-docx',need(...SR),up,wrap(async(req,res)=>{
   const t=await one('SELECT * FROM templates WHERE id=$1',[+req.params.id]);if(!t)fail(404,'Template not found');if(!t.docx_data)fail(400,'This template has no official Word form to replace');
   if(!req.file)fail(400,'Choose a Word (.docx) file');const name=Buffer.from(req.file.originalname,'latin1').toString('utf8');if(!/\.docx$/i.test(name))fail(400,'Use a .docx file');
+  // dry run: say what would change, change nothing
+  if(req.query.preview){const was=await labelsOf(t.docx_data),now=await labelsOf(req.file.buffer);return res.json({preview:true,...diffLabels(was,now),total:now.length})}
   let raw;try{raw=(await require('mammoth').extractRawText({buffer:req.file.buffer})).value}catch{fail(400,'This Word file could not be read')}
   const l2k={};for(const k of Object.keys(t.docx_defaults||{}))l2k[E.labelFromKey(k)]=k;
   if(!tidOfTemplate(t))for(const l of (await E.docxScan(req.file.buffer).catch(()=>({labels:[]}))).labels)l2k[l.label]=l.key;
   const body=E.docxTextToBody(raw,l2k);if(!body.trim())fail(400,'The Word file has no text');
+  // keep the file being replaced, so a bad edit can be undone
+  await q('INSERT INTO template_docx_history(template_id,docx_name,docx_data,labels,note,created_by) VALUES($1,$2,$3,$4::jsonb,$5,$6)',[t.id,t.docx_name,t.docx_data,JSON.stringify(await labelsOf(t.docx_data)),'Replaced by '+name.slice(0,120),req.user.id]);
   await q('UPDATE templates SET docx_name=$2,docx_data=$3,updated_at=now() WHERE id=$1',[t.id,name.slice(0,200),req.file.buffer]);
   const version=body!==await bodyOf(t)?await newVersion(t,body,'Word form replaced with an edited file','manual',req.user.id):t.version;
   let added=0;
