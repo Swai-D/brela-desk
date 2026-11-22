@@ -51,4 +51,6 @@ Deleting the template also removes the wizard made for it.
 | "A template with this name already exists…" | Choose another **Template name** |
 | "Answer the required questions of … first" | Open **Prepare documents**, answer the red-star questions and press **Generate** |
 
+Changing the file later: [Replacing the Word file safely](help:documents/template-versions-and-approval).
+
 See also: [Templates](help:documents/templates), [From an accepted document](help:documents/template-from-document) (text template made by the AI, layout not kept).

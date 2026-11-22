@@ -52,6 +52,8 @@ order: 21
 
 **Why can't I press "Mark as checked" on my own document?** The person who generated it cannot check it. Ask a colleague; a Manager may check their own.
 
+**I replaced a template's Word file and now documents are wrong. Can I go back?** Yes. Open the template, go to the Word view and press **Earlier Word files**, then **Restore** ([Replacing the Word file safely](help:documents/template-versions-and-approval)).
+
 **Do the wizards use AI?** No ([The AI assistant](help:documents/ai-assistant)).
 
 **Which wizard do I use to appoint a director?** [Change of directors](help:documents/wizard-change-of-directors).

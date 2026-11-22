@@ -83,7 +83,7 @@ function mount(el,o){
   const pWord=el2(`<div id="te-p-word" class="d-none"><div class="tp-docbar"><div class="tp-doc-note" id="te-wnote"></div><div class="d-flex flex-wrap gap-2">
      <button type="button" class="btn btn-light btn-sm" id="te-dl"><i class="bx bx-download me-1"></i>Download Word</button>
      <button type="button" class="btn btn-light btn-sm" id="te-pr"><i class="bx bx-printer me-1"></i>Print / Save as PDF</button>
-     ${can?`<button type="button" class="btn btn-light btn-sm" id="te-ul"><i class="bx bx-upload me-1"></i>Upload edited Word</button><input type="file" id="te-uf" accept=".docx" class="d-none">`:''}</div></div>
+     ${can?`<button type="button" class="btn btn-light btn-sm" id="te-ul"><i class="bx bx-upload me-1"></i>Upload edited Word</button><input type="file" id="te-uf" accept=".docx" class="d-none"> <button type="button" class="btn btn-light btn-sm" id="te-wh"><i class="bx bx-history me-1"></i>Earlier Word files</button>`:''}</div></div>
     <div class="tp-desk tp-docv" id="te-docv"><div id="te-dstyle"></div><div id="te-dpages"></div></div></div>`);
   host.insertBefore(pWord,pPage.nextSibling);
   const paper=pPage.querySelector('#te-paper');
@@ -132,12 +132,23 @@ function mount(el,o){
     const f=document.createElement('iframe');f.className='tp-printframe';f.setAttribute('aria-hidden','true');document.body.appendChild(f);
     const d=f.contentDocument;d.open();d.write(`<!doctype html><html><head><meta charset="utf-8"><title>${X(val(el,'#te-n')||t.name||'Template')}</title>${pWord.querySelector('#te-dstyle').innerHTML}<style>@page{margin:0}html,body{margin:0;background:#fff}.docx-wrapper{background:#fff!important;padding:0!important}.docx-wrapper>section.docx{box-shadow:none!important;margin:0!important}</style></head><body>${pWord.querySelector('#te-dpages').innerHTML}</body></html>`);d.close();
     setTimeout(()=>{try{f.contentWindow.focus();f.contentWindow.print()}catch{}setTimeout(()=>f.remove(),60000)},300)};
+  const wh=pWord.querySelector('#te-wh');
+  if(wh)wh.onclick=async()=>{try{const hs=await api(`/templates/${id}/docx-history`);
+    if(!hs.length){toast('No earlier Word file yet. The old file is kept each time you replace this one.','info');return}
+    const m=document.createElement('div');m.innerHTML=`<div class="modal fade" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Earlier Word files</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">${hs.map(h=>`<div class="d-flex align-items-center mb-2"><div class="flex-grow-1 min-w-0"><div class="text-truncate">${X(h.docx_name||'Word file')}</div><div class="text-muted small">${new Date(h.created_at).toLocaleString()} · ${X(h.by||'')} · ${h.labels} fields${h.note?' · '+X(h.note):''}</div></div><button type="button" class="btn btn-sm btn-outline-primary ms-2 wh-r" data-id="${h.id}">Restore</button></div>`).join('')}</div></div></div></div>`;
+    document.body.appendChild(m.firstChild);const box=document.body.lastChild,bm=new bootstrap.Modal(box);box.addEventListener('hidden.bs.modal',()=>box.remove());bm.show();
+    box.querySelectorAll('.wh-r').forEach(b=>b.onclick=async()=>{if(!await ask('The current Word file is kept in this list, so you can switch back.',{ok:'Yes, restore',icon:'bx-history',title:'Use this earlier Word file again?'}))return;
+      try{const r=await api(`/templates/${id}/docx-restore/${b.dataset.id}`,{body:{}});bm.hide();toast('Earlier Word file restored','success');if(o.reopen)o.reopen()}catch(e){toast(e.message,'error')}})}catch(e){toast(e.message,'error')}};
   const uf=pWord.querySelector('#te-uf');
   if(uf){pWord.querySelector('#te-ul').onclick=()=>uf.click();
     uf.onchange=async()=>{const file=uf.files[0];uf.value='';if(!file)return;const fd=new FormData();fd.append('file',file);
       try{
         if(t.has_docx){
-          if(!await ask('The template text is updated from it and a new version is saved.',{ok:'Yes, replace',icon:'bx-error',title:'Replace the official form with this Word file?'}))return;
+          // dry run first: show what the new file would change before anything goes live
+          const pv=await api(`/templates/${id}/upload-docx?preview=1`,{body:fd}),li=a=>a.length?'<ul class="text-start mb-2 ps-3">'+a.slice(0,12).map(x=>'<li>'+X(x)+'</li>').join('')+(a.length>12?`<li>and ${a.length-12} more</li>`:'')+'</ul>':'';
+          const msg=(pv.removed.length?`<div class="text-danger text-start"><b>These fields will no longer be filled (${pv.removed.length}):</b></div>${li(pv.removed)}`:'<div class="text-start text-success mb-2">No field was lost.</div>')+(pv.added.length?`<div class="text-start"><b>New fields with no company data yet (${pv.added.length}):</b></div>${li(pv.added)}`:'')+`<div class="text-start text-muted small">${pv.kept} field${pv.kept===1?'':'s'} stay the same. The file you replace is kept and can be restored from <b>Earlier Word files</b>.</div>`;
+          if(!await ask(msg,{ok:pv.removed.length?'Replace anyway':'Yes, replace',icon:'bx-error',danger:!!pv.removed.length,title:'Replace the official form with this Word file?'}))return;
+          fd.set('file',file);
           const r=await api(`/templates/${id}/upload-docx`,{body:fd});toast('Word form replaced'+(r.questions_added?`; ${r.questions_added} new wizard question${r.questions_added===1?'':'s'} added`:''),'success');if(o.reopen)o.reopen()}
         else{
           const r=await api('/templates/docx-to-html',{body:fd});const tmp=document.createElement('div');tmp.innerHTML=r.html;const nb=htmlToBody(tmp);
