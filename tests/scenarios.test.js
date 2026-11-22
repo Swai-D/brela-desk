@@ -12,6 +12,9 @@ const text=async f=>{const r=await fetch(`${B}/files/${f.id}`,{headers:{cookie:c
  // reliability: annual return warns when the member shares and the issued shares disagree
  {const an=SC.BUILTIN.find(x=>x.id==='annual'),w1=an.warn({},{shareholders:[{shares:'300'},{shares:'400'}],values:{shares_issued:'950'}}),w2=an.warn({},{shareholders:[{shares:'500'},{shares:'450'}],values:{shares_issued:'950'}});
   ok('annual: members\' shares that do not add up to the issued shares are flagged',w1.length===1&&/700.*950/.test(w1[0])&&!w2.length,[w1,w2])}
+ // a sixth director gets a role too (the template has five attendee lines and the engine adds more)
+ {const tr=SC.BUILTIN.find(x=>x.id==='transfer'),dirs=['A One','B Two','C Three','D Four','E Five','F Six'].map(n=>({full_name:n})),r=tr.derive({chairman:'A One'},{directors:dirs,shareholders:[],people:dirs,values:{},secretaries:[]});
+  ok('with six directors every attendee line has a name and a role',r.V.attendee_6_name==='F Six'&&r.V.attendee_6_role_opt==='Director'&&r.V.attendee_1_role_opt==='Chairman of the Board of Directors',r.V)}
  // reliability: resolutions use Title Case names, forms keep capitals; a member who is neither chairman nor secretary stays in the Present list
  {const E=require('../docs.js'),ctx={values:{company_name:'X LTD'},lists:{directors:[{full_name:'ANNA ÖMER'}],secretaries:[{full_name:'SEC PERSON'}],shareholders:[{full_name:'ANNA ÖMER'},{full_name:'BOB ONE'},{full_name:'CARL TWO'}],people:[]}},
    r=E.packageValues(ctx,{kind:'resolution'}),f=E.packageValues(ctx);
@@ -23,7 +26,7 @@ const text=async f=>{const r=await fetch(`${B}/files/${f.id}`,{headers:{cookie:c
  await call('POST',`/clients/${cid}/registry-import`,{text:SAMPLE,apply:true});
  const T=(await call('GET','/bootstrap')).j.types[0].id,cs=(await call('POST','/cases',{clientId:cid,caseTypeId:T})).j;
  const list=(await call('GET',`/cases/${cs.id}/scenarios`)).j;
- ok('4 scenarios are offered, templates are ready',list.items.length===4&&list.ready===true,list);
+ ok('7 scenarios are offered, templates are ready',list.items.length===7&&list.ready===true&&['office','rename','transfer'].every(id=>list.items.some(x=>x.id===id)),list.items.map(x=>x.id));
  // two new people, then appoint them and accept two resignations
  const mk=async(n,g)=>(await call('POST',`/clients/${cid}/people`,{full_name:n,roles:['other'],gender:g,dob:'5 May 1990',nationality:'Tanzanian',occupation:'Engineer',addr:{country:'Tanzania',region:'Dar Es Salaam',district:'Ilala',ward:'Kariakoo',street:'Mfano Street',plot:'12'}})).j;
  await mk('RONALD BARAKA SHELUKINDO','Male');await mk('EMMANUEL SANTA CHACHA','Female');
@@ -83,6 +86,30 @@ const text=async f=>{const r=await fetch(`${B}/files/${f.id}`,{headers:{cookie:c
  // non-cash allotment: Form 57b per allottee
  const nc=await call('PUT',`/cases/${cs.id}/scenarios/shares`,{answers:{...SA,payment:'noncash',consideration:'services rendered'}});
  ok('non-cash allotment adds Form 57b for each allottee',nc.j.jobs.some(j=>j.tid==='T07A')&&nc.j.jobs.some(j=>j.tid==='F04'),nc.j.jobs.map(j=>j.tid));
+ // registered office (Form 114), company name (Form 33a), share transfer (resolution T09)
+ {const OF={new_address_1:'Plot 24, Shebe Street, Temeke',new_address_2:'P.O. Box 47',new_town:'Dar es Salaam',new_email:'info@scenario.co.tz',new_phone:'0712 000 000',change_date:'2026-11-12',resolution_ready:'yes',meeting_date:'2026-11-05',meeting_time:'09:00',registered_office_provision:'Article 3 of the Company’s Articles of Association'};
+  const og=await call('POST',`/cases/${cs.id}/scenarios/office/generate`,{answers:OF}),ot=await text(og.j.jobs[1].file);
+  ok('Form 114: new address in capitals, the date, no gap left',og.s===200&&/PLOT 24, SHEBE STREET, TEMEKE/.test(ot)&&/P\.O\. BOX 47/.test(ot)&&/DAR ES SALAAM/.test(ot)&&/12 NOVEMBER 2026/.test(ot)&&/12th November 2026/.test(ot)&&!/\[[A-Z ]+\]/.test(ot)&&!og.j.jobs[1].missing.length,ot);
+  const ot2=await text(og.j.jobs[0].file);
+  ok('Form 114 comes with the directors\' resolution (T10): old and new office, effective date, Article, filing within 14 days, no gap',og.j.jobs.map(j=>j.tid).join()==='T10,F07'&&/A Resolution of the Directors/.test(ot2)&&/P\.O\. Box 47, Dar es Salaam with effect from 12 November 2026/.test(ot2)&&/Article 3 of the Company’s Articles/.test(ot2)&&/section 114\(2\)/.test(ot2)&&/held on 5 November 2026/.test(ot2)&&!/\[[A-Z ,]+\]/.test(ot2)&&!og.j.jobs[0].missing.length,ot2);
+  ok('Form 114 will not be made without the required answers (address, resolution tick)',(await call('POST',`/cases/${cs.id}/scenarios/office/generate`,{answers:{...OF,resolution_ready:''}})).s===400&&(await call('POST',`/cases/${cs.id}/scenarios/office/generate`,{answers:{...OF,new_address_1:''}})).s===400);
+  ok('Form 114 warns about a bad e-mail',(await call('PUT',`/cases/${cs.id}/scenarios/office`,{answers:{...OF,new_email:'nope'}})).j.warnings.some(x=>/e-mail/.test(x)));
+  const RN={new_name:'New Horizons Company Limited',name_reserved:'yes',resolution_date:'2026-11-12',resolution_time:'10:00',notice_kind:'full',notice_date:'2026-10-20'},rg=await call('POST',`/cases/${cs.id}/scenarios/rename/generate`,{answers:RN}),rt=await text(rg.j.jobs[1].file);
+  ok('Form 33a: old name from the company, new name in capitals, resolution date',rg.s===200&&/changed from [A-Z ]+ to NEW HORIZONS COMPANY LIMITED/.test(rt)&&/12 November 2026/.test(rt)&&!/\[[A-Z ]+\]/.test(rt),rt);
+  const rt2=await text(rg.j.jobs[0].file);
+  ok('the members\' special resolution (T11): s.33 and s.146, three-fourths, 21 days\' notice, new name, Form 33a, no gap',rg.j.jobs.map(j=>j.tid).join()==='T11,F09'&&/A special resolution to change the name of the company from/.test(rt2)&&/BE IT RESOLVED AS A SPECIAL RESOLUTION THAT/.test(rt2)&&/section 33/.test(rt2)&&/three-fourths/.test(rt2)&&/given on 20 October 2026, not less than twenty-one days/.test(rt2)&&/NEW HORIZONS COMPANY LIMITED/.test(rt2)&&!/\[[A-Z0-9 ,]+\]/.test(rt2)&&!rg.j.jobs[0].missing.length,rt2);
+  const sh=await text((await call('POST',`/cases/${cs.id}/scenarios/rename/generate`,{answers:{...RN,notice_kind:'short',notice_date:'2026-11-10'}})).j.jobs[0].file);
+  ok('shorter notice has its own wording with the date the members agreed',/With the written consent, given on 10 November 2026, of the members entitled to receive notice, the meeting was convened on shorter notice/.test(sh)&&!/twenty-one days before/.test(sh),sh.slice(0,1800));
+  const nw=(await call('PUT',`/cases/${cs.id}/scenarios/rename`,{answers:{...RN,notice_date:'2026-11-05'}})).j.warnings;ok('full notice shorter than 21 days is flagged',nw.some(x=>/at least 21 days/.test(x)),nw);
+  ok('Form 33a needs the "reserved with BRELA" tick',(await call('POST',`/cases/${cs.id}/scenarios/rename/generate`,{answers:{...RN,name_reserved:''}})).s===400);
+  const rw=(await call('PUT',`/cases/${cs.id}/scenarios/rename`,{answers:{...RN,new_name:'New Horizons'}})).j.warnings;ok('Form 33a warns when the new name has no LIMITED, LTD or PLC',rw.some(x=>/LIMITED/.test(x)),rw);
+  const TR={transfer_1_transferor:'BAKARI JUMA LEO',transfer_1_transferee:'RONALD BARAKA SHELUKINDO',transfer_1_shares:'100',transfer_articles:'articles 22 to 27 of the Company’s Articles of Association',agreements_date:'2026-04-22',docs_received_date:'2026-07-29',meeting_date:'2026-07-30',stamped:'yes'};
+  const tg=await call('POST',`/cases/${cs.id}/scenarios/transfer/generate`,{answers:TR}),tt=await text(tg.j.jobs[0].file);
+  ok('T09: transfer written in Title Case with the number of shares, dates and the Articles reference, unused transfer lines removed',tg.s===200&&/Bakari Juma Leo to Ronald Baraka Shelukindo: 100 ordinary shares/.test(tt)&&/30 July 2026/.test(tt)&&/29 July 2026/.test(tt)&&/22 April 2026/.test(tt)&&/articles 22 to 27/.test(tt)&&!/\[[A-Z0-9 ]+\]/.test(tt)&&!/to : /.test(tt)&&!tg.j.jobs[0].missing.length,tt);
+  const tw=(await call('PUT',`/cases/${cs.id}/scenarios/transfer`,{answers:{...TR,transfer_1_shares:'99999999',transfer_2_transferor:'ALI OMARI KAZI',meeting_date:'2026-07-01'}})).j.warnings;
+  ok('T09 warns: seller holds fewer shares, an incomplete second transfer, meeting before the documents arrived',tw.some(x=>/holds .* shares but is transferring/.test(x))&&tw.some(x=>/Transfer 2 is incomplete/.test(x))&&tw.some(x=>/before the date the documents were received/.test(x)),tw);
+  ok('T09 will not be made without the stamped/TRA tick',(await call('POST',`/cases/${cs.id}/scenarios/transfer/generate`,{answers:{...TR,stamped:''}})).s===400);}
+ {const dd=await call('POST',`/cases/${cs.id}/scenarios/directors/generate`,{answers:{appoint:'RONALD BARAKA SHELUKINDO'}});ok('the server enforces required questions of every wizard, not only the screen',dd.s===400&&/Members' meeting: date/.test(dd.j.error),dd.j)}
  // annual return in one click
  const an=await call('POST',`/cases/${cs.id}/scenarios/annual/generate`,{answers:{no_charges:'yes'}});
  const f131=await text(an.j.jobs[0].file);

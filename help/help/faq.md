@@ -52,6 +52,8 @@ order: 21
 
 **Why can't I press "Mark as checked" on my own document?** The person who generated it cannot check it. Ask a colleague; a Manager may check their own.
 
+**Which filings have a wizard?** Change of directors, change of company secretary, calls and forfeiture and re-allotment of shares, change of registered office (Form 114), change of company name (Form 33a), transfer of shares, and the annual return ([Prepare documents](help:documents/prepare-documents)).
+
 **I replaced a template's Word file and now documents are wrong. Can I go back?** Yes. Open the template, go to the Word view and press **Earlier Word files**, then **Restore** ([Replacing the Word file safely](help:documents/template-versions-and-approval)).
 
 **Do the wizards use AI?** No ([The AI assistant](help:documents/ai-assistant)).

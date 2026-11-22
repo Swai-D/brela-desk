@@ -13,7 +13,9 @@ The wizards fill **official Word templates**. They must be loaded once.
 2. Press **Import Word package**.
 3. Wait for the message. The forms and resolutions appear in the list marked **Word file** / **BRELA form**.
 
-Importing again is safe: it updates the templates it already has.
+Importing again is safe: it adds the templates that are missing and leaves the ones you already have unchanged (so a new package brings in only its new forms). To change an existing template's Word file, use **Upload edited Word** on that template ([Replacing the Word file safely](help:documents/template-versions-and-approval)).
+
+The package also holds forms that do not have a wizard yet (for example Forms 213c, 68, 09, 173a, 107, 99, 15a, 15b, 15c and 15f). They are imported and shown in **Templates** (Forms 114 and 33a come with a resolution, T10 and T11, made by their wizards), but nobody can generate them until a wizard exists for them, and the package marks them as pending the senior's review.
 
 ## If it fails
 

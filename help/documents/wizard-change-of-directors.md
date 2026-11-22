@@ -32,6 +32,8 @@ The resolutions list the attendees (the members and the directors who stay), the
 
 ## Warnings
 
+- A member saved with no shares: the members' resolution would show 0 shares. Correct it on the **Company** tab.
+
 - "Choose who is being appointed or who is resigning."
 - "After these changes the company would have N directors. A private company needs at least 2 (s.189 of the Companies Act), so appoint before anyone resigns."
 - "The directors' meeting accepting the resignations must be on or after the members' meeting that appoints the new directors."

@@ -1,0 +1,41 @@
+{
+ "common": {
+  "COMPANY_NAME": "A & R GROUP COMPANY LIMITED",
+  "INCORPORATION_NO": "178213083",
+  "REGISTERED_OFFICE": "Plot Nos. 2317/2318, Block 108, Samora Street, Mchafukoge, Ilala CBD, P.O. Box 5356, Dar es Salaam, Tanzania.",
+  "CHAIRMAN_NAME": "Lin En",
+  "SECRETARY_NAME": "Qi Ang Zhang",
+  "BOARD_NOTICE_PROVISION": "Article 93 of the Company’s Articles of Association",
+  "BOARD_QUORUM_WORD": "two",
+  "BOARD_QUORUM_PROVISION": "Article 94"
+ },
+ "T09": {
+  "ATTENDEE_1_NAME": "Lin En",
+  "ATTENDEE_2_NAME": "Bin Zhang",
+  "ATTENDEE_3_NAME": "Qi Ang Zhang",
+  "ATTENDEE_4_NAME": "",
+  "ATTENDEE_5_NAME": "",
+  "ATTENDEE_1_ROLE_OPT": "Chairman of the Board of Directors",
+  "ATTENDEE_2_ROLE_OPT": "",
+  "ATTENDEE_3_ROLE_OPT": "Company Secretary",
+  "ATTENDEE_4_ROLE_OPT": "",
+  "ATTENDEE_5_ROLE_OPT": "",
+  "TRANSFER_MEETING_DATE": "30 July 2026",
+  "TRANSFER_MEETING_TIME": "09:00",
+  "TRANSFER_DOCS_RECEIVED_DATE": "29 July 2026",
+  "TRANSFER_AGREEMENTS_DATE": "22 April 2026",
+  "TRANSFER_ARTICLES": "articles 22 to 27 of the Company’s Articles of Association",
+  "TRANSFER_1_TRANSFEROR": "Miqdad Ikbal Premji Manji",
+  "TRANSFER_1_TRANSFEREE": "Doreen James Meta",
+  "TRANSFER_1_SHARES": "100",
+  "TRANSFER_2_TRANSFEROR": "Miqdad Ikbal Premji Manji",
+  "TRANSFER_2_TRANSFEREE": "Dujuan Zhang",
+  "TRANSFER_2_SHARES": "100",
+  "TRANSFER_3_TRANSFEROR": "Lin En",
+  "TRANSFER_3_TRANSFEREE": "Haojie Zhang",
+  "TRANSFER_3_SHARES": "100",
+  "TRANSFER_4_TRANSFEROR": "",
+  "TRANSFER_4_TRANSFEREE": "",
+  "TRANSFER_4_SHARES": ""
+ }
+}
