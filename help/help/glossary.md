@@ -58,6 +58,7 @@ order: 20
 | **Gap** | A placeholder that could not be filled and needs a person |
 | **Approved / Draft template** | Approved fills instantly; draft may use the AI |
 | **Smart fill** | Reads a pasted message to propose details (uses the AI) |
+| **Needs check / Checked by** | The review status of a generated document: a second person has to read it and press **Mark as checked** |
 | **Doc Studio** | The PDF tools for signing, editing and photos |
 | **Digest** | The morning WhatsApp message with your cases for the day |
 | **Audit log** | The Manager's record of deletions and sensitive changes |

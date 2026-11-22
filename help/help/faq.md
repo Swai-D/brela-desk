@@ -48,6 +48,10 @@ order: 21
 
 ## Documents and wizards
 
+**Why does a generated document say "Needs check"?** A second person must read it and press **Mark as checked** before the checklist item is ticked ([Prepare documents](help:documents/prepare-documents)).
+
+**Why can't I press "Mark as checked" on my own document?** The person who generated it cannot check it. Ask a colleague; a Manager may check their own.
+
 **Do the wizards use AI?** No ([The AI assistant](help:documents/ai-assistant)).
 
 **Which wizard do I use to appoint a director?** [Change of directors](help:documents/wizard-change-of-directors).

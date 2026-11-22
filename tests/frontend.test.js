@@ -84,4 +84,6 @@ ok('Company tab can import a pasted BRELA Company Details page',/function regist
 {const a=fs.readFileSync(path.join(pub,'assets/js/brela.js'),'utf8'),b=fs.readFileSync(path.join(pub,'assets/js/tpview.js'),'utf8'),native=src=>(src.match(/(^|[^\w.-])(alert|confirm)\(/g)||[]).length;
  ok('no browser pop-ups: messages are toasts and questions use our own dialog',native(a)===0&&native(b)===0,[native(a),native(b)]);
  ok('a document made by a wizard opens our dialog with a button that goes straight to that wizard',/const wizardPrompt=/.test(a)&&/class="btn btn-primary px-4 wp-go"/.test(a)&&/scenarioModal\(caseId,info\.wizard,onDone\)/.test(a)&&/e\.data&&e\.data\.wizard/.test(a)&&/e\.data=j/.test(a))}
+ ok('Generate shows the wizard warnings in our dialog first and asks before going on',/Please check first/.test(js)&&/Generate anyway/.test(js)&&/pv\.warnings/.test(js));
+ ok('generated files show "Needs check" / "Checked by" and a "Mark as checked" button that asks first',/const reviewTag=/.test(js)&&/Needs check/.test(js)&&/Mark as checked/.test(js)&&/'\/files\/'\+a\.dataset\.id\+'\/check'/.test(js));
 process.exit(fails?(console.log('\n'+fails+' FAILED'),1):(console.log('\nall passed'),0));

@@ -6,7 +6,7 @@ order: 3
 ---
 | Message | Why | Fix |
 |---|---|---|
-| "Complete all documents in the checklist first." | Moving to **Ready to Submit**, **Submitted** or **Completed** needs every checklist item ticked | Tick or upload the missing items. If an item is not needed, ask a Senior or Manager to remove it ([Checklist](help:cases/checklist-and-files)). |
+| "Complete all documents in the checklist first." | Moving to **Ready to Submit**, **Submitted** or **Completed** needs every checklist item ticked | Tick or upload the missing items. A generated document shows **Needs check** until a colleague presses **Mark as checked**; its item stays unticked until then. If an item is not needed, ask a Senior or Manager to remove it ([Checklist](help:cases/checklist-and-files)). |
 | "Only a Senior or Manager can do this step." | **Submitted**, **Completed** and **Returned** are for Seniors and Managers | Ask one of them ([Submit and track](help:cases/submit-and-track)) |
 | "Write what BRELA asked to correct." | **Returned** needs a reason | Type BRELA's request in the box |
 | "Bad stage" or "Case not found" | The page is out of date or the case was deleted | Refresh |
