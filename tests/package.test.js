@@ -64,7 +64,7 @@ const PKG=path.join(__dirname,'..','Templates_Package','Templates_Package');
  ok('importing creates every package template',imp.s===200&&imp.j.created.length===man.templates.length&&imp.j.skipped.length===0,[imp.j.created&&imp.j.created.length,imp.j.skipped&&imp.j.skipped.length]);
  imp=await call('POST','/templates/import-package',{});
  ok('importing again skips the templates that already exist',imp.j.created.length===0&&imp.j.skipped.length===man.templates.length,imp.j);
- const list=(await call('GET','/templates')).j,t01=list.find(t=>t.name.startsWith("Members' Resolution"));
+ const list=(await call('GET','/templates')).j,t01=list.find(t=>t.name.startsWith("Members' Resolution - Appointment of Directors"));
  const f05=list.find(t=>t.name.includes('Form 131'));
  ok('each official template says which wizard makes it, so the case opens the wizard',t01.wizard==='directors'&&f05.wizard==='annual'&&list.find(t=>/Notice of Call/i.test(t.name)).wizard==='shares',[t01.wizard,f05.wizard]);
  ok('the imported templates carry their exact Word file and are drafts',list.length>=15&&t01.has_docx===true&&f05.kind==='FORM'&&f05.status==='DRAFT',[list.length,t01.has_docx,f05.kind]);

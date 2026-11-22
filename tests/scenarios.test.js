@@ -26,7 +26,7 @@ const text=async f=>{const r=await fetch(`${B}/files/${f.id}`,{headers:{cookie:c
  await call('POST',`/clients/${cid}/registry-import`,{text:SAMPLE,apply:true});
  const T=(await call('GET','/bootstrap')).j.types[0].id,cs=(await call('POST','/cases',{clientId:cid,caseTypeId:T})).j;
  const list=(await call('GET',`/cases/${cs.id}/scenarios`)).j;
- ok('7 scenarios are offered, templates are ready',list.items.length===7&&list.ready===true&&['office','rename','transfer'].every(id=>list.items.some(x=>x.id===id)),list.items.map(x=>x.id));
+ ok('11 scenarios are offered, templates are ready',list.items.length===11&&list.ready===true&&['office','rename','transfer','objects','capital','auditor','charge'].every(id=>list.items.some(x=>x.id===id)),list.items.map(x=>x.id));
  // two new people, then appoint them and accept two resignations
  const mk=async(n,g)=>(await call('POST',`/clients/${cid}/people`,{full_name:n,roles:['other'],gender:g,dob:'5 May 1990',nationality:'Tanzanian',occupation:'Engineer',addr:{country:'Tanzania',region:'Dar Es Salaam',district:'Ilala',ward:'Kariakoo',street:'Mfano Street',plot:'12'}})).j;
  await mk('RONALD BARAKA SHELUKINDO','Male');await mk('EMMANUEL SANTA CHACHA','Female');
@@ -101,6 +101,20 @@ const text=async f=>{const r=await fetch(`${B}/files/${f.id}`,{headers:{cookie:c
   const sh=await text((await call('POST',`/cases/${cs.id}/scenarios/rename/generate`,{answers:{...RN,notice_kind:'short',notice_date:'2026-11-10'}})).j.jobs[0].file);
   ok('shorter notice has its own wording with the date the members agreed',/With the written consent, given on 10 November 2026, of the members entitled to receive notice, the meeting was convened on shorter notice/.test(sh)&&!/twenty-one days before/.test(sh),sh.slice(0,1800));
   const nw=(await call('PUT',`/cases/${cs.id}/scenarios/rename`,{answers:{...RN,notice_date:'2026-11-05'}})).j.warnings;ok('full notice shorter than 21 days is flagged',nw.some(x=>/at least 21 days/.test(x)),nw);
+  const WZ=async(id,A)=>call('POST',`/cases/${cs.id}/scenarios/${id}/generate`,{answers:A}),MT={resolution_date:'2026-11-12',resolution_time:'10:00',notice_kind:'full',notice_date:'2026-10-20'};
+  const OB={new_objects:'1. To carry on the business of software development.',memo_ready:'yes',...MT},n_og=await WZ('objects',OB),n_ot=await text(n_og.j.jobs[0].file);
+  ok('objects: resolution carries the new objects, section 9 and the notice',n_og.s===200&&/software development/.test(n_ot)&&/section 146\(1\)/.test(n_ot)&&n_og.j.jobs.every(j=>!(j.missing||[]).length),n_og.j&&n_og.j.jobs.map(j=>j.missing));
+  ok('objects needs the altered Memorandum tick',(await WZ('objects',{...OB,memo_ready:''})).s===400);
+  const CA={increase_amount:'50000000',capital_article:'Article 8 of the Company\u2019s Articles of Association',condition_1:'(a) The new shares rank equally.',...MT},n_cg=await WZ('capital',CA),n_ct=await text(n_cg.j.jobs[0].file);
+  ok('capital: resolution shows the increase, the new total and no empty condition lines',n_cg.s===200&&/increased by TZS 50,000,000, from TZS [\d,]+ to TZS [\d,]+/.test(n_ct)&&!/(^|\n)\(b\) /.test(n_ct)&&n_cg.j.jobs.every(j=>!(j.missing||[]).length),n_cg.j&&n_cg.j.jobs.map(j=>j.missing));
+  ok('capital warns about the 30-day notice',(await call('PUT',`/cases/${cs.id}/scenarios/capital`,{answers:CA})).j.warnings.some(x=>/30 days/.test(x)));
+  const AU={meeting_type:'agm',auditor_name:'Kilimo Audit Associates',auditor_reg:'PC 1234',auditor_address:'P.O. Box 8424, Dar es Salaam',appointed_from:'2026-11-12',auditor_signatory:'Neema Joseph Mushi',...MT},n_ag=await WZ('auditor',AU),n_at=await text(n_ag.j.jobs[0].file);
+  ok('auditor: ordinary resolution with section 138 notice and the auditor named',n_ag.s===200&&/KILIMO AUDIT ASSOCIATES/.test(n_at)&&/section 138 of the Act/.test(n_at)&&!/special resolution/i.test(n_at)&&n_ag.j.jobs.every(j=>!(j.missing||[]).length),n_ag.j&&n_ag.j.jobs.map(j=>j.missing));
+  ok('auditor warns for an extraordinary meeting',(await call('PUT',`/cases/${cs.id}/scenarios/auditor`,{answers:{...AU,meeting_type:'egm'}})).j.warnings.some(x=>/general meeting at which the accounts are laid/.test(x)));
+  const CH={instrument:'Legal mortgage',creation_date:'2026-11-20',amount_secured:'120000000',mortgagee:'KCB Bank Tanzania Limited, P.O. Box 804, Dar es Salaam',property:'Plot 24, Block 24, Temeke',borrowing_provision:'Article 12 of the Company\u2019s Articles of Association',meeting_date:'2026-11-15',instrument_ready:'yes'},n_hg=await WZ('charge',CH),n_ht=await text(n_hg.j.jobs[0].file),n_h99=await text(n_hg.j.jobs[1].file);
+  ok('charge: resolution and Form 99 carry the particulars',n_hg.s===200&&/create a legal mortgage/.test(n_ht)&&/TZS 120,000,000/.test(n_h99)&&/KCB BANK TANZANIA LIMITED/.test(n_h99)&&n_hg.j.jobs.every(j=>!(j.missing||[]).length),n_hg.j&&n_hg.j.jobs.map(j=>j.missing));
+  ok('charge needs the instrument tick',(await WZ('charge',{...CH,instrument_ready:''})).s===400);
+  ok('charge warns when the meeting is after creation',(await call('PUT',`/cases/${cs.id}/scenarios/charge`,{answers:{...CH,meeting_date:'2026-11-25'}})).j.warnings.some(x=>/after the date the charge is created/.test(x)));
   ok('Form 33a needs the "reserved with BRELA" tick',(await call('POST',`/cases/${cs.id}/scenarios/rename/generate`,{answers:{...RN,name_reserved:''}})).s===400);
   const rw=(await call('PUT',`/cases/${cs.id}/scenarios/rename`,{answers:{...RN,new_name:'New Horizons'}})).j.warnings;ok('Form 33a warns when the new name has no LIMITED, LTD or PLC',rw.some(x=>/LIMITED/.test(x)),rw);
   const TR={transfer_1_transferor:'BAKARI JUMA LEO',transfer_1_transferee:'RONALD BARAKA SHELUKINDO',transfer_1_shares:'100',transfer_articles:'articles 22 to 27 of the Company’s Articles of Association',agreements_date:'2026-04-22',docs_received_date:'2026-07-29',meeting_date:'2026-07-30',stamped:'yes'};

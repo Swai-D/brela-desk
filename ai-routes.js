@@ -329,7 +329,7 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   res.json({created,skipped})}));
 
  // the official package templates and the wizard that makes each of them
- const WIZ_OF={T01:'directors',T02:'directors',F01:'directors',F02:'directors',F03:'shares',F04:'shares',T03:'shares',T04:'shares',T05:'shares',T06A:'shares',T06B:'shares',T07A:'shares',T07B:'shares',T08:'shares',F05:'annual',F07:'office',F09:'rename',T09:'transfer',T10:'office',T11:'rename'};
+ const WIZ_OF={T01:'directors',T02:'directors',F01:'directors',F02:'directors',F03:'shares',F04:'shares',T03:'shares',T04:'shares',T05:'shares',T06A:'shares',T06B:'shares',T07A:'shares',T07B:'shares',T08:'shares',F05:'annual',F07:'office',F09:'rename',T09:'transfer',T10:'office',T11:'rename',F10:'objects',T12:'objects',F08:'capital',T13:'capital',F11:'auditor',T14:'auditor',F13:'charge',T15:'charge'};
  const wizardOfTemplateId=async id=>{const r=await one(`SELECT id FROM wizards WHERE active AND docs @> $1::jsonb ORDER BY position,created_at LIMIT 1`,[JSON.stringify([{template_id:+id}])]);return r?r.id:null};
  const needWizard=(msg,data)=>{const e=new Error(msg);e.status=409;e.data=data;throw e};
  const tidOfTemplate=t=>{const m=String((t&&t.keywords)||'').match(/^([tf]\d\d[ab]?) /i);return m?m[1].toUpperCase():null};
