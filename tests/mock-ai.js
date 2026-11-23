@@ -12,6 +12,7 @@ function answer(user,sysText){
   return [`# ${name}`,`Company: ${f.values.company_name||'[[company_name]]'}`,`Activity: ${f.values.business_activity||'[[business_activity]]'}`,`Registered office: ${f.values.registered_office||'[[registered_office]]'}`,
    p.full_name?`Director: ${p.full_name}, ID ${p.id_number||'[[id_number]]'}`:'No people on file',`Phone: ${f.values.client_phone||'[[client_phone]]'}`,
    /TEMPLATE \(follow/.test(user)?'FOLLOWED TEMPLATE':'NO TEMPLATE',/RULES FOR THIS DOCUMENT TYPE/.test(user)?'RULES SEEN':'',/EXTRA INSTRUCTIONS/.test(user)?'INSTRUCTIONS SEEN':'',`LANG ${lang}`].filter(Boolean).join('\n')}
+ if(/^FACTS \(use only these\)/.test(user))return JSON.stringify({location_advantage:'Good road and port links.',waste_types:'Dust and ash.',marketing_bullets:['- Competitive pricing','Dealer network'],benefits:[{title:'Employment Creation',text:'Direct jobs.'},{title:'Local Market Stimulus',text:'Local suppliers.'}],ignored_key:'x'});
  return 'Unrecognised prompt';
 }
 const fail=(res,code,msg)=>{res.writeHead(code,{'Content-Type':'application/json'});res.end(JSON.stringify({error:{message:msg}}))};

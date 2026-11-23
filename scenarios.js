@@ -341,6 +341,93 @@ const BUILTIN=[
   return w},
  people(){return[]}},
 
+{id:'industry',title:'Industrial business plan',icon:'bx-buildings',match:/industr|business plan|licen[cs]e/i,aiDraft:true,desc:'The business plan submitted to BRELA to establish an industry. The company details, owners and capital come from the Company tab; you enter the products, raw materials, investment, staff and assumptions. Every total and projection is calculated by the app. The AI can draft the wording sections, which you must read and edit.',
+ fields:[
+  F('factory_location','Factory location','text',{req:true,ph:'Kiomoni Street, Kiomoni Ward, Tanga District, Tanga Region',group:'The industry'}),
+  F('tax_office','TRA tax office','text',{req:true,ph:'Tanga',group:'The industry'}),F('tin','TIN','text',{ph:'Empty uses the TIN saved on the Company tab',group:'The industry'}),
+  F('phone','Telephone / mobile','text',{ph:'Empty uses the company phone',group:'The industry'}),F('email','Email address','text',{ph:'Empty uses the company email',group:'The industry'}),
+  F('accounting_date','Accounting date','text',{ph:'31st December each year',group:'The industry'}),
+  F('main_activity','Main business activity','text',{ph:'Manufacture of ... (ISIC 2394; BRELA Code 239402). Empty uses the saved activity.',group:'Activity and products'}),
+  F('supporting_activities','Supporting activities','longtext',{big:true,ph:'Activity (BRELA code); activity (code)',group:'Activity and products'}),
+  F('products_description','Products','longtext',{big:true,req:true,ph:'Lime Products: quicklime (lump and ground), ... bagged in 25 kg and 50 kg.',group:'Activity and products'}),
+  F('products','Products and annual capacity at full capacity (up to 4)','rows',{req:true,max:4,cols:[['name','Product name','text',null,'Lime products'],['unit','Unit','text',null,'Ton'],['units','Units per year','num',null,'15000'],['price','Price at factory (TZS)','num',null,'280000']],group:'Activity and products'}),
+  F('capacity_text','Production capacity (words)','text',{ph:'Empty: the total units per year are written for you',group:'Activity and products'}),F('price_note','Note under the products table, if any','text',{group:'Activity and products'}),
+  F('location_advantage','Location advantage','longtext',{big:true,ai:true,group:'Location and tenure'}),F('premises_status','Premises status','longtext',{big:true,req:true,ph:'Industrial site secured under a long-term lease ...',help:'Describe how the site is really held. Do not copy a standard sentence if it is not true.',group:'Location and tenure'}),
+  F('required_raw','Required raw materials','longtext',{big:true,ai:true,group:'Raw materials'}),F('source_materials','Source of materials','longtext',{big:true,ai:true,group:'Raw materials'}),
+  F('raw','Annual raw material requirements at full capacity (up to 10)','rows',{req:true,max:10,cols:[['origin','Origin','choice',['Local','Imported']],['name','Raw material','text',null,'Limestone'],['unit','Unit','text',null,'Ton'],['location','Location','text',null,'Tanga'],['units','No. of units','num',null,'25000'],['price','Price per unit (TZS)','num',null,'20000']],group:'Raw materials'}),
+  F('invest','Allocation of invested capital (up to 8)','rows',{req:true,max:8,cols:[['item','Item / investment head','text',null,'Plant and machinery'],['amount','Amount (TZS)','num',null,'800000000']],help:'The total invested capital is the sum of these. The part not covered by the share capital is shown as shareholder loans/contributions.',group:'Invested capital'}),
+  F('local_male','Local staff: male','number',{req:true,group:'Employment'}),F('local_female','Local staff: female','number',{req:true,group:'Employment'}),F('local_roles','Local staff work in','text',{req:true,ph:'quarry and plant operations, drivers, laboratory, packaging, administration ...',group:'Employment'}),
+  F('foreign_male','Foreign experts: male','number',{group:'Employment'}),F('foreign_female','Foreign experts: female','number',{group:'Employment'}),F('foreign_roles','Foreign experts provide','text',{ph:'kiln engineering and commissioning ..., with skills transfer to Tanzanian staff.',group:'Employment'}),
+  F('permanent','Permanent positions','number',{req:true,group:'Employment'}),F('temporary','Temporary / contract positions','number',{req:true,group:'Employment'}),F('casual','Casual labour note, if any','text',{ph:'Casual labour will be engaged during peak production and loading periods.',group:'Employment'}),
+  F('waste_types','Types of waste produced','longtext',{big:true,ai:true,group:'Wastes'}),F('waste_management','Waste management and action','longtext',{big:true,ai:true,group:'Wastes'}),
+  F('marketing_intro','Marketing: target market','longtext',{big:true,ai:true,group:'Marketing'}),F('marketing_bullets','Marketing strategy points (one per line, up to 6)','longtext',{big:true,ai:true,group:'Marketing'}),
+  F('util_1','Capacity utilisation, year 1 (%)','number',{ph:'50',group:'Projections'}),F('util_2','Year 2 (%)','number',{ph:'70',group:'Projections'}),F('util_3','Year 3 (%)','number',{ph:'85',group:'Projections'}),
+  F('other_cost','Other variable cost per unit (TZS)','money',{help:'Fuel, labour, packaging and anything else per unit, on top of the raw materials already entered above.',group:'Projections'}),F('fixed_costs','Fixed costs per year (TZS)','money',{help:'Salaries, administration, maintenance and other costs that do not change with output.',group:'Projections'}),
+  F('payback','Payback period','text',{ph:'4 to 5 years',help:'Your own estimate. The sentence is left out when empty.',group:'Projections'}),
+  F('benefits','Economic benefits (up to 6)','rows',{req:true,max:6,ai:true,cols:[['title','Heading','text',null,'Employment Creation'],['text','Text','text',null,'Direct jobs for ...']],group:'Economic benefits'})],
+ jobs:()=>[{tid:'I01',name:'Business plan for establishing an industry'}],
+ derive(a,c){const V={},B=[],v=c.values||{},T=x=>String(x||'').trim(),rows=(k,n)=>String(a[k]||'').split('\n').map(l=>l.split('|').map(x=>x.trim())).filter(r=>r.some(Boolean)).slice(0,n),
+  blank=(pre,n,from,keys)=>{for(let i=from;i<=n;i++)keys.forEach(k=>{V[`${pre}_${i}_${k}`]='';B.push(`${pre}_${i}_${k}`.toUpperCase())})},roman=n=>['i','ii','iii','iv','v','vi','vii','viii'][n-1]+'.',tzs=n=>comma(n);
+  // ---- 1 the entity
+  const addr=niceAddr(v.postal_address||'');V.postal_address=addr?`${addr}${/tanzania/i.test(addr)?'':', Tanzania'}${v.postal_code?` (Post Code ${v.postal_code})`:''}`:'';
+  V.phone=T(a.phone)||T(v.company_phone);V.email=T(a.email)||T(v.company_email);V.factory_location=T(a.factory_location);
+  const fy=T(a.accounting_date)||(T(v.financial_year_end)?`${T(v.financial_year_end).replace(/^(\d+)(?!st|nd|rd|th)/,(m,d)=>ordD(`2000-01-${String(d).padStart(2,'0')}`).split(' ')[0])} each year`:'');if(fy)V.accounting_date=fy;
+  const tin=T(a.tin)||T(v.tin),di=v.date_of_incorporation_iso?ordD(v.date_of_incorporation_iso):T(v.date_of_incorporation);
+  V.entity_registration_details=`Registered as ${(T(v.company_type)?tc(T(v.company_type)).replace(/ By /g,' by '):'Private Company Limited by Shares')}${di?` on ${di}`:''}. Certificate of Incorporation No. ${T(v.incorporation_no)}${tin?` and TIN ${tin}`:''} (TRA Tax Office: ${T(a.tax_office)}).`;
+  // ---- 2 owners
+  const sh=(c.shareholders||[]).slice(0,6),tot=(c.shareholders||[]).reduce((s,p)=>s+hold(p),0);
+  sh.forEach((p,i)=>{const n=i+1,pc=tot?Math.round(hold(p)/tot*10000)/100:0;V[`owner_${n}_no`]=String(n);V[`owner_${n}_name`]=up(p.full_name);if(p.nationality)V[`owner_${n}_nationality`]=p.nationality;V[`owner_${n}_shareholding`]=`${comma(hold(p))} ${c.shareClass} Shares (${pc}%)`});blank('owner',6,sh.length+1,['no','name','nationality','shareholding']);
+  const dirs=c.directors||[],foreign=dirs.some(p=>p.nationality&&!/tanzania/i.test(p.nationality)),dn=dirs.map(p=>tc(p.full_name)+(foreign&&/tanzania/i.test(p.nationality||'')?' (Tanzanian national)':''));
+  V.board_of_directors_text=joinAnd(dn);V.company_secretary_name=tc(((c.secretaries||[])[0]||{}).full_name||'');
+  // ---- 3 activity and products
+  V.main_activity=T(a.main_activity)||(T(v.business_activity)?`${T(v.business_activity)}${v.main_activity_code?` (ISIC ${v.main_activity_code})`:''}`:'');V.supporting_activities=T(a.supporting_activities)||'None.';V.products_description=T(a.products_description);
+  const pr=rows('products',4).map(r=>({name:r[0],unit:r[1],units:num(r[2]),price:num(r[3])})),capUnits=pr.reduce((s,p)=>s+p.units,0),capRev=pr.reduce((s,p)=>s+p.units*p.price,0),avg=capUnits?capRev/capUnits:0,unit=(pr[0]||{}).unit||'unit';
+  pr.forEach((p,i)=>{const n=i+1;V[`product_${n}_no`]=String(n);V[`product_${n}_name`]=p.name;V[`product_${n}_unit`]=p.unit;V[`product_${n}_units`]=comma(p.units);V[`product_${n}_price`]=comma(p.price);V[`product_${n}_capacity`]=comma(p.units*p.price)});blank('product',4,pr.length+1,['no','name','unit','units','price','capacity']);
+  V.production_capacity_text=T(a.capacity_text)||`${comma(capUnits)} ${unit}${capUnits===1?'':'s'} per year`;V.price_note_opt=T(a.price_note);
+  // ---- 4, 5 location, raw materials
+  V.location_advantage=T(a.location_advantage);V.premises_status=T(a.premises_status);V.required_raw_materials=T(a.required_raw);V.source_of_materials=T(a.source_materials);
+  const rw=rows('raw',10).map(r=>({origin:r[0],name:r[1],unit:r[2],loc:r[3],units:num(r[4]),price:num(r[5])})),rawTot=rw.reduce((s,r)=>s+r.units*r.price,0);
+  rw.forEach((r,i)=>{const n=i+1;V[`raw_${n}_no`]=String(n);V[`raw_${n}_origin`]=r.origin;V[`raw_${n}_name`]=r.name;V[`raw_${n}_unit`]=r.unit;V[`raw_${n}_location`]=r.loc;V[`raw_${n}_units`]=comma(r.units);V[`raw_${n}_price`]=comma(r.price);V[`raw_${n}_total`]=comma(r.units*r.price)});blank('raw',10,rw.length+1,['no','origin','name','unit','location','units','price','total']);V.raw_material_total=comma(rawTot);
+  // ---- 6 capital
+  const iv=rows('invest',8).map(r=>({item:r[0],amount:num(r[1])})),invTot=iv.reduce((s,r)=>s+r.amount,0),cap=num(v.share_capital),nsh=num(v.number_of_shares)||tot,nom=num(v.share_value)||(cap&&nsh?cap/nsh:0);
+  iv.forEach((r,i)=>{const n=i+1;V[`invest_${n}_no`]=roman(n);V[`invest_${n}_item`]=r.item;V[`invest_${n}_amount`]=comma(r.amount)+'/='});blank('invest',8,iv.length+1,['no','item','amount']);
+  V.total_invested_capital=comma(invTot);if(cap)V.authorised_share_capital=comma(cap);if(nsh)V.number_of_shares=comma(nsh);if(nom)V.nominal_share_value=comma(nom);if(cap)V.shareholder_loans=comma(Math.max(0,invTot-cap));
+  // ---- 7 employment
+  const lm=num(a.local_male),lf=num(a.local_female),fm=num(a.foreign_male),ff=num(a.foreign_female),lt=lm+lf,ft=fm+ff;V.total_staff=String(lt+ft);
+  V.local_staff_text=`${lt} staff members (${lm} male and ${lf} female) in ${T(a.local_roles)}`;
+  V.foreign_staff_text=ft?`${ft} ${ff?`personnel (${fm} male and ${ff} female)`:'male personnel'} ${T(a.foreign_roles)}`.trim():'None.';
+  V.employment_type_text=`${num(a.permanent)} Permanent positions and ${num(a.temporary)} Temporary/Contract positions.${T(a.casual)?' '+T(a.casual):''}`;
+  // ---- 8, 9 wastes and marketing
+  V.waste_types=T(a.waste_types);V.waste_management=T(a.waste_management);V.marketing_intro=T(a.marketing_intro);
+  const mb=String(a.marketing_bullets||'').split('\n').map(x=>x.replace(/^[-•*\s]+/,'').trim()).filter(Boolean).slice(0,6);for(let i=1;i<=6;i++){V[`marketing_bullet_${i}`]=mb[i-1]||'';if(!mb[i-1])B.push(`MARKETING_BULLET_${i}`)}
+  // ---- 10 projections
+  const ut=[1,2,3].map((n,i)=>num(a['util_'+n])||[50,70,85][i]),outp=ut.map(u=>capUnits*u/100),rawPer=capUnits?rawTot/capUnits:0,haveCost=T(a.other_cost)!==''||T(a.fixed_costs)!=='';
+  ut.forEach((u,i)=>{const n=i+1,rev=outp[i]*avg;V[`utilisation_${n}`]=`${u}%`;V[`output_${n}`]=comma(outp[i]);V[`revenue_${n}`]=comma(rev/1e6);if(haveCost)V[`ebitda_${n}`]=comma((rev-outp[i]*(rawPer+num(a.other_cost))-num(a.fixed_costs))/1e6)});
+  V.output_unit=/^tons?$/i.test(unit)?'MT':unit;V.average_price=comma(avg);V.average_price_unit=V.output_unit;V.full_capacity_revenue_million=comma(capRev/1e6);V.raw_material_total_million=comma(rawTot/1e6);
+  V.payback_sentence_opt=T(a.payback)?`The investment is expected to be recovered within about ${T(a.payback)} of operation.`:'';
+  // ---- 11 benefits
+  const bn=rows('benefits',6);for(let i=1;i<=6;i++){const r=bn[i-1]||[];V[`benefit_${i}_title`]=r[0]||'';V[`benefit_${i}_text`]=r[1]||'';if(!r[0]){B.push(`BENEFIT_${i}_TITLE`,`BENEFIT_${i}_TEXT`)}}
+  return{V,B}},
+ warn(a,c){const w=[],v=c.values||{},rows=(k)=>String(a[k]||'').split('\n').map(l=>l.split('|').map(x=>x.trim())).filter(r=>r.some(Boolean)),tot=(c.shareholders||[]).reduce((s,p)=>s+hold(p),0);
+  const pr=rows('products').map(r=>({unit:r[1],units:num(r[2]),price:num(r[3])})),capUnits=pr.reduce((s,p)=>s+p.units,0),capRev=pr.reduce((s,p)=>s+p.units*p.price,0);
+  if(new Set(pr.map(p=>String(p.unit).toLowerCase())).size>1)w.push('The products use different units, so the output in the projections is added up as if they were the same unit.');
+  const rawTot=rows('raw').reduce((s,r)=>s+num(r[4])*num(r[5]),0),invTot=rows('invest').reduce((s,r)=>s+num(r[1]),0),cap=num(v.share_capital);
+  if(!cap)w.push('The company has no saved share capital, so the authorised capital and the shareholder loans stay highlighted. Save it on the Company tab.');
+  else if(invTot&&invTot<cap)w.push(`The invested capital (TZS ${comma(invTot)}) is less than the authorised share capital (TZS ${comma(cap)}). Check the investment heads.`);
+  if(!(c.shareholders||[]).length)w.push('The company has no shareholders saved, so the ownership table is empty. Add them on the Company tab.');
+  if((c.shareholders||[]).length>6)w.push('The ownership table shows the first 6 shareholders only.');
+  (c.shareholders||[]).forEach(p=>{if(!p.nationality)w.push(`${p.full_name} has no nationality saved, so it stays highlighted in the ownership table.`);if(!hold(p))w.push(`${p.full_name} is a shareholder with no shares recorded.`)});
+  if(tot&&num(v.number_of_shares)&&tot>num(v.number_of_shares))w.push('The shareholders hold more shares than the total number of shares saved.');
+  if(!String(a.tin||v.tin||'').trim())w.push('No TIN was typed and none is saved, so the entity registration line is written without it.');
+  const lt=num(a.local_male)+num(a.local_female),ft=num(a.foreign_male)+num(a.foreign_female);if(lt+ft&&num(a.permanent)+num(a.temporary)!==lt+ft)w.push(`Permanent plus temporary positions (${num(a.permanent)+num(a.temporary)}) do not equal the total staff (${lt+ft}).`);
+  [1,2,3].forEach(n=>{if(num(a['util_'+n])>100)w.push(`Capacity utilisation for year ${n} is above 100%.`)});
+  if(String(a.other_cost||'').trim()===''&&String(a.fixed_costs||'').trim()==='')w.push('Enter the other variable cost per unit and the fixed costs per year, or the EBITDA stays highlighted for you to type.');
+  else if(capUnits){const rawPer=rawTot/capUnits,avg=capRev/capUnits,u=[1,2,3].map((n,i)=>num(a['util_'+n])||[50,70,85][i]);const e=u.map(x=>capUnits*x/100*(avg-rawPer-num(a.other_cost))-num(a.fixed_costs));if(e.some(x=>x<0))w.push('The calculated EBITDA is negative in at least one year. Check the prices, costs and utilisation.');
+   const inv=invTot,e3=e[2];if(inv&&e3>0)w.push(`For reference: investment divided by the year 3 EBITDA is ${(inv/e3).toFixed(1)} years. Compare it with the payback period you wrote.`)}
+  const aiKeys=['location_advantage','required_raw','source_materials','waste_types','waste_management','marketing_intro','marketing_bullets'];if(aiKeys.some(k=>!String(a[k]||'').trim()))w.push('Some wording sections are empty. Write them, or use Draft with AI and edit the result.');
+  return w},
+ people(){return[]}},
+
 {id:'transfer',title:'Transfer of shares',icon:'bx-transfer',match:/transfer/i,desc:'The directors\' resolution acknowledging and registering transfers of shares (up to four). Check the Articles\' transfer rules, the stamped instruments and the TRA clearance first. Afterwards update Form 131 and, where the owners change, the beneficial-owner forms (15b, 15c, 15f).',
  fields:[...[1,2,3,4].flatMap(i=>[F(`transfer_${i}_transferor`,`Transfer ${i}: seller (transferor)`,'person',{from:'shareholders',req:i===1,group:`Transfer ${i}`}),F(`transfer_${i}_transferee`,`Transfer ${i}: buyer (transferee)`,'person',{from:'any',req:i===1,group:`Transfer ${i}`}),F(`transfer_${i}_shares`,`Transfer ${i}: number of shares`,'number',{req:i===1,group:`Transfer ${i}`})]),
   F('transfer_articles','Articles governing the form and registration of transfers','text',{req:true,ph:'articles 22 to 27 of the Company\'s Articles of Association',help:'Take this from the company\'s own Articles.',group:'Meeting and documents'}),
@@ -388,7 +475,7 @@ const envOf=(a,cv,V)=>({...(cv.values||{}),...a,...(V||{}),directors:names(cv.di
 const matchRe=w=>{const t=String(w||'').split(/[,;\n]/).map(x=>x.trim()).filter(Boolean).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));return t.length?new RegExp(t.join('|'),'i'):/$^/};
 function compose(row){
  const D=require('./wizard-dsl'),b=row.engine?byId(row.engine):null,docs=row.docs||[],rules=row.rules||[],checks=row.checks||[],fields=row.fields||[];
- return{id:row.id,title:row.title,desc:row.description||'',icon:row.icon||'bx-file',match:matchRe(row.match),engine:row.engine||null,fields,
+ return{aiDraft:!!(b&&b.aiDraft),id:row.id,title:row.title,desc:row.description||'',icon:row.icon||'bx-file',match:matchRe(row.match),engine:row.engine||null,fields,
   jobs:(a,c)=>{const o=b?b.jobs(a,c):[];
    for(const d of docs){if(!d.template_id)continue;if(d.if&&!D.truthy(a[d.if]))continue;
     if(d.per){D.pipe(a[d.per]).forEach(n=>o.push({template_id:+d.template_id,name:d.name||'Document',who:n,over:{person_name:n}}))}else o.push({template_id:+d.template_id,name:d.name||'Document'})}
@@ -402,6 +489,6 @@ function compose(row){
   people:(a,c)=>b?b.people(a,c):[]}}
 // what the case page needs to draw the form
 // the form for the UI (functions removed)
-const publicDef=(s,ctx,profile)=>({id:s.id,title:s.title,icon:s.icon,desc:s.desc,fields:s.fields.map(f=>({key:f.key,label:f.label,type:f.type,req:f.req,from:f.from,max:f.max,ph:f.ph,help:f.help,group:f.group||'Questions',show:f.show,opts:f.opts,article:f.article,pair:f.pair,pairOf:f.pairOf,def:f.article?((profile||{})[f.key.slice(4)]||f.def):f.def}))});
+const publicDef=(s,ctx,profile)=>({aiDraft:!!s.aiDraft,id:s.id,title:s.title,icon:s.icon,desc:s.desc,fields:s.fields.map(f=>({key:f.key,label:f.label,type:f.type,req:f.req,from:f.from,max:f.max,ph:f.ph,help:f.help,group:f.group||'Questions',show:f.show,opts:f.opts,cols:f.cols,ai:f.ai,article:f.article,pair:f.pair,pairOf:f.pairOf,def:f.article?((profile||{})[f.key.slice(4)]||f.def):f.def}))});
 const comma_=comma;
 module.exports={BUILTIN,byId,compose,companyView,publicDef,words,joinAnd,fmtD,ordD,addDays,tc,ARTICLE_KEYS,list,comma:comma_,matchRe};

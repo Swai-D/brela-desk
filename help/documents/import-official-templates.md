@@ -19,6 +19,8 @@ The package also holds forms that do not have a wizard yet (for example Forms 21
 
 The package also holds **Memorandum and Articles of Association**, the senior's own Word template. Its wizard fills the company name, objects, share capital and subscribers from what you type (nothing has to be saved yet); see [Memorandum and Articles](help:documents/wizard-memorandum-and-articles).
 
+It also holds the **Business Plan for Establishing an Industry**, made by its wizard ([Industrial business plan](help:documents/wizard-industrial-business-plan)).
+
 ## If it fails
 
 - "Templates_Package is not part of this deployment (templates/manifest.json is missing)": the package folder was not deployed with the app. Ask whoever deploys the app to include `Templates_Package`.

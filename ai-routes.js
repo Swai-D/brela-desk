@@ -226,6 +226,23 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
  const tryGuard=async(req,kind)=>{try{await guard(req,kind);return true}catch{return false}};
  const templatize=async(req,{kind,caseId,templateId,user,text})=>{try{const out=await run(req,{kind,mode:'ai',caseId,templateId,user,maxTokens:Math.min(16000,Math.max(2000,Math.ceil(text.length/2)))});return out.text.length>=text.length*0.6&&/\{\{[a-z#]/.test(out.text)?out.text:null}catch{return null}};
 
+
+ // the AI drafts the wording sections of the industrial business plan; the totals and tables are never written by the AI
+ app.post('/api/cases/:id/scenarios/industry/draft',wrap(async(req,res)=>{
+  const id=+req.params.id,c=await caseInfo(id);if(!c)fail(404,'Case not found');await guard(req,'industry');
+  const b=req.body||{},a=b.answers||{},x=await contextFor(id,{articles:false}),v=(x.ctx&&x.ctx.values)||{};
+  const WANT=['location_advantage','required_raw','source_materials','waste_types','waste_management','marketing_intro','marketing_bullets','benefits'],
+   only=Array.isArray(b.only)&&b.only.length?b.only.filter(k=>WANT.includes(k)):WANT,T=k=>clean(a[k]).slice(0,600);
+  const facts={company:v.company_name||'',main_activity:T('main_activity')||v.business_activity||'',supporting_activities:T('supporting_activities'),products:T('products_description'),product_table:String(a.products||'').slice(0,800),factory_location:T('factory_location'),raw_materials:String(a.raw||'').slice(0,1500),
+   local_staff:`${clean(a.local_male)||0} male, ${clean(a.local_female)||0} female, working in: ${T('local_roles')}`,foreign_staff:`${clean(a.foreign_male)||0} male, ${clean(a.foreign_female)||0} female`,permanent:clean(a.permanent),temporary:clean(a.temporary)};
+  const s=await AI.getSettings(),user=`FACTS (use only these):\n${JSON.stringify(facts,null,1)}\n\nWrite these sections: ${only.join(', ')}.`;
+  const out=await run(req,{kind:'industry',mode:'ai',caseId:id,system:s.industry_prompt,user,maxTokens:3500});
+  const j=AI.parseJSON(out.text),drafts={};
+  for(const k of only){const val=j[k];if(val==null)continue;
+   if(k==='marketing_bullets')drafts[k]=(Array.isArray(val)?val:String(val).split('\n')).map(x=>String(x).replace(/^[-•*\s]+/,'').trim()).filter(Boolean).slice(0,6).join('\n');
+   else if(k==='benefits')drafts[k]=(Array.isArray(val)?val:[]).slice(0,6).map(o=>`${String(o.title||'').replace(/[|\n]/g,' ').trim()}|${String(o.text||'').replace(/[|\n]/g,' ').trim()}`).filter(l=>l.length>1).join('\n');
+   else drafts[k]=String(val).replace(/\r/g,'').trim().slice(0,4000)}
+  res.json({drafts,model:out.model})}));
  app.get('/api/cases/:id/ai/suggest',wrap(async(req,res)=>{
   const c=await caseInfo(+req.params.id);if(!c)fail(404,'Case not found');const name=String(req.query.name||'');
   const all=await withWizard(await q(`${TLIST}`));res.json(all.map(t=>({...t,score:E.suggestScore(t,name,c.case_type_id)})).sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name)))}));
@@ -329,10 +346,10 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   res.json({created,skipped})}));
 
  // the official package templates and the wizard that makes each of them
- const WIZ_OF={T01:'directors',T02:'directors',F01:'directors',F02:'directors',F03:'shares',F04:'shares',T03:'shares',T04:'shares',T05:'shares',T06A:'shares',T06B:'shares',T07A:'shares',T07B:'shares',T08:'shares',F05:'annual',F07:'office',F09:'rename',T09:'transfer',T10:'office',T11:'rename',F10:'objects',T12:'objects',F08:'capital',T13:'capital',F11:'auditor',T14:'auditor',F13:'charge',T15:'charge',M01:'incorp'};
+ const WIZ_OF={T01:'directors',T02:'directors',F01:'directors',F02:'directors',F03:'shares',F04:'shares',T03:'shares',T04:'shares',T05:'shares',T06A:'shares',T06B:'shares',T07A:'shares',T07B:'shares',T08:'shares',F05:'annual',F07:'office',F09:'rename',T09:'transfer',T10:'office',T11:'rename',F10:'objects',T12:'objects',F08:'capital',T13:'capital',F11:'auditor',T14:'auditor',F13:'charge',T15:'charge',M01:'incorp',I01:'industry'};
  const wizardOfTemplateId=async id=>{const r=await one(`SELECT id FROM wizards WHERE active AND docs @> $1::jsonb ORDER BY position,created_at LIMIT 1`,[JSON.stringify([{template_id:+id}])]);return r?r.id:null};
  const needWizard=(msg,data)=>{const e=new Error(msg);e.status=409;e.data=data;throw e};
- const tidOfTemplate=t=>{const m=String((t&&t.keywords)||'').match(/^([tfm]\d\d[ab]?) /i);return m?m[1].toUpperCase():null};
+ const tidOfTemplate=t=>{const m=String((t&&t.keywords)||'').match(/^([tfmi]\d\d[ab]?) /i);return m?m[1].toUpperCase():null};
  const saveDocx=async(req,x,t,r,name,item)=>{
   const id=x.c.id,f=await one(`INSERT INTO files(client_id,case_id,case_doc_id,filename,mime,size,data,uploaded_by,source,missing) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'template',$9) RETURNING id,filename`,
    [x.c.client_id,id,item?item.id:null,`${name}.docx`,'application/vnd.openxmlformats-officedocument.wordprocessingml.document',r.buffer.length,r.buffer,req.user.id,r.missing.length]);
@@ -424,7 +441,7 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   await audit(req,'wizard.delete',`Document wizard "${old.title}" ${old.engine?'reset to the original':'deleted'}`);res.json({ok:1,reset:!!old.engine})}));
  // ---------- case scenarios: a few questions -> every document of the case, filled
  const FORMKEY={F01:'213a',F02:'213b',F03:'57a',F04:'57b',F05:'131'};
- const cleanAnswers=(s,raw)=>{const o={};for(const f of s.fields){let v=clean((raw||{})[f.key]);if(f.type==='bool')v=v==='yes'?'yes':'';if(f.type==='people'||f.type==='person')v=v.split('|').map(x=>x.trim()).filter(Boolean).slice(0,f.max||1).join('|');if(v)o[f.key]=v}return o};
+ const cleanAnswers=(s,raw)=>{const o={};for(const f of s.fields){let v=f.type==='rows'?String((raw||{})[f.key]??'').replace(/\r/g,'').split('\n').map(l=>l.trim()).filter(l=>l.replace(/\|/g,'').trim()).slice(0,f.max||10).join('\n').slice(0,6000):f.type==='longtext'&&f.big?String((raw||{})[f.key]??'').replace(/\r/g,'').trim().slice(0,6000):clean((raw||{})[f.key]);if(f.type==='bool')v=v==='yes'?'yes':'';if(f.type==='people'||f.type==='person')v=v.split('|').map(x=>x.trim()).filter(Boolean).slice(0,f.max||1).join('|');if(v)o[f.key]=v}return o};
  const savedAnswers=async(caseId,sid)=>((await one('SELECT scn FROM cases WHERE id=$1',[caseId])).scn||{})[sid]||{};
  const saveAnswers=async(caseId,s,answers,clientId)=>{
   const art={};for(const f of s.fields)if(f.article&&answers[f.key])art[f.key.slice(4)]=answers[f.key];

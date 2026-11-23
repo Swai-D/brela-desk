@@ -101,7 +101,7 @@ async function textToDocx(text,{title=''}={}){
 // ---- .docx template package: fill the yellow [LABELS] of an original Word template (port of Templates_Package/fill_template.py) ----
 const W_NS='http://schemas.openxmlformats.org/wordprocessingml/2006/main',XML_NS='http://www.w3.org/XML/1998/namespace';
 const labelFromKey=k=>{const o=/_OPT$/.test(k);const b=o?k.slice(0,-4):k;return b.replace(/_/g,' ')+(o?', IF ANY':'')};
-function docxTargets(zip){return Object.keys(zip.files).filter(f=>!zip.files[f].dir&&/^word\/.+\.xml$/.test(f)&&/document|header/.test(f))}
+function docxTargets(zip){return Object.keys(zip.files).filter(f=>!zip.files[f].dir&&/^word\/.+\.xml$/.test(f)&&/document|header|footer/.test(f))}
 
 // ---- repeating people: the official templates have a fixed number of numbered slots (DIRECTOR 1..3, MEMBER 1..7, ATTENDEE 1..5 ...).
 // Count how many people the company really has, drop the empty slots and copy the last slot for any extra person, so nothing is left yellow
@@ -212,6 +212,7 @@ async function docxScan(buf){
    runs.forEach((r,i)=>{if(!hl(r))return;const t=rt(r),m=t.match(/^\[\s*([^\[\]]+?)\s*\]$/),wrapped=0<i&&i<runs.length-1&&rt(runs[i-1])==='['&&rt(runs[i+1])===']',lab=m?m[1].replace(/\s+/g,' '):wrapped?t.trim():null,key=lab?labelKey(lab):null;
     if(key){const e=labels.get(key)||{label:lab,key,optional:/_OPT$/.test(key),count:0};e.count++;labels.set(key,e)}else if(t.trim()&&!clauseOf(t))clausesFound.push(t.replace(/\s+/g,' ').trim())})}}
  return{labels:[...labels.values()],clauses:[...new Set(clausesFound)].map(text=>({key:userClauseKey(text),text}))}}
+const ROWKEY=/^(OWNER|PRODUCT|RAW|INVEST)_\d+_/;
 async function docxFill(buf,values,{acceptClauses=false,custom=false}={}){
  const JSZip=require('jszip'),{DOMParser,XMLSerializer}=require('@xmldom/xmldom');
  const zip=await JSZip.loadAsync(buf);
@@ -227,7 +228,7 @@ async function docxFill(buf,values,{acceptClauses=false,custom=false}={}){
   if(values.__merge_name)mergeNameRows(doc,values);
   renamePresent(doc,values);
   restructureSlots(doc,values);
-  const del=[];
+  const del=[],rowSlots=new Map();
   for(const p of Array.from(doc.getElementsByTagNameNS(W_NS,'p'))){
    const runs=Array.from(p.childNodes).filter(n=>n.nodeType===1&&n.namespaceURI===W_NS&&n.localName==='r');
    const rtext=r=>Array.from(r.getElementsByTagNameNS(W_NS,'t')).map(t=>t.textContent).join('');
@@ -240,7 +241,7 @@ async function docxFill(buf,values,{acceptClauses=false,custom=false}={}){
     const lab=sm?sm[1].replace(/\s+/g,' '):rtext(r),key=l2k[lab]||(wrapped&&/, IF ANY$/.test(lab)&&/^[A-Z0-9 ,]+$/.test(lab)?lab.replace(/, IF ANY$/,'').replace(/ /g,'_')+'_OPT':null)||(custom&&wrapped?labelKey(lab):null);
     if(wrapped&&key){
      const val=values[key];
-     if((val===undefined||val===null)&&!/_OPT$/.test(key)){missing.add(key);continue}// an optional ("IF ANY") detail nobody has is left blank, not yellow
+     if((val===undefined||val===null)&&!/_OPT$/.test(key)&&!(ROWKEY.test(key)&&inCell)){missing.add(key);continue}// an optional ("IF ANY") detail nobody has is left blank, not yellow
      const v=val===undefined||val===null?'':String(val);if(val!==undefined&&val!==null)filled++;
      const ts=Array.from(r.getElementsByTagNameNS(W_NS,'t'));
      if(!ts.length){const t=doc.createElementNS(W_NS,'w:t');r.appendChild(t);ts.push(t)}
@@ -248,7 +249,9 @@ async function docxFill(buf,values,{acceptClauses=false,custom=false}={}){
      for(const extra of ts.slice(1))r.removeChild(extra);
      unhl(r);
      if(!sm){p.removeChild(runs[i-1]);p.removeChild(runs[i+1])}
-     if(v===''&&!/_OPT$/.test(key)&&!inCell)del.push(p)}
+     if(v===''&&!/_OPT$/.test(key)&&!inCell)del.push(p);
+     // table rows made of numbered slots (RAW_1_NAME, INVEST_2_AMOUNT ...): a row whose slots are all blank is taken out of the table
+     if(ROWKEY.test(key)&&inCell){let tr=p.parentNode;while(tr&&!(tr.namespaceURI===W_NS&&tr.localName==='tr'))tr=tr.parentNode;if(tr){const o=rowSlots.get(tr)||{n:0,blank:0};o.n++;if(v==='')o.blank++;rowSlots.set(tr,o)}}}
     else if(!wrapped){const cl=clauseOf(rtext(r))||(custom&&rtext(r).trim()?{k:userClauseKey(rtext(r))}:null);
      if(cl){const on=String(values['CLAUSE_'+cl.k]??'yes').toLowerCase()!=='no';
       if(on)unhl(r);else{const pr=runs[i-1],nx=runs[i+1];p.removeChild(r);
@@ -259,6 +262,7 @@ async function docxFill(buf,values,{acceptClauses=false,custom=false}={}){
     else missing.add('?'+rtext(r))}
   }
   for(const p of del)if(p.parentNode)p.parentNode.removeChild(p);
+  for(const [tr,o] of rowSlots)if(o.n&&o.blank===o.n&&tr.parentNode)tr.parentNode.removeChild(tr);
   // xmldom keeps the file's own <?xml ...?> line when it writes the document back, so strip it and add exactly one (two make Word refuse to open the file)
   zip.file(f,'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n'+new XMLSerializer().serializeToString(doc).replace(/^\s*(<\?xml[^>]*\?>\s*)+/,''))}
  const buffer=await zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'});
