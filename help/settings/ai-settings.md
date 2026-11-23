@@ -1,7 +1,7 @@
 ---
 title: AI settings
 summary: Choose the provider and model, save the key, set limits, privacy and who may use the AI.
-keywords: ai settings, provider, api key, model, openai compatible, endpoint url, max tokens, temperature, timeout, requests per day, requests per hour, privacy, system prompt, business plan prompt, who can use the ai, usage, remove key
+keywords: ai settings, kimi, moonshot, deepseek, provider, api key, model, openai compatible, endpoint url, max tokens, temperature, timeout, requests per day, requests per hour, privacy, system prompt, business plan prompt, who can use the ai, usage, remove key
 order: 5
 role: MANAGER
 ---
@@ -9,7 +9,7 @@ role: MANAGER
 
 ## Set it up
 
-1. **Provider:** pick one. For other services pick the OpenAI-compatible option and fill the **Endpoint URL**.
+1. **Provider:** pick one: Anthropic (Claude), OpenAI, Google (Gemini), xAI (Grok), Mistral AI, Moonshot (Kimi) or DeepSeek. For other services pick the OpenAI-compatible option and fill the **Endpoint URL**.
 2. **API key:** paste it. It is saved encrypted; afterwards you see only the last 4 characters. **Remove the saved key** deletes it.
 3. **Model:** type the **Model ID**, or press the refresh button to load the live list from the provider (it saves your changes first). Model names change often.
 4. **Language of documents:** the language the AI writes in.
