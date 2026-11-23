@@ -9,7 +9,7 @@ order: 1
 ## Steps
 
 1. Open the case and find the **Prepare documents** card. If the official templates are not imported you see a yellow notice; a Senior or Manager must import them first ([Import the official templates](help:documents/import-official-templates)).
-2. Choose a wizard. The one that fits the case is marked **Suggested**; a wizard you used before shows **Answers saved**.
+2. Choose a wizard. The **Prepare documents** card sits across the top of the case, under the case summary: suggested and already-used wizards come first, and **Show all** lists the rest (**Show fewer** folds them again). The one that fits the case is marked **Suggested**; a wizard you used before shows **Answers saved**.
 3. Answer the questions. A red **\*** means required. Dates left empty use the default shown in the field's hint.
 4. For a person question pick a saved person, or press **Add a new person** to create one without leaving the page ([People](help:clients/people)).
 5. Press **Check**. You see the list of documents that will be made, **warnings**, and the people whose details are missing ("not saved yet" or the list of missing fields).
