@@ -10,7 +10,7 @@ The wizards fill **official Word templates**. They must be loaded once.
 ## Steps (Senior or Manager)
 
 1. Open **Templates**.
-2. Press **Import Word package**.
+2. Press **Add from a file**, then **Import Word package**.
 3. Wait for the message. The forms and resolutions appear in the list marked **Word file** / **BRELA form**.
 
 Importing again is safe: it adds the templates that are missing and leaves the ones you already have unchanged (so a new package brings in only its new forms). To change an existing template's Word file, use **Upload edited Word** on that template ([Replacing the Word file safely](help:documents/template-versions-and-approval)).

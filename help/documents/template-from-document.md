@@ -9,7 +9,7 @@ role: SENIOR
 
 ## Steps
 
-1. **Templates → From an accepted document**.
+1. **Templates → Add from a file → From an accepted document**.
 2. Upload a **.docx** file, or a **PDF that has real text** (not a photo), or paste the text.
 3. Give the template a name and press the button. The AI marks the parts that change (names, dates, numbers) as fields.
 4. Review the text and fields, then save. The template starts as **Draft**.
