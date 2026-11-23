@@ -17,7 +17,7 @@ Use this when you have your own document (a letter, a contract, a form) and want
 
 ## Upload it
 
-1. **Templates → From my Word file**.
+1. **Templates → Add from a file → From my Word file**.
 2. Enter the **Template name** and optional **Match words** (they suggest the template on a checklist item).
 3. Choose the **Word file (.docx)** and press **Create template**.
 4. The result lists every label and how it is filled:

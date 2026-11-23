@@ -22,6 +22,7 @@ Use **Search templates** to filter. **Clear search and filter** resets.
 
 ## Buttons
 
+- **Add from a file** (a menu next to **New template**) holds three ways to add templates:
 - **Import Word package:** loads the official forms ([Import](help:documents/import-official-templates)).
 - **New template:** write one by hand ([Template editor](help:documents/template-editor)).
 - **From my Word file:** turn your own Word file (with yellow `[LABELS]`) into a template that keeps your exact layout ([Make a template from your own Word file](help:documents/template-from-word-file)).
