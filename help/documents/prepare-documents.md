@@ -44,6 +44,7 @@ Starting from a checklist item? The robot icon takes you to the right wizard, or
 | **Appointment of auditor** | [Appointment of auditor (Form 173a)](help:documents/wizard-appointment-of-auditor) |
 | **Mortgage or charge** | [Mortgage or charge (Form 99)](help:documents/wizard-mortgage-or-charge) |
 | **Memorandum and Articles of Association** | [Memorandum and Articles](help:documents/wizard-memorandum-and-articles) |
+| **Industrial business plan** | [Industrial business plan](help:documents/wizard-industrial-business-plan) |
 | **Transfer of shares** | [Share transfer](help:documents/wizard-share-transfer) |
 | **Annual return** | [Annual return](help:documents/wizard-annual-return) |
 | Wizards your Manager added | [Custom wizards](help:settings/document-wizards) |

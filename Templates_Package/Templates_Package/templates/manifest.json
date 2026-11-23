@@ -6834,6 +6834,1550 @@
      "optional": false
     }
    ]
+  },
+  {
+   "id": "I01",
+   "file": "I01_Business_Plan_for_Establishing_an_Industry.docx",
+   "title": "Business Plan for Establishing an Industry",
+   "category": "Industrial licence",
+   "status": "Built from the EASTRISE sample business plan (lime); pending the senior's review. Totals and projections are calculated by the wizard; the wording sections are drafted by AI and edited by a person",
+   "use_rules": "Made by the Industrial business plan wizard. The company details, owners and capital come from the Company tab. Check every figure against the client's own documents before submitting to BRELA.",
+   "clauses_to_confirm": [],
+   "placeholders": [
+    {
+     "key": "BOARD_OF_DIRECTORS_TEXT",
+     "label": "BOARD OF DIRECTORS TEXT",
+     "description": "Board Of Directors Text",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_SECRETARY_NAME",
+     "label": "COMPANY SECRETARY NAME",
+     "description": "Company Secretary Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRICE_NOTE_OPT",
+     "label": "PRICE NOTE, IF ANY",
+     "description": "Price Note, If Any",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "TOTAL_INVESTED_CAPITAL",
+     "label": "TOTAL INVESTED CAPITAL",
+     "description": "Total Invested Capital",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "AUTHORISED_SHARE_CAPITAL",
+     "label": "AUTHORISED SHARE CAPITAL",
+     "description": "Authorised Share Capital",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "NUMBER_OF_SHARES",
+     "label": "NUMBER OF SHARES",
+     "description": "Number Of Shares",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "NOMINAL_SHARE_VALUE",
+     "label": "NOMINAL SHARE VALUE",
+     "description": "Nominal Share Value",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SHAREHOLDER_LOANS",
+     "label": "SHAREHOLDER LOANS",
+     "description": "Shareholder Loans",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "TOTAL_STAFF",
+     "label": "TOTAL STAFF",
+     "description": "Total Staff",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "LOCAL_STAFF_TEXT",
+     "label": "LOCAL STAFF TEXT",
+     "description": "Local Staff Text",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "FOREIGN_STAFF_TEXT",
+     "label": "FOREIGN STAFF TEXT",
+     "description": "Foreign Staff Text",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "EMPLOYMENT_TYPE_TEXT",
+     "label": "EMPLOYMENT TYPE TEXT",
+     "description": "Employment Type Text",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MARKETING_INTRO",
+     "label": "MARKETING INTRO",
+     "description": "Marketing Intro",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MARKETING_BULLET_1",
+     "label": "MARKETING BULLET 1",
+     "description": "Marketing Bullet 1",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MARKETING_BULLET_2",
+     "label": "MARKETING BULLET 2",
+     "description": "Marketing Bullet 2",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MARKETING_BULLET_3",
+     "label": "MARKETING BULLET 3",
+     "description": "Marketing Bullet 3",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MARKETING_BULLET_4",
+     "label": "MARKETING BULLET 4",
+     "description": "Marketing Bullet 4",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MARKETING_BULLET_5",
+     "label": "MARKETING BULLET 5",
+     "description": "Marketing Bullet 5",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MARKETING_BULLET_6",
+     "label": "MARKETING BULLET 6",
+     "description": "Marketing Bullet 6",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "FULL_CAPACITY_REVENUE_MILLION",
+     "label": "FULL CAPACITY REVENUE MILLION",
+     "description": "Full Capacity Revenue Million",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_MATERIAL_TOTAL_MILLION",
+     "label": "RAW MATERIAL TOTAL MILLION",
+     "description": "Raw Material Total Million",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PAYBACK_SENTENCE_OPT",
+     "label": "PAYBACK SENTENCE, IF ANY",
+     "description": "Payback Sentence, If Any",
+     "example": "",
+     "optional": true
+    },
+    {
+     "key": "BENEFIT_1_TITLE",
+     "label": "BENEFIT 1 TITLE",
+     "description": "Benefit 1 Title",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BENEFIT_1_TEXT",
+     "label": "BENEFIT 1 TEXT",
+     "description": "Benefit 1 Text",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BENEFIT_2_TITLE",
+     "label": "BENEFIT 2 TITLE",
+     "description": "Benefit 2 Title",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BENEFIT_2_TEXT",
+     "label": "BENEFIT 2 TEXT",
+     "description": "Benefit 2 Text",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BENEFIT_3_TITLE",
+     "label": "BENEFIT 3 TITLE",
+     "description": "Benefit 3 Title",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BENEFIT_3_TEXT",
+     "label": "BENEFIT 3 TEXT",
+     "description": "Benefit 3 Text",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BENEFIT_4_TITLE",
+     "label": "BENEFIT 4 TITLE",
+     "description": "Benefit 4 Title",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BENEFIT_4_TEXT",
+     "label": "BENEFIT 4 TEXT",
+     "description": "Benefit 4 Text",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BENEFIT_5_TITLE",
+     "label": "BENEFIT 5 TITLE",
+     "description": "Benefit 5 Title",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BENEFIT_5_TEXT",
+     "label": "BENEFIT 5 TEXT",
+     "description": "Benefit 5 Text",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BENEFIT_6_TITLE",
+     "label": "BENEFIT 6 TITLE",
+     "description": "Benefit 6 Title",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "BENEFIT_6_TEXT",
+     "label": "BENEFIT 6 TEXT",
+     "description": "Benefit 6 Text",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "COMPANY_NAME",
+     "label": "COMPANY NAME",
+     "description": "Company Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "FACTORY_LOCATION",
+     "label": "FACTORY LOCATION",
+     "description": "Factory Location",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "POSTAL_ADDRESS",
+     "label": "POSTAL ADDRESS",
+     "description": "Postal Address",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PHONE",
+     "label": "PHONE",
+     "description": "Phone",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "EMAIL",
+     "label": "EMAIL",
+     "description": "Email",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ENTITY_REGISTRATION_DETAILS",
+     "label": "ENTITY REGISTRATION DETAILS",
+     "description": "Entity Registration Details",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "ACCOUNTING_DATE",
+     "label": "ACCOUNTING DATE",
+     "description": "Accounting Date",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_1_NO",
+     "label": "OWNER 1 NO",
+     "description": "Owner 1 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_1_NAME",
+     "label": "OWNER 1 NAME",
+     "description": "Owner 1 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_1_NATIONALITY",
+     "label": "OWNER 1 NATIONALITY",
+     "description": "Owner 1 Nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_1_SHAREHOLDING",
+     "label": "OWNER 1 SHAREHOLDING",
+     "description": "Owner 1 Shareholding",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_2_NO",
+     "label": "OWNER 2 NO",
+     "description": "Owner 2 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_2_NAME",
+     "label": "OWNER 2 NAME",
+     "description": "Owner 2 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_2_NATIONALITY",
+     "label": "OWNER 2 NATIONALITY",
+     "description": "Owner 2 Nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_2_SHAREHOLDING",
+     "label": "OWNER 2 SHAREHOLDING",
+     "description": "Owner 2 Shareholding",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_3_NO",
+     "label": "OWNER 3 NO",
+     "description": "Owner 3 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_3_NAME",
+     "label": "OWNER 3 NAME",
+     "description": "Owner 3 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_3_NATIONALITY",
+     "label": "OWNER 3 NATIONALITY",
+     "description": "Owner 3 Nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_3_SHAREHOLDING",
+     "label": "OWNER 3 SHAREHOLDING",
+     "description": "Owner 3 Shareholding",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_4_NO",
+     "label": "OWNER 4 NO",
+     "description": "Owner 4 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_4_NAME",
+     "label": "OWNER 4 NAME",
+     "description": "Owner 4 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_4_NATIONALITY",
+     "label": "OWNER 4 NATIONALITY",
+     "description": "Owner 4 Nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_4_SHAREHOLDING",
+     "label": "OWNER 4 SHAREHOLDING",
+     "description": "Owner 4 Shareholding",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_5_NO",
+     "label": "OWNER 5 NO",
+     "description": "Owner 5 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_5_NAME",
+     "label": "OWNER 5 NAME",
+     "description": "Owner 5 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_5_NATIONALITY",
+     "label": "OWNER 5 NATIONALITY",
+     "description": "Owner 5 Nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_5_SHAREHOLDING",
+     "label": "OWNER 5 SHAREHOLDING",
+     "description": "Owner 5 Shareholding",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_6_NO",
+     "label": "OWNER 6 NO",
+     "description": "Owner 6 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_6_NAME",
+     "label": "OWNER 6 NAME",
+     "description": "Owner 6 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_6_NATIONALITY",
+     "label": "OWNER 6 NATIONALITY",
+     "description": "Owner 6 Nationality",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OWNER_6_SHAREHOLDING",
+     "label": "OWNER 6 SHAREHOLDING",
+     "description": "Owner 6 Shareholding",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "MAIN_ACTIVITY",
+     "label": "MAIN ACTIVITY",
+     "description": "Main Activity",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SUPPORTING_ACTIVITIES",
+     "label": "SUPPORTING ACTIVITIES",
+     "description": "Supporting Activities",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCTS_DESCRIPTION",
+     "label": "PRODUCTS DESCRIPTION",
+     "description": "Products Description",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCTION_CAPACITY_TEXT",
+     "label": "PRODUCTION CAPACITY TEXT",
+     "description": "Production Capacity Text",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_1_NO",
+     "label": "PRODUCT 1 NO",
+     "description": "Product 1 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_1_NAME",
+     "label": "PRODUCT 1 NAME",
+     "description": "Product 1 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_1_UNIT",
+     "label": "PRODUCT 1 UNIT",
+     "description": "Product 1 Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_1_UNITS",
+     "label": "PRODUCT 1 UNITS",
+     "description": "Product 1 Units",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_1_PRICE",
+     "label": "PRODUCT 1 PRICE",
+     "description": "Product 1 Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_1_CAPACITY",
+     "label": "PRODUCT 1 CAPACITY",
+     "description": "Product 1 Capacity",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_2_NO",
+     "label": "PRODUCT 2 NO",
+     "description": "Product 2 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_2_NAME",
+     "label": "PRODUCT 2 NAME",
+     "description": "Product 2 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_2_UNIT",
+     "label": "PRODUCT 2 UNIT",
+     "description": "Product 2 Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_2_UNITS",
+     "label": "PRODUCT 2 UNITS",
+     "description": "Product 2 Units",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_2_PRICE",
+     "label": "PRODUCT 2 PRICE",
+     "description": "Product 2 Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_2_CAPACITY",
+     "label": "PRODUCT 2 CAPACITY",
+     "description": "Product 2 Capacity",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_3_NO",
+     "label": "PRODUCT 3 NO",
+     "description": "Product 3 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_3_NAME",
+     "label": "PRODUCT 3 NAME",
+     "description": "Product 3 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_3_UNIT",
+     "label": "PRODUCT 3 UNIT",
+     "description": "Product 3 Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_3_UNITS",
+     "label": "PRODUCT 3 UNITS",
+     "description": "Product 3 Units",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_3_PRICE",
+     "label": "PRODUCT 3 PRICE",
+     "description": "Product 3 Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_3_CAPACITY",
+     "label": "PRODUCT 3 CAPACITY",
+     "description": "Product 3 Capacity",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_4_NO",
+     "label": "PRODUCT 4 NO",
+     "description": "Product 4 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_4_NAME",
+     "label": "PRODUCT 4 NAME",
+     "description": "Product 4 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_4_UNIT",
+     "label": "PRODUCT 4 UNIT",
+     "description": "Product 4 Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_4_UNITS",
+     "label": "PRODUCT 4 UNITS",
+     "description": "Product 4 Units",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_4_PRICE",
+     "label": "PRODUCT 4 PRICE",
+     "description": "Product 4 Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PRODUCT_4_CAPACITY",
+     "label": "PRODUCT 4 CAPACITY",
+     "description": "Product 4 Capacity",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "LOCATION_ADVANTAGE",
+     "label": "LOCATION ADVANTAGE",
+     "description": "Location Advantage",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "PREMISES_STATUS",
+     "label": "PREMISES STATUS",
+     "description": "Premises Status",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "REQUIRED_RAW_MATERIALS",
+     "label": "REQUIRED RAW MATERIALS",
+     "description": "Required Raw Materials",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "SOURCE_OF_MATERIALS",
+     "label": "SOURCE OF MATERIALS",
+     "description": "Source Of Materials",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_1_NO",
+     "label": "RAW 1 NO",
+     "description": "Raw 1 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_1_ORIGIN",
+     "label": "RAW 1 ORIGIN",
+     "description": "Raw 1 Origin",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_1_NAME",
+     "label": "RAW 1 NAME",
+     "description": "Raw 1 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_1_UNIT",
+     "label": "RAW 1 UNIT",
+     "description": "Raw 1 Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_1_LOCATION",
+     "label": "RAW 1 LOCATION",
+     "description": "Raw 1 Location",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_1_UNITS",
+     "label": "RAW 1 UNITS",
+     "description": "Raw 1 Units",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_1_PRICE",
+     "label": "RAW 1 PRICE",
+     "description": "Raw 1 Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_1_TOTAL",
+     "label": "RAW 1 TOTAL",
+     "description": "Raw 1 Total",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_2_NO",
+     "label": "RAW 2 NO",
+     "description": "Raw 2 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_2_ORIGIN",
+     "label": "RAW 2 ORIGIN",
+     "description": "Raw 2 Origin",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_2_NAME",
+     "label": "RAW 2 NAME",
+     "description": "Raw 2 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_2_UNIT",
+     "label": "RAW 2 UNIT",
+     "description": "Raw 2 Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_2_LOCATION",
+     "label": "RAW 2 LOCATION",
+     "description": "Raw 2 Location",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_2_UNITS",
+     "label": "RAW 2 UNITS",
+     "description": "Raw 2 Units",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_2_PRICE",
+     "label": "RAW 2 PRICE",
+     "description": "Raw 2 Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_2_TOTAL",
+     "label": "RAW 2 TOTAL",
+     "description": "Raw 2 Total",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_3_NO",
+     "label": "RAW 3 NO",
+     "description": "Raw 3 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_3_ORIGIN",
+     "label": "RAW 3 ORIGIN",
+     "description": "Raw 3 Origin",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_3_NAME",
+     "label": "RAW 3 NAME",
+     "description": "Raw 3 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_3_UNIT",
+     "label": "RAW 3 UNIT",
+     "description": "Raw 3 Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_3_LOCATION",
+     "label": "RAW 3 LOCATION",
+     "description": "Raw 3 Location",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_3_UNITS",
+     "label": "RAW 3 UNITS",
+     "description": "Raw 3 Units",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_3_PRICE",
+     "label": "RAW 3 PRICE",
+     "description": "Raw 3 Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_3_TOTAL",
+     "label": "RAW 3 TOTAL",
+     "description": "Raw 3 Total",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_4_NO",
+     "label": "RAW 4 NO",
+     "description": "Raw 4 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_4_ORIGIN",
+     "label": "RAW 4 ORIGIN",
+     "description": "Raw 4 Origin",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_4_NAME",
+     "label": "RAW 4 NAME",
+     "description": "Raw 4 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_4_UNIT",
+     "label": "RAW 4 UNIT",
+     "description": "Raw 4 Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_4_LOCATION",
+     "label": "RAW 4 LOCATION",
+     "description": "Raw 4 Location",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_4_UNITS",
+     "label": "RAW 4 UNITS",
+     "description": "Raw 4 Units",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_4_PRICE",
+     "label": "RAW 4 PRICE",
+     "description": "Raw 4 Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_4_TOTAL",
+     "label": "RAW 4 TOTAL",
+     "description": "Raw 4 Total",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_5_NO",
+     "label": "RAW 5 NO",
+     "description": "Raw 5 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_5_ORIGIN",
+     "label": "RAW 5 ORIGIN",
+     "description": "Raw 5 Origin",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_5_NAME",
+     "label": "RAW 5 NAME",
+     "description": "Raw 5 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_5_UNIT",
+     "label": "RAW 5 UNIT",
+     "description": "Raw 5 Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_5_LOCATION",
+     "label": "RAW 5 LOCATION",
+     "description": "Raw 5 Location",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_5_UNITS",
+     "label": "RAW 5 UNITS",
+     "description": "Raw 5 Units",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_5_PRICE",
+     "label": "RAW 5 PRICE",
+     "description": "Raw 5 Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_5_TOTAL",
+     "label": "RAW 5 TOTAL",
+     "description": "Raw 5 Total",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_6_NO",
+     "label": "RAW 6 NO",
+     "description": "Raw 6 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_6_ORIGIN",
+     "label": "RAW 6 ORIGIN",
+     "description": "Raw 6 Origin",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_6_NAME",
+     "label": "RAW 6 NAME",
+     "description": "Raw 6 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_6_UNIT",
+     "label": "RAW 6 UNIT",
+     "description": "Raw 6 Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_6_LOCATION",
+     "label": "RAW 6 LOCATION",
+     "description": "Raw 6 Location",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_6_UNITS",
+     "label": "RAW 6 UNITS",
+     "description": "Raw 6 Units",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_6_PRICE",
+     "label": "RAW 6 PRICE",
+     "description": "Raw 6 Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_6_TOTAL",
+     "label": "RAW 6 TOTAL",
+     "description": "Raw 6 Total",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_7_NO",
+     "label": "RAW 7 NO",
+     "description": "Raw 7 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_7_ORIGIN",
+     "label": "RAW 7 ORIGIN",
+     "description": "Raw 7 Origin",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_7_NAME",
+     "label": "RAW 7 NAME",
+     "description": "Raw 7 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_7_UNIT",
+     "label": "RAW 7 UNIT",
+     "description": "Raw 7 Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_7_LOCATION",
+     "label": "RAW 7 LOCATION",
+     "description": "Raw 7 Location",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_7_UNITS",
+     "label": "RAW 7 UNITS",
+     "description": "Raw 7 Units",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_7_PRICE",
+     "label": "RAW 7 PRICE",
+     "description": "Raw 7 Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_7_TOTAL",
+     "label": "RAW 7 TOTAL",
+     "description": "Raw 7 Total",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_8_NO",
+     "label": "RAW 8 NO",
+     "description": "Raw 8 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_8_ORIGIN",
+     "label": "RAW 8 ORIGIN",
+     "description": "Raw 8 Origin",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_8_NAME",
+     "label": "RAW 8 NAME",
+     "description": "Raw 8 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_8_UNIT",
+     "label": "RAW 8 UNIT",
+     "description": "Raw 8 Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_8_LOCATION",
+     "label": "RAW 8 LOCATION",
+     "description": "Raw 8 Location",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_8_UNITS",
+     "label": "RAW 8 UNITS",
+     "description": "Raw 8 Units",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_8_PRICE",
+     "label": "RAW 8 PRICE",
+     "description": "Raw 8 Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_8_TOTAL",
+     "label": "RAW 8 TOTAL",
+     "description": "Raw 8 Total",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_9_NO",
+     "label": "RAW 9 NO",
+     "description": "Raw 9 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_9_ORIGIN",
+     "label": "RAW 9 ORIGIN",
+     "description": "Raw 9 Origin",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_9_NAME",
+     "label": "RAW 9 NAME",
+     "description": "Raw 9 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_9_UNIT",
+     "label": "RAW 9 UNIT",
+     "description": "Raw 9 Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_9_LOCATION",
+     "label": "RAW 9 LOCATION",
+     "description": "Raw 9 Location",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_9_UNITS",
+     "label": "RAW 9 UNITS",
+     "description": "Raw 9 Units",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_9_PRICE",
+     "label": "RAW 9 PRICE",
+     "description": "Raw 9 Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_9_TOTAL",
+     "label": "RAW 9 TOTAL",
+     "description": "Raw 9 Total",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_10_NO",
+     "label": "RAW 10 NO",
+     "description": "Raw 10 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_10_ORIGIN",
+     "label": "RAW 10 ORIGIN",
+     "description": "Raw 10 Origin",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_10_NAME",
+     "label": "RAW 10 NAME",
+     "description": "Raw 10 Name",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_10_UNIT",
+     "label": "RAW 10 UNIT",
+     "description": "Raw 10 Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_10_LOCATION",
+     "label": "RAW 10 LOCATION",
+     "description": "Raw 10 Location",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_10_UNITS",
+     "label": "RAW 10 UNITS",
+     "description": "Raw 10 Units",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_10_PRICE",
+     "label": "RAW 10 PRICE",
+     "description": "Raw 10 Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_10_TOTAL",
+     "label": "RAW 10 TOTAL",
+     "description": "Raw 10 Total",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "RAW_MATERIAL_TOTAL",
+     "label": "RAW MATERIAL TOTAL",
+     "description": "Raw Material Total",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_1_NO",
+     "label": "INVEST 1 NO",
+     "description": "Invest 1 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_1_ITEM",
+     "label": "INVEST 1 ITEM",
+     "description": "Invest 1 Item",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_1_AMOUNT",
+     "label": "INVEST 1 AMOUNT",
+     "description": "Invest 1 Amount",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_2_NO",
+     "label": "INVEST 2 NO",
+     "description": "Invest 2 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_2_ITEM",
+     "label": "INVEST 2 ITEM",
+     "description": "Invest 2 Item",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_2_AMOUNT",
+     "label": "INVEST 2 AMOUNT",
+     "description": "Invest 2 Amount",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_3_NO",
+     "label": "INVEST 3 NO",
+     "description": "Invest 3 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_3_ITEM",
+     "label": "INVEST 3 ITEM",
+     "description": "Invest 3 Item",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_3_AMOUNT",
+     "label": "INVEST 3 AMOUNT",
+     "description": "Invest 3 Amount",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_4_NO",
+     "label": "INVEST 4 NO",
+     "description": "Invest 4 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_4_ITEM",
+     "label": "INVEST 4 ITEM",
+     "description": "Invest 4 Item",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_4_AMOUNT",
+     "label": "INVEST 4 AMOUNT",
+     "description": "Invest 4 Amount",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_5_NO",
+     "label": "INVEST 5 NO",
+     "description": "Invest 5 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_5_ITEM",
+     "label": "INVEST 5 ITEM",
+     "description": "Invest 5 Item",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_5_AMOUNT",
+     "label": "INVEST 5 AMOUNT",
+     "description": "Invest 5 Amount",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_6_NO",
+     "label": "INVEST 6 NO",
+     "description": "Invest 6 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_6_ITEM",
+     "label": "INVEST 6 ITEM",
+     "description": "Invest 6 Item",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_6_AMOUNT",
+     "label": "INVEST 6 AMOUNT",
+     "description": "Invest 6 Amount",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_7_NO",
+     "label": "INVEST 7 NO",
+     "description": "Invest 7 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_7_ITEM",
+     "label": "INVEST 7 ITEM",
+     "description": "Invest 7 Item",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_7_AMOUNT",
+     "label": "INVEST 7 AMOUNT",
+     "description": "Invest 7 Amount",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_8_NO",
+     "label": "INVEST 8 NO",
+     "description": "Invest 8 No",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_8_ITEM",
+     "label": "INVEST 8 ITEM",
+     "description": "Invest 8 Item",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "INVEST_8_AMOUNT",
+     "label": "INVEST 8 AMOUNT",
+     "description": "Invest 8 Amount",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "WASTE_TYPES",
+     "label": "WASTE TYPES",
+     "description": "Waste Types",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "WASTE_MANAGEMENT",
+     "label": "WASTE MANAGEMENT",
+     "description": "Waste Management",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "UTILISATION_1",
+     "label": "UTILISATION 1",
+     "description": "Utilisation 1",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "UTILISATION_2",
+     "label": "UTILISATION 2",
+     "description": "Utilisation 2",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "UTILISATION_3",
+     "label": "UTILISATION 3",
+     "description": "Utilisation 3",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OUTPUT_UNIT",
+     "label": "OUTPUT UNIT",
+     "description": "Output Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OUTPUT_1",
+     "label": "OUTPUT 1",
+     "description": "Output 1",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OUTPUT_2",
+     "label": "OUTPUT 2",
+     "description": "Output 2",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "OUTPUT_3",
+     "label": "OUTPUT 3",
+     "description": "Output 3",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "AVERAGE_PRICE",
+     "label": "AVERAGE PRICE",
+     "description": "Average Price",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "AVERAGE_PRICE_UNIT",
+     "label": "AVERAGE PRICE UNIT",
+     "description": "Average Price Unit",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "REVENUE_1",
+     "label": "REVENUE 1",
+     "description": "Revenue 1",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "REVENUE_2",
+     "label": "REVENUE 2",
+     "description": "Revenue 2",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "REVENUE_3",
+     "label": "REVENUE 3",
+     "description": "Revenue 3",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "EBITDA_1",
+     "label": "EBITDA 1",
+     "description": "Ebitda 1",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "EBITDA_2",
+     "label": "EBITDA 2",
+     "description": "Ebitda 2",
+     "example": "",
+     "optional": false
+    },
+    {
+     "key": "EBITDA_3",
+     "label": "EBITDA 3",
+     "description": "Ebitda 3",
+     "example": "",
+     "optional": false
+    }
+   ]
   }
  ]
 }
