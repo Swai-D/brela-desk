@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 export DATABASE_URL="${DATABASE_URL:-postgres://${PG_USER:-brela}:${PG_PASS:-brela}@localhost:5432/${PG_DB:-brela}}"
 export ADMIN_EMAIL=boss@test.co ADMIN_PASSWORD='Secret123!' ADMIN_NAME=Neema JWT_SECRET=ci-secret NODE_ENV=test PORT=3000
 export ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
-export AI_BASE_ANTHROPIC=http://localhost:4020/anthropic AI_BASE_OPENAI=http://localhost:4020/openai AI_BASE_GOOGLE=http://localhost:4020/google AI_BASE_XAI=http://localhost:4020/xai AI_BASE_MISTRAL=http://localhost:4020/mistral
+export AI_BASE_ANTHROPIC=http://localhost:4020/anthropic AI_BASE_OPENAI=http://localhost:4020/openai AI_BASE_GOOGLE=http://localhost:4020/google AI_BASE_XAI=http://localhost:4020/xai AI_BASE_MISTRAL=http://localhost:4020/mistral AI_BASE_KIMI=http://localhost:4020/kimi AI_BASE_DEEPSEEK=http://localhost:4020/deepseek
 export WHATSAPP_TOKEN=tok WHATSAPP_PHONE_NUMBER_ID=PN1 WHATSAPP_VERIFY_TOKEN=vt WHATSAPP_APP_SECRET=sec WA_GRAPH_BASE=http://localhost:4010 WA_AUTOREPLY=true
 run() {
   local name=$1

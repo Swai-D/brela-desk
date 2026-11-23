@@ -12,7 +12,7 @@ const mlog=async()=>(await fetch(MOCK+'/__log')).json(),mreset=()=>fetch(MOCK+'/
  // ---- defaults
  const d=(await call('GET','/ai/settings')).j,s=d.settings;
  ok('good defaults are ready: Anthropic Sonnet, low temperature, a BRELA-focused system prompt, safe limits, privacy on',s.provider==='anthropic'&&s.models.anthropic==='claude-sonnet-5-5'&&s.temperature===0.2&&s.max_tokens===4096&&/BRELA/.test(s.system_prompt)&&/\[\[field_name\]\]/.test(s.system_prompt)&&s.daily_limit===200&&s.hourly_per_user===30&&s.privacy==='standard'&&s.min_level==='STAFF',s);
- ok('five providers plus a custom endpoint are offered, each with model suggestions and where to get a key',Object.keys(d.providers).sort().join()==='anthropic,custom,google,mistral,openai,xai'&&d.providers.openai.models.length>=1&&d.providers.google.keyUrl&&Object.values(d.keys).every(k=>!k.set),Object.keys(d.providers));
+ ok('seven providers plus a custom endpoint are offered, each with model suggestions and where to get a key',Object.keys(d.providers).sort().join()==='anthropic,custom,deepseek,google,kimi,mistral,openai,xai'&&d.providers.openai.models.length>=1&&d.providers.google.keyUrl&&Object.values(d.keys).every(k=>!k.set),Object.keys(d.providers));
  ok('loading models needs a saved key first',(await call('POST','/ai/models')).s===400);
  ok('the AI says clearly that it is not set up yet',(await call('GET','/ai/status')).j.configured===false);
  // ---- permissions
@@ -33,7 +33,7 @@ const mlog=async()=>(await fetch(MOCK+'/__log')).json(),mreset=()=>fetch(MOCK+'/
  ok('status now shows the AI is ready',(r=>r.configured&&r.can_use&&r.provider==='anthropic'&&r.blocked===null)((await call('GET','/ai/status')).j));
  // ---- every provider speaks its own protocol correctly
  const wire={};
- for(const p of ['anthropic','openai','google','xai','mistral','custom']){
+ for(const p of ['anthropic','openai','google','xai','mistral','kimi','deepseek','custom']){
   const key=GOOD+'-'+p;await call('PUT','/ai/settings',{provider:p,models:{[p]:'m-'+p},custom_base_url:'http://localhost:4020/custom',temperature:1.7,max_tokens:4096,api_key:key});
   await mreset();const t=await call('POST','/ai/test');const lg=(await mlog()).filter(x=>x.method==='POST');wire[p]={t,e:lg[lg.length-1],key};
   ok(`${p}: the test call succeeds and is billed to the right endpoint`,t.s===200&&t.j.ok&&t.j.reply==='OK'&&t.j.model==='m-'+p&&wire[p].e&&wire[p].e.prov===p,t.j)}
@@ -41,7 +41,7 @@ const mlog=async()=>(await fetch(MOCK+'/__log')).json(),mreset=()=>fetch(MOCK+'/
  ok('anthropic: x-api-key header, version header, temperature capped at 1, max_tokens, system prompt with the built-in output rules',A.path==='/v1/messages'&&A.headers.xapikey===wire.anthropic.key&&A.headers.version==='2023-06-01'&&A.body.model==='m-anthropic'&&A.body.temperature===1&&A.body.max_tokens===64&&/BRELA/.test(A.body.system)&&/Non-negotiable output rules/.test(A.body.system),A.body);
  ok('openai: bearer key, system message, max_completion_tokens (not max_tokens), temperature as set; the connection test asks for only 64 tokens (cheap)',O.path==='/chat/completions'&&O.headers.auth==='Bearer '+wire.openai.key&&O.body.messages[0].role==='system'&&O.body.max_completion_tokens===64&&!('max_tokens' in O.body)&&O.body.temperature===1.7,O.body);
  ok('gemini: key header, systemInstruction, generationConfig',G.path==='/models/m-google:generateContent'&&G.headers.google===wire.google.key&&/BRELA/.test(G.body.systemInstruction.parts[0].text)&&G.body.generationConfig.maxOutputTokens===64&&G.body.generationConfig.temperature===1.7,G.body);
- ok('xai, mistral and a custom endpoint use the OpenAI-compatible format with max_tokens',['xai','mistral','custom'].every(p=>wire[p].e.path==='/chat/completions'&&wire[p].e.body.max_tokens===64&&wire[p].e.headers.auth==='Bearer '+wire[p].key));
+ ok('xai, mistral, kimi, deepseek and a custom endpoint use the OpenAI-compatible format with max_tokens',['xai','mistral','kimi','deepseek','custom'].every(p=>wire[p].e.path==='/chat/completions'&&wire[p].e.body.max_tokens===64&&wire[p].e.headers.auth==='Bearer '+wire[p].key));
  // ---- models are loaded live from each provider
  const models=async p=>{await call('PUT','/ai/settings',{provider:p});return (await call('POST','/ai/models')).j.models};
  ok('live model lists: anthropic, gemini (chat models only), openai (chat models only), xai',(await models('anthropic')).join()==='claude-haiku-5-5,claude-opus-5-5,claude-sonnet-5-5'&&(await models('google')).join()==='gemini-2.5-flash,gemini-2.5-pro'&&(await models('openai')).join()==='gpt-5,gpt-5-mini'&&(await models('xai')).includes('grok-4'));
