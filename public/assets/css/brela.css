@@ -575,3 +575,6 @@ td.text-end{white-space:nowrap}
 @media (max-width:767.98px){.page-content{padding-bottom:128px}}
 @media(max-width:575px){.sc-card .sc-b small{-webkit-line-clamp:1}.sc-card .sc-b{padding:10px 12px}}
 @media(max-width:767px){.tp-bar .tp-search{flex:1 1 100%}.tp-bar .tp-seg{flex:1 1 100%;overflow-x:auto;flex-wrap:nowrap}.tp-seg button{white-space:nowrap}.tp-actions{flex:1 1 100%}.tp-actions .dropdown{flex:1}.tp-actions .dropdown>.btn,.tp-actions>.btn{width:100%}.tp-actions>.btn{flex:1}}
+.rp-box{border:1px solid #e3e7f0;border-radius:12px;padding:6px 16px;max-height:46vh;overflow:auto;background:#fff}
+.rp-g{padding:10px 0;border-bottom:1px solid #eef0f6}.rp-g:last-child{border-bottom:0}
+.rp-g .form-check{margin-top:6px}

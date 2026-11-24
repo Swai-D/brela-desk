@@ -49,7 +49,7 @@ order: 20
 | **Stage** | New, Gathering Docs, Ready to Submit, Submitted to BRELA, Returned (Correction), Completed |
 | **Checklist** | The documents a case needs |
 | **BRELA round** | How many times BRELA has returned the case |
-| **Role / Access level** | The job / what the job may do (Staff, Senior, Manager) |
+| **Role / Permissions** | The job / the tick boxes that say what the job may do (Staff, Senior and Manager are starting sets) |
 | **Team queue** | Unclaimed cases of a stage shown to roles that handle it |
 | **Vault** | Encrypted client logins |
 | **Wizard** | A guided set of questions that makes several documents at once |

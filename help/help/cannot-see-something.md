@@ -4,7 +4,7 @@ summary: Why something is missing and who can give you access.
 keywords: missing, hidden, cannot see, no button, permission, settings missing, reports missing, greyed out, only a manager, not allowed, access
 order: 1
 ---
-Most often it needs a higher access level.
+Most often your role does not have the permission ticked.
 
 | You are missing | It needs |
 |---|---|
@@ -21,7 +21,7 @@ Most often it needs a higher access level.
 
 ## What to do
 
-1. Open [Your profile](help:account/profile) to see your access level.
+1. Open [the Playbook](help:daily-work/playbook), tab **My role**, to see what your role can and cannot do.
 2. Ask a Manager to change your role if you need more ([Team and roles](help:settings/team-and-roles)). It takes effect immediately; refresh the page.
 3. If you only need a one-off action, ask a Senior or Manager to do it.
 

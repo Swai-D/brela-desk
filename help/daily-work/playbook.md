@@ -10,7 +10,7 @@ The **Playbook** is the team handbook inside the app. It has three tabs.
 
 Your role name, your access level, and a summary of the role. Below it:
 
-- **What you can do** and **What you cannot do (ask a Senior or Manager)**. The lists change with your access level.
+- **What you can do** and **What you cannot do (ask a Senior or Manager)**. The lists follow the permissions ticked on your role.
 - Your responsibilities as written by the Manager.
 
 ## How a case flows
