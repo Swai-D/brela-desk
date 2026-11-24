@@ -27,7 +27,7 @@ The steps are advice only. They never block anybody, so you can write them freel
 2. Press the pencil (**Edit responsibilities**) on the role's card.
 3. In **Edit role** you can change:
    - **Role name**
-   - **Access level**: Staff, Senior or Manager. A short explanation of each level is shown under the field.
+   - **What can this role do?**: the permission tick boxes, with **Start from** Staff, Senior, Manager or Nothing
    - **Show the team queue in My Work for this role**
    - **Summary**: one sentence for the Playbook
    - **Responsibilities**: one per line

@@ -21,7 +21,7 @@ role: MANAGER
 |---|---|
 | **Max tokens**, **Temperature**, **Timeout (s)** | Length, creativity and wait time. Keep defaults unless told otherwise. |
 | **Requests per day (everyone)**, **Requests per hour (each person)** | Cost protection |
-| **Who can use the AI** | Tick the roles allowed. Others see "Your role is not allowed to use the AI." |
+| **Who can use the AI** | No longer a setting here. Tick **Use the AI assistant** on each role in [Roles](help:settings/roles-and-access-levels). Others see "Your role is not allowed to use the AI." |
 | **Privacy: Standard (recommended)** vs **Off: send everything** | Standard never sends ID numbers, phones, emails or dates of birth |
 | **System prompt** and **Reset to the recommended prompt** | Instructions to the AI. Edit with care. |
 | **Business plan prompt** and **Reset to the recommended prompt** | The instructions and examples the AI follows when it drafts the wording of an industrial business plan ([Industrial business plan](help:documents/wizard-industrial-business-plan)). Edit with care; the AI still writes words only, never figures. |

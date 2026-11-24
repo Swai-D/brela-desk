@@ -65,10 +65,10 @@ const mlog=async()=>(await fetch(MOCK+'/__log')).json(),mreset=()=>fetch(MOCK+'/
   ok('the business plan prompt is the stored industry prompt and carries only the facts',/business plan/i.test(JSON.stringify(last.body||{}).slice(0,3000))&&/FACTS \(use only these\)/.test(JSON.stringify(last.body||{}))&&/Manufacture of lime/.test(JSON.stringify(last.body||{})));
   const ps=(await call('GET','/ai/settings')).j;ok('the business plan prompt is listed with its default',/Business Plan for Establishing an Industry/.test(ps.settings.industry_prompt)&&ps.defaults.industry_prompt===ps.settings.industry_prompt);
   ok('an over-long business plan prompt is refused',(await call('PUT','/ai/settings',{industry_prompt:'x'.repeat(12001)})).s===400)}
- await call('PUT','/ai/settings',{min_level:'SENIOR'});await as('juma@test.co',UP);const eJ=await ex();await as('sia@test.co',UP);const eS=await ex();
- ok('"who can use the AI" is enforced',eJ.s===403&&/not allowed/.test(eJ.j.error)&&eS.s===200&&(await call('GET','/ai/status')).j.can_use===true,[eJ.s,eS.s]);
+ const cat=(await call('GET','/permissions')).j;await call('PUT','/roles/JUNIOR',{permissions:cat.presets.STAFF.filter(k=>k!=='ai.use')});await as('juma@test.co',UP);const eJ=await ex();await as('sia@test.co',UP);const eS=await ex();
+ ok('the "Use the AI assistant" permission is enforced per role',eJ.s===403&&/not allowed/.test(eJ.j.error)&&eS.s===200&&(await call('GET','/ai/status')).j.can_use===true,[eJ.s,eS.s]);
  await as('juma@test.co',UP);ok('the status tells a blocked person they cannot use it',(await call('GET','/ai/status')).j.can_use===false);
- await as('boss@test.co',AP);await call('PUT','/ai/settings',{min_level:'STAFF'});
+ await as('boss@test.co',AP);await call('PUT','/roles/JUNIOR',{permissions:cat.presets.STAFF});
  // ---- usage report
  const u=(await call('GET','/ai/usage')).j;
  ok('usage: per person, per kind, recent runs (with errors) and no document text',u.byUser.some(x=>x.name==='Neema'&&x.runs>=1&&x.tokens_in>0)&&u.byKind.some(x=>x.kind==='extract')&&u.recent.length>=5&&u.recent.some(x=>x.ok===false)&&u.recent.every(x=>!('output' in x))&&u.daily_limit===200,u);

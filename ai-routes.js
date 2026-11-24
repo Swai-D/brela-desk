@@ -1,27 +1,26 @@
 // Routes for the AI assistant: settings, templates, company data, document generation.
 const fs=require('fs'),path=require('path');
-const SR=['MANAGER','SENIOR'],KEY=/^[a-z][a-z0-9_]{0,40}$/,ROLES=['director','shareholder','secretary','beneficial_owner','other'];
+const KEY=/^[a-z][a-z0-9_]{0,40}$/,ROLES=['director','shareholder','secretary','beneficial_owner','other'];
 const COMMON_KEYS=['company_name','proposed_names','business_activity','registered_office','postal_address','share_capital','number_of_shares','share_value','date_of_incorporation','tin','financial_year_end','objects'];
 const {parseRegistry,composeAddress}=require('./registry-import');
 const SC=require('./scenarios'),WD=require('./wizard-dsl');
-module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
- const sr=u=>SR.includes(u.level);
+module.exports=(app,{q,one,wrap,fail,need,can,P,audit,caseInfo,log,up,AI,E})=>{
  const clean=v=>String(v??'').replace(/\r/g,'').trim().slice(0,2000);
  // ---------- settings (Manager)
- app.get('/api/ai/settings',need('MANAGER'),wrap(async(req,res)=>res.json(await AI.publicSettings())));
- app.put('/api/ai/settings',need('MANAGER'),wrap(async(req,res)=>{
+ app.get('/api/ai/settings',need('ai.manage'),wrap(async(req,res)=>res.json(await AI.publicSettings())));
+ app.put('/api/ai/settings',need('ai.manage'),wrap(async(req,res)=>{
   const before=await AI.getSettings(),{api_key,clear_key,...patch}=req.body||{},after=await AI.saveSettings(patch,{apiKey:api_key,clearKey:!!clear_key});
   const ch=[];for(const k of ['provider','temperature','max_tokens','daily_limit','hourly_per_user','min_level','privacy','language','timeout_s','custom_base_url'])if(String(before[k])!==String(after[k]))ch.push(`${k} ${before[k]} → ${after[k]}`);
   if(before.models[after.provider]!==after.models[after.provider])ch.push(`model ${before.models[after.provider]||'-'} → ${after.models[after.provider]}`);
   if(before.system_prompt!==after.system_prompt)ch.push('system prompt changed');if(api_key)ch.push(`API key saved for ${after.provider}`);if(clear_key)ch.push(`API key removed for ${after.provider}`);
   if(ch.length)await audit(req,'ai.settings',ch.join('; '));res.json(await AI.publicSettings())}));
- app.post('/api/ai/models',need('MANAGER'),wrap(async(req,res)=>res.json({models:await AI.listModels()})));
- app.post('/api/ai/test',need('MANAGER'),wrap(async(req,res)=>{
+ app.post('/api/ai/models',need('ai.manage'),wrap(async(req,res)=>res.json({models:await AI.listModels()})));
+ app.post('/api/ai/test',need('ai.manage'),wrap(async(req,res)=>{
   const s=await AI.getSettings();let out;
   try{out=await AI.call({user:'Reply with the single word OK.',maxTokens:64});await AI.record({userId:req.user.id,kind:'test',provider:out.provider,model:out.model,usage:out.usage,ms:out.ms});res.json({ok:true,reply:out.text.slice(0,80),provider:out.provider,model:out.model,ms:out.ms})}
   catch(e){await AI.record({userId:req.user.id,kind:'test',provider:s.provider,model:s.models[s.provider],ok:false,error:e.message});throw e}}));
  app.get('/api/ai/status',wrap(async(req,res)=>res.json(await AI.status(req.user))));
- app.get('/api/ai/usage',need('MANAGER'),wrap(async(req,res)=>{
+ app.get('/api/ai/usage',need('ai.manage'),wrap(async(req,res)=>{
   const [byUser,byKind,recent,lim]=await Promise.all([
    q(`SELECT coalesce(u.name,'—') AS name,count(*)::int AS runs,coalesce(sum(r.tokens_in),0)::int AS tokens_in,coalesce(sum(r.tokens_out),0)::int AS tokens_out FROM ai_runs r LEFT JOIN users u ON u.id=r.user_id WHERE r.created_at>now()-interval '7 days' AND r.kind<>'fill' GROUP BY u.name ORDER BY runs DESC`),
    q(`SELECT kind,count(*)::int AS runs FROM ai_runs WHERE created_at>now()-interval '7 days' GROUP BY kind ORDER BY runs DESC`),
@@ -106,11 +105,11 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const t=await one(`${TLIST} WHERE t.id=$1`,[+req.params.id]);if(!t)fail(404,'Template not found');
   const extra=await one('SELECT ai_notes FROM templates WHERE id=$1',[t.id]),body=await bodyOf(t),versions=await q('SELECT v.version,v.note,v.source,v.created_at,u.name AS by FROM template_versions v LEFT JOIN users u ON u.id=v.created_by WHERE v.template_id=$1 ORDER BY v.version DESC',[t.id]);
   res.json({...t,ai_notes:extra.ai_notes||'',body,fields:E.fields(body),versions})}));
- app.post('/api/templates',need(...SR),wrap(async(req,res)=>{
+ app.post('/api/templates',need('templates.edit'),wrap(async(req,res)=>{
   const b=req.body||{},name=clean(b.name),body=String(b.body||'');if(!name)fail(400,'Give the template a name');if(!body.trim())fail(400,'The template text is empty');if(body.length>200000)fail(400,'The template is too long');
   const t=await one(`INSERT INTO templates(name,kind,description,ai_notes,case_type_id,keywords,created_by) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`,[name,kindOf(b.kind),clean(b.description)||null,clean(b.ai_notes)||null,+b.case_type_id||null,clean(b.keywords)||null,req.user.id]);
   await q('INSERT INTO template_versions(template_id,version,body,note,source,created_by) VALUES($1,1,$2,$3,$4,$5)',[t.id,body,clean(b.note)||'First version',b.source==='ai'?'ai':'manual',req.user.id]);res.json(t)}));
- app.put('/api/templates/:id',need(...SR),wrap(async(req,res)=>{
+ app.put('/api/templates/:id',need('templates.edit'),wrap(async(req,res)=>{
   const t=await one('SELECT * FROM templates WHERE id=$1',[+req.params.id]);if(!t)fail(404,'Template not found');const b=req.body||{};
   const name=b.name!==undefined?clean(b.name):t.name;if(!name)fail(400,'Give the template a name');
   await q('UPDATE templates SET name=$2,kind=$3,description=$4,ai_notes=$5,case_type_id=$6,keywords=$7,updated_at=now() WHERE id=$1',[t.id,name,b.kind!==undefined?kindOf(b.kind):t.kind,b.description!==undefined?clean(b.description)||null:t.description,b.ai_notes!==undefined?clean(b.ai_notes)||null:t.ai_notes,b.case_type_id!==undefined?(+b.case_type_id||null):t.case_type_id,b.keywords!==undefined?clean(b.keywords)||null:t.keywords]);
@@ -118,13 +117,13 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   if(b.body!==undefined){const body=String(b.body);if(!body.trim())fail(400,'The template text is empty');if(body.length>200000)fail(400,'The template is too long');
    if(body!==await bodyOf(t)){version=await newVersion(t,body,clean(b.note),b.source==='learned'?'learned':'manual',req.user.id);if(t.status==='APPROVED')await audit(req,'template.edit',`${name}: approved template edited, back to draft (v${version})`)}}
   res.json({ok:1,version})}));
- app.post('/api/templates/:id/approve',need(...SR),wrap(async(req,res)=>{
+ app.post('/api/templates/:id/approve',need('templates.edit'),wrap(async(req,res)=>{
   const t=await one('SELECT * FROM templates WHERE id=$1',[+req.params.id]);if(!t)fail(404,'Template not found');const on=req.body.approved!==false;
   await q('UPDATE templates SET status=$2,updated_at=now() WHERE id=$1',[t.id,on?'APPROVED':'DRAFT']);await audit(req,on?'template.approve':'template.unapprove',`${t.name} (v${t.version})`);res.json({ok:1,status:on?'APPROVED':'DRAFT'})}));
- app.post('/api/templates/:id/restore',need(...SR),wrap(async(req,res)=>{
+ app.post('/api/templates/:id/restore',need('templates.edit'),wrap(async(req,res)=>{
   const t=await one('SELECT * FROM templates WHERE id=$1',[+req.params.id]);if(!t)fail(404,'Template not found');const old=await one('SELECT body FROM template_versions WHERE template_id=$1 AND version=$2',[t.id,+req.body.version]);if(!old)fail(404,'That version does not exist');
   res.json({ok:1,version:await newVersion(t,old.body,`Restored version ${+req.body.version}`,'manual',req.user.id)})}));
- app.delete('/api/templates/:id',need('MANAGER'),wrap(async(req,res)=>{const t=await one('SELECT name FROM templates WHERE id=$1',[+req.params.id]);if(!t)fail(404,'Template not found');// a wizard made for this template goes with it; other wizards just lose the document
+ app.delete('/api/templates/:id',need('templates.delete'),wrap(async(req,res)=>{const t=await one('SELECT name FROM templates WHERE id=$1',[+req.params.id]);if(!t)fail(404,'Template not found');// a wizard made for this template goes with it; other wizards just lose the document
   for(const w of await q('SELECT id,engine,docs FROM wizards')){const keep=(w.docs||[]).filter(d=>+d.template_id!==+req.params.id);if(keep.length===(w.docs||[]).length)continue;
    if(!keep.length&&!w.engine)await q('DELETE FROM wizards WHERE id=$1',[w.id]);else await q('UPDATE wizards SET docs=$2::jsonb WHERE id=$1',[w.id,JSON.stringify(keep)])}
   await q('DELETE FROM templates WHERE id=$1',[+req.params.id]);await audit(req,'template.delete',t.name);res.json({ok:1})}));
@@ -146,22 +145,22 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const buf=await E.textToDocx(previewBody(body),{title:clean(b.title)||'Template'});
   res.set({'Content-Type':DOCX_MIME,'Content-Length':buf.length,'Cache-Control':'no-store'});res.send(buf)}));
  // an edited Word file comes back: it replaces the official form (and re-reads its text), or, for a text template, is read into editable HTML
- app.post('/api/templates/docx-to-html',need(...SR),up,wrap(async(req,res)=>{
+ app.post('/api/templates/docx-to-html',need('templates.edit'),up,wrap(async(req,res)=>{
   if(!req.file)fail(400,'Choose a Word (.docx) file');if(!/\.docx$/i.test(Buffer.from(req.file.originalname,'latin1').toString('utf8')))fail(400,'Use a .docx file');
   let html;try{html=(await require('mammoth').convertToHtml({buffer:req.file.buffer})).value}catch{fail(400,'This Word file could not be read')}
   res.json({html})}));
  // The labels of a Word file: what the template can fill. Used to show what a replacement would change before it goes live.
  const labelsOf=async buf=>{try{return((await E.docxScan(buf)).labels||[]).map(l=>l.label)}catch{return[]}};
  const diffLabels=(was,now)=>({removed:was.filter(x=>!now.includes(x)),added:now.filter(x=>!was.includes(x)),kept:now.filter(x=>was.includes(x)).length});
- app.get('/api/templates/:id/docx-history',need(...SR),wrap(async(req,res)=>res.json(await q('SELECT h.id,h.docx_name,h.note,h.created_at,jsonb_array_length(h.labels)::int AS labels,u.name AS by FROM template_docx_history h LEFT JOIN users u ON u.id=h.created_by WHERE h.template_id=$1 ORDER BY h.id DESC LIMIT 20',[+req.params.id]))));
- app.post('/api/templates/:id/docx-restore/:hid',need(...SR),wrap(async(req,res)=>{
+ app.get('/api/templates/:id/docx-history',need('templates.edit'),wrap(async(req,res)=>res.json(await q('SELECT h.id,h.docx_name,h.note,h.created_at,jsonb_array_length(h.labels)::int AS labels,u.name AS by FROM template_docx_history h LEFT JOIN users u ON u.id=h.created_by WHERE h.template_id=$1 ORDER BY h.id DESC LIMIT 20',[+req.params.id]))));
+ app.post('/api/templates/:id/docx-restore/:hid',need('templates.edit'),wrap(async(req,res)=>{
   const t=await one('SELECT * FROM templates WHERE id=$1',[+req.params.id]);if(!t||!t.docx_data)fail(404,'Template not found');
   const h=await one('SELECT * FROM template_docx_history WHERE id=$1 AND template_id=$2',[+req.params.hid,t.id]);if(!h)fail(404,'That earlier file was not found');
   const cur=await labelsOf(t.docx_data);
   await q('INSERT INTO template_docx_history(template_id,docx_name,docx_data,labels,note,created_by) VALUES($1,$2,$3,$4::jsonb,$5,$6)',[t.id,t.docx_name,t.docx_data,JSON.stringify(cur),'Replaced by an earlier file (restored)',req.user.id]);
   await q('UPDATE templates SET docx_name=$2,docx_data=$3,updated_at=now() WHERE id=$1',[t.id,h.docx_name,h.docx_data]);
   await audit(req,'template.word-restore',`${t.name}: ${h.docx_name||'earlier file'}`);res.json({ok:1,labels:diffLabels(cur,await labelsOf(h.docx_data))})}));
- app.post('/api/templates/:id/upload-docx',need(...SR),up,wrap(async(req,res)=>{
+ app.post('/api/templates/:id/upload-docx',need('templates.edit'),up,wrap(async(req,res)=>{
   const t=await one('SELECT * FROM templates WHERE id=$1',[+req.params.id]);if(!t)fail(404,'Template not found');if(!t.docx_data)fail(400,'This template has no official Word form to replace');
   if(!req.file)fail(400,'Choose a Word (.docx) file');const name=Buffer.from(req.file.originalname,'latin1').toString('utf8');if(!/\.docx$/i.test(name))fail(400,'Use a .docx file');
   // dry run: say what would change, change nothing
@@ -196,7 +195,7 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
    if(!l.optional)f.req=true;if(type==='date')f.fmt='date';if(type==='money')f.fmt='money';fields.push(f);out.push({label:l.label,key:l.key,status:l.optional?'optional':'asked'})}
   for(const c of sc.clauses){const k='clause_'+c.key.toLowerCase();fields.push({key:k,label:`Include: “${c.text.slice(0,110)}”`,type:'choice',group:'Optional wording',maps_to:k,opts:[['yes','Include it'],['no','Leave it out']]})}
   return{fields,out}};
- app.post('/api/templates/from-word',need(...SR),up,wrap(async(req,res)=>{
+ app.post('/api/templates/from-word',need('templates.edit'),up,wrap(async(req,res)=>{
   if(!req.file)fail(400,'Choose a Word (.docx) file');const fname=Buffer.from(req.file.originalname,'latin1').toString('utf8');if(!/\.docx$/i.test(fname))fail(400,'Use a .docx file');
   const b=req.body||{},name=(clean(b.name)||fname.replace(/\.docx$/i,'')).slice(0,120);
   if(await one('SELECT 1 FROM templates WHERE lower(name)=lower($1)',[name]))fail(409,'A template with this name already exists. Choose another name.');
@@ -285,7 +284,7 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   res.json({file:f,gaps:gp.length,ticked:false,needs_check:!!item,template:tpl})}));
 
  // teach: turn the corrected final document into an improved template (proposal only, nothing is saved here)
- app.post('/api/cases/:id/ai/learn',need(...SR),wrap(async(req,res)=>{
+ app.post('/api/cases/:id/ai/learn',need('templates.edit'),wrap(async(req,res)=>{
   const id=+req.params.id,b=req.body||{},x=await contextFor(id),text=String(b.text||'');if(text.trim().length<20)fail(400,'There is no document text to learn from');
   const t=await loadTemplate(b.template_id),det=E.reverse(text,x.ctx.values);let body=det.body,aiUsed=false,replaced=det.replaced;
   if(b.use_ai!==false&&await tryGuard(req,'learn')){
@@ -308,7 +307,7 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   res.json({values,people,notes:clean(j.notes)})}));
 
  // create a template from an accepted document (file or pasted text)
- app.post('/api/templates/from-document',need(...SR),up,wrap(async(req,res)=>{
+ app.post('/api/templates/from-document',need('templates.edit'),up,wrap(async(req,res)=>{
   const b=req.body||{},name=clean(b.name);if(!name)fail(400,'Give the template a name');
   const text=req.file?await E.extractText(req.file.buffer,Buffer.from(req.file.originalname,'latin1').toString('utf8'),req.file.mimetype):String(b.text||'').trim();
   if(text.length<20)fail(400,'Upload a document or paste its text');
@@ -323,7 +322,7 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
 
  // import the official Word template package (Templates_Package): a text template + the exact .docx for each entry
  const PKG=path.join(__dirname,'Templates_Package','Templates_Package');
- app.post('/api/templates/import-package',need(...SR),wrap(async(req,res)=>{
+ app.post('/api/templates/import-package',need('templates.edit'),wrap(async(req,res)=>{
   const mf=path.join(PKG,'templates','manifest.json');let man;
   try{man=JSON.parse(fs.readFileSync(mf,'utf8'))}catch{fail(400,'Templates_Package is not part of this deployment (templates/manifest.json is missing)')}
   const created=[],skipped=[];
@@ -423,19 +422,19 @@ module.exports=(app,{q,one,wrap,fail,need,audit,caseInfo,log,up,AI,E})=>{
   const rules=[];for(const r of (Array.isArray(b.rules)?b.rules:[]).slice(0,40)){const key=clean(r.key).toLowerCase();if(!key&&!clean(r.expr))continue;if(!/^[a-z][a-z0-9_]{0,60}$/.test(key))fail(400,`Formula "${clean(r.key)}": the placeholder name is not valid`);const e=WD.check(r.expr);if(e)fail(400,`Formula for ${key.toUpperCase()}: ${e}`);rules.push({key,expr:clean(r.expr).slice(0,600),blank:!!r.blank})}
   const checks=[];for(const k of (Array.isArray(b.checks)?b.checks:[]).slice(0,20)){if(!clean(k.when)&&!clean(k.msg))continue;const e=WD.check(k.when);if(e)fail(400,`Check "${clean(k.msg).slice(0,40)}": ${e}`);if(!clean(k.msg))fail(400,'Every check needs a message');checks.push({when:clean(k.when).slice(0,600),msg:clean(k.msg).slice(0,300)})}
   return{title:title.slice(0,120),description:clean(b.description).slice(0,400),icon:/^bx[a-z]?-[a-z0-9-]{2,40}$/.test(clean(b.icon))?clean(b.icon):'bx-file',match:clean(b.match).slice(0,200),fields,docs,rules,checks,active:b.active!==false}};
- app.get('/api/wizards',need('MANAGER'),wrap(async(req,res)=>{
+ app.get('/api/wizards',need('wizards.manage'),wrap(async(req,res)=>{
   const rows=await wizRows(false),ts=await q('SELECT id,name,docx_defaults FROM templates WHERE docx_data IS NOT NULL ORDER BY name');
   res.json({items:rows,templates:ts.map(t=>({id:t.id,name:t.name,keys:Object.keys(t.docx_defaults||{}).map(k=>k.toLowerCase())})),functions:WD.docs(),formats:WD.FMT,types:FTYPES})}));
- app.post('/api/wizards',need('MANAGER'),wrap(async(req,res)=>{
+ app.post('/api/wizards',need('wizards.manage'),wrap(async(req,res)=>{
   await ensureWizards();const w=await cleanWizard(req.body||{},null);let id=w.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'wizard',n=1;while(await one('SELECT 1 FROM wizards WHERE id=$1',[id]))id=id.replace(/-\d+$/,'')+'-'+(++n);
   const pos=(await one('SELECT coalesce(max(position),0)+1 AS n FROM wizards')).n;
   await q('INSERT INTO wizards(id,title,description,icon,match,fields,docs,rules,checks,position,active) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8::jsonb,$9::jsonb,$10,$11)',[id,w.title,w.description,w.icon,w.match,JSON.stringify(w.fields),JSON.stringify(w.docs),JSON.stringify(w.rules),JSON.stringify(w.checks),pos,w.active]);
   await audit(req,'wizard.create',`Document wizard "${w.title}" created`);res.json({id})}));
- app.put('/api/wizards/:wid',need('MANAGER'),wrap(async(req,res)=>{
+ app.put('/api/wizards/:wid',need('wizards.manage'),wrap(async(req,res)=>{
   await ensureWizards();const old=await one('SELECT * FROM wizards WHERE id=$1',[req.params.wid]);if(!old)fail(404,'Not found');const w=await cleanWizard(req.body||{},old);
   await q('UPDATE wizards SET title=$2,description=$3,icon=$4,match=$5,fields=$6::jsonb,docs=$7::jsonb,rules=$8::jsonb,checks=$9::jsonb,active=$10,updated_at=now() WHERE id=$1',[old.id,w.title,w.description,w.icon,w.match,JSON.stringify(w.fields),JSON.stringify(w.docs),JSON.stringify(w.rules),JSON.stringify(w.checks),w.active]);
   await audit(req,'wizard.update',`Document wizard "${w.title}" changed`);res.json({ok:1})}));
- app.delete('/api/wizards/:wid',need('MANAGER'),wrap(async(req,res)=>{
+ app.delete('/api/wizards/:wid',need('wizards.manage'),wrap(async(req,res)=>{
   await ensureWizards();const old=await one('SELECT id,title,engine FROM wizards WHERE id=$1',[req.params.wid]);if(!old)fail(404,'Not found');
   await q('DELETE FROM wizards WHERE id=$1',[old.id]);if(old.engine)wzSeeded=false; // a built-in wizard goes back to its original questions
   await audit(req,'wizard.delete',`Document wizard "${old.title}" ${old.engine?'reset to the original':'deleted'}`);res.json({ok:1,reset:!!old.engine})}));

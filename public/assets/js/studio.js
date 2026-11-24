@@ -107,7 +107,7 @@ async function openEditor(o){
  if(!ST.sigs.length)toast('Create your signature first (right side), then click the page to place it.','info',6000)}
 
 function shell(){
- const c=ST.ctx,has=!!c.clientId,cs=c.case&&c.case.case,file=E.fileId?ctxFiles().find(f=>f.id===E.fileId):null,canReplace=!!E.fileId&&has&&(SENIOR()||E.uploadedBy===ME.id);
+ const c=ST.ctx,has=!!c.clientId,cs=c.case&&c.case.case,file=E.fileId?ctxFiles().find(f=>f.id===E.fileId):null,canReplace=!!E.fileId&&has&&(CAN('files.manage')||E.uploadedBy===ME.id);
  const docs=c.case?c.case.docs:[],ready=docs.filter(d=>d.done).length;
  g('studio').innerHTML=`<div class="d-flex flex-wrap align-items-center gap-2 mb-3"><div class="flex-grow-1 min-w-0"><div class="small text-muted"><a href="#" id="sd-back">Doc Studio</a>${has?` / ${esc(c.client.client.name)}${cs?' / '+esc(cs.code):''}`:''}</div><div class="d-flex align-items-center gap-2"><h5 class="mb-0 text-truncate">${esc(E.name)}</h5><span class="badge bg-warning-subtle text-warning" id="sd-dirty" style="display:none">Unsaved changes</span></div></div><button type="button" class="btn btn-outline-secondary" id="sd-dl"><i class="bx bx-download me-1"></i>Download copy</button><button type="button" class="btn btn-light text-danger" id="sd-discard">Discard changes</button></div>
  <div class="sd-shell">
