@@ -21,10 +21,10 @@ http.createServer((req,res)=>{let b='';req.on('data',d=>b+=d);req.on('end',()=>{
  const url=req.url.split('?')[0];
  if(url==='/__log'){res.writeHead(200);return res.end(JSON.stringify(log))}
  if(url==='/__reset'){log=[];res.writeHead(200);return res.end('{}')}
- const m=url.match(/^\/(anthropic|openai|google|xai|mistral|kimi|deepseek|custom)(\/.*)$/);if(!m){res.writeHead(404);return res.end('{}')}
+ const m=url.match(/^\/(anthropic|openai|google|xai|mistral|kimi|deepseek|openrouter|custom)(\/.*)$/);if(!m){res.writeHead(404);return res.end('{}')}
  const [,prov,path]=m,key=req.headers['x-api-key']||req.headers['x-goog-api-key']||String(req.headers.authorization||'').replace(/^Bearer /,'');
  let body={};try{body=JSON.parse(b||'{}')}catch{}
- log.push({prov,path,method:req.method,key,headers:{auth:req.headers.authorization,xapikey:req.headers['x-api-key'],google:req.headers['x-goog-api-key'],version:req.headers['anthropic-version']},body});
+ log.push({prov,path,method:req.method,key,headers:{auth:req.headers.authorization,xapikey:req.headers['x-api-key'],google:req.headers['x-goog-api-key'],version:req.headers['anthropic-version'],title:req.headers['x-title']},body});
  if(key==='bad-key-0000')return fail(res,401,'invalid x-api-key');if(key==='quota-key-0000')return fail(res,429,'rate limit');
  const send=o=>{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(o))};
  if(req.method==='GET'&&/models$/.test(path)){
