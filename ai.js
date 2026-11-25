@@ -40,8 +40,9 @@ const PROVIDERS={
  mistral:{label:'Mistral AI',api:'openai',base:'https://api.mistral.ai/v1',models:['mistral-large-latest','mistral-medium-latest','mistral-small-latest'],keyUrl:'console.mistral.ai'},
  kimi:{label:'Moonshot (Kimi)',api:'openai',base:'https://api.moonshot.ai/v1',models:['kimi-k2.5','kimi-latest','moonshot-v1-128k'],keyUrl:'platform.moonshot.ai'},
  deepseek:{label:'DeepSeek',api:'openai',base:'https://api.deepseek.com',models:['deepseek-chat','deepseek-reasoner'],keyUrl:'platform.deepseek.com/api_keys'},
+ openrouter:{label:'OpenRouter (many models, one key)',api:'openai',base:'https://openrouter.ai/api/v1',models:['openrouter/auto','anthropic/claude-sonnet-4.5','openai/gpt-5','google/gemini-2.5-pro','deepseek/deepseek-chat','moonshotai/kimi-k2'],keyUrl:'openrouter.ai/keys'},
  custom:{label:'Custom (OpenAI-compatible)',api:'openai',base:'',models:[],keyUrl:''}};
-const DEFAULTS={provider:'anthropic',models:{anthropic:'claude-sonnet-5-5',openai:'gpt-5',google:'gemini-2.5-pro',xai:'grok-4',mistral:'mistral-large-latest',kimi:'kimi-k2.5',deepseek:'deepseek-chat',custom:''},temperature:0.2,max_tokens:4096,system_prompt:DEFAULT_PROMPT,industry_prompt:DEFAULT_INDUSTRY_PROMPT,language:'English',daily_limit:200,hourly_per_user:30,min_level:'STAFF',privacy:'standard',custom_base_url:'',timeout_s:90};
+const DEFAULTS={provider:'anthropic',models:{anthropic:'claude-sonnet-5-5',openai:'gpt-5',google:'gemini-2.5-pro',xai:'grok-4',mistral:'mistral-large-latest',kimi:'kimi-k2.5',deepseek:'deepseek-chat',openrouter:'openrouter/auto',custom:''},temperature:0.2,max_tokens:4096,system_prompt:DEFAULT_PROMPT,industry_prompt:DEFAULT_INDUSTRY_PROMPT,language:'English',daily_limit:200,hourly_per_user:30,min_level:'STAFF',privacy:'standard',custom_base_url:'',timeout_s:90};
 const err=(status,message)=>{const e=new Error(message);e.status=status;return e};
 
 module.exports=({q,one,enc,dec})=>{
@@ -94,7 +95,7 @@ module.exports=({q,one,enc,dec})=>{
   else{
    const body={model,messages:[{role:'system',content:sys},{role:'user',content:user}],temperature:temp};body[p==='openai'?'max_completion_tokens':'max_tokens']=max;
    for(let attempt=0;attempt<3;attempt++){
-    const r=await http(`${base}/chat/completions`,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+key},body:JSON.stringify(body)},ms);
+    const r=await http(`${base}/chat/completions`,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+key,...(p==='openrouter'?{'X-Title':'BRELA Desk'}:{})},body:JSON.stringify(body)},ms);
     if(r.ok){const j=await r.json();text=(((j.choices||[])[0]||{}).message||{}).content||'';usage={in:j.usage&&j.usage.prompt_tokens,out:j.usage&&j.usage.completion_tokens};break}
     const m=await msgOf(r);
     if(r.status===400&&attempt<2){ // some models only accept their defaults: adapt once and retry
