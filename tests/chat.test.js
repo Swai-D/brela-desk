@@ -53,4 +53,30 @@ const upload=async(docId,name,text,type='text/plain')=>{const f=new FormData();f
  await as('boss@test.co',AP);await call('PUT','/roles/JUNIOR',{permissions:['ai.use']});
  ok('a manager can clear the conversation',(await call('DELETE',`/cases/${cs.id}/chat`)).s===200&&(await call('GET',`/cases/${cs.id}/chat`)).j.messages.length===0);
  ok('chat runs are in the AI usage report as their own kind',(await call('GET','/ai/usage')).j.byKind.some(x=>x.kind==='chat'));
+
+ // ---- reference library: the Companies Act is part of every case chat
+ await as('boss@test.co',AP);
+ const ACT='PART I\nPRELIMINARY\n1. Short title.\nThis Act may be cited as the Companies Act.\n2. Interpretation.\nIn this Act company means a company formed under this Act.\n3.-(1) Any two or more persons may form a company by subscribing their names to a memorandum.\n(2) Each subscriber shall take at least one share.\nPART II\n4. Name of company.\nThe name of a company limited by shares shall end with the word Limited.\n5. Registered office.\nEvery company shall have a registered office in Tanzania to which communications may be addressed.\n6. Directors address.\nThe particulars of each director, including the residential address, shall be filed with the Registrar.\n';
+ const addRef=async(title,kind,text,name='act.txt')=>{const f=new FormData();f.append('title',title);f.append('kind',kind);f.append('file',new Blob([text],{type:'text/plain'}),name);return call('POST','/reference',f,true)};
+ ok('the chat says the library is empty before anything is added',(await call('GET',`/cases/${cs.id}/chat`)).j.reference.length===0);
+ await as('juma@test.co',UP);
+ ok('only a role with the reference ticks can add, rename or remove library documents',(await addRef('Act','law',ACT)).s===403&&(await call('PATCH','/reference/1',{title:'x'})).s===403&&(await call('DELETE','/reference/1')).s===403&&(await call('GET','/reference')).s===200);
+ await as('boss@test.co',AP);
+ ok('a name and a file are required',(await addRef('','law',ACT)).s===400&&(await call('POST','/reference',{title:'x'})).s===400);
+ const add=await addRef('Companies Act 2002','law',ACT);
+ ok('the Act is split into its sections when added',add.s===200&&add.j.sections===7,add);
+ await mreset();
+ const lr=await call('POST',`/cases/${cs.id}/chat`,{message:'What does the law say about the registered office?'});
+ const ls=JSON.stringify((await mlog()).filter(x=>/messages$/.test(x.path)).pop().body);
+ ok('the AI gets the matching section of the Act, labelled with its section number, and is told to cite it and not to quote the law from memory',/\[R1\] Companies Act 2002 — Section 5/.test(ls)&&/Every company shall have a registered office/.test(ls)&&/do not state the law from memory/.test(ls),ls.slice(-1500));
+ ok('the chat shows what it is checked against',(await call('GET',`/cases/${cs.id}/chat`)).j.reference.join()==='Companies Act 2002'&&lr.j.reference.join()==='Companies Act 2002');
+ await mreset();await call('POST',`/cases/${cs.id}/chat`,{message:'How do we fix it?'});
+ const ls2=JSON.stringify((await mlog()).filter(x=>/messages$/.test(x.path)).pop().body);
+ ok('a vague question still finds the right section, because what BRELA asked to correct is used to search the Act (director address)',/Section 6/.test(ls2)&&/residential address/.test(ls2),ls2.slice(-1200));
+ const ref=(await call('GET','/reference')).j[0];
+ await call('PATCH','/reference/'+ref.id,{active:false});await mreset();await call('POST',`/cases/${cs.id}/chat`,{message:'registered office?'});
+ ok('switching a document off removes it from the chat',!/\[R1\]/.test(JSON.stringify((await mlog()).filter(x=>/messages$/.test(x.path)).pop().body)));
+ await call('PATCH','/reference/'+ref.id,{active:true,title:'Companies Act (Cap. 212)'});
+ ok('it can be renamed, and the change is in the audit log',(await call('GET','/reference')).j[0].title==='Companies Act (Cap. 212)'&&(await call('GET','/audit?size=100')).j.items.some(x=>x.action==='reference.add'));
+ ok('a library document can be removed',(await call('DELETE','/reference/'+ref.id)).s===200&&(await call('GET','/reference')).j.length===0);
 })().then(()=>{console.log(fails?'\n'+fails+' FAILED':'\nall passed');process.exit(fails?1:0)}).catch(e=>{console.error(e);process.exit(1)});

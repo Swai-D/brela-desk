@@ -488,5 +488,5 @@ module.exports=(app,{q,one,wrap,fail,need,can,P,audit,caseInfo,log,up,AI,E})=>{
   const r=await runScenario(req,id,s,answers,true),made=r.jobs.filter(j=>j.file).length;
   await log(id,req.user.id,`prepared ${made} document${made===1?'':'s'} for "${s.title}"`);
   res.json({answers,...r})}));
- require('./case-chat')(app,{q,one,wrap,fail,can,AI,E,contextFor,guard,run});
+ require('./case-chat')(app,{q,one,wrap,fail,can,need,audit,up,AI,E,contextFor,guard,run});
 };

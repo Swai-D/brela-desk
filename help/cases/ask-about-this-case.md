@@ -18,6 +18,7 @@ Only this case:
 - **Document checklist**: which items are ready, their files, details still highlighted in yellow, and documents not yet checked by a second person.
 - **History**, including exactly what BRELA asked to correct, and the **comments**.
 - **Company details** saved on the client, and the people.
+- **The Companies Act and guides** from the [Reference library](help:settings/reference-library). They are part of every case, so the assistant can check documents against the Act and name the section, for example "Section 5". What BRELA last asked to correct is used to find the right sections.
 - **The text of the documents** uploaded to the case (.docx, .pdf, .txt and scans). For each question the app picks the passages that match your words.
 
 **Scanned PDFs and pictures** (.png, .jpg, .tif) are read with text recognition (OCR) on the server, so they are not sent anywhere to be read. Scans can contain misread characters, so the panel names them and you should check names and numbers in the original. OCR reads English; a very faint or handwritten scan may give little or nothing. Files that still cannot be read are listed with the reason: paste the text into a comment if it matters. The first question about a case reads its files once, so it can take a little longer; later questions are quick.

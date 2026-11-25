@@ -28,6 +28,7 @@ const GROUPS=[
   {key:'playbook.edit',label:'Edit the Playbook',base:'MANAGER'},
   {key:'whatsapp.manage',label:'Manage WhatsApp settings and send test messages',base:'MANAGER'},
   {key:'reports.view',label:'Open the monthly Reports',base:'MANAGER'},
+  {key:'reference.manage',label:'Add, change and remove the reference library (the Companies Act and guides)',base:'MANAGER'},
   {key:'audit.view',label:'See the audit log',base:'MANAGER'}]}];
 const ALL=GROUPS.flatMap(g=>g.items.map(i=>i.key));
 const RANK={STAFF:0,SENIOR:1,MANAGER:2};

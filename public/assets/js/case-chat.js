@@ -3,7 +3,7 @@
 const SUGGEST=['What did BRELA ask us to correct?','Which documents are not ready yet, and why?','Summarise this case in five lines.','Check the documents against the company details and list any mistakes.'];
 const md=t=>{
  const lines=esc(String(t||'')).split('\n'),out=[];let list=null;
- const inl=s=>s.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\[((?:[CD]\d+)(?:\s*,\s*[CD]\d+)*)\]/g,(m,a)=>`<sup class="cc-cite">${a.replace(/\s/g,'')}</sup>`);
+ const inl=s=>s.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\[((?:[CDR]\d+)(?:\s*,\s*[CDR]\d+)*)\]/g,(m,a)=>`<sup class="cc-cite">${a.replace(/\s/g,'')}</sup>`);
  const close=()=>{if(list){out.push(`</${list}>`);list=null}};
  for(const l of lines){
   const b=l.match(/^\s*[-*•]\s+(.*)/),n=l.match(/^\s*\d+[.)]\s+(.*)/);
@@ -25,10 +25,10 @@ window.CASE_CHAT=async c=>{
   const e0=list.querySelector('.cc-empty');if(e0)e0.remove();
   list.insertAdjacentHTML('beforeend',bub({role:'user',body:t,by:ME.name,created_at:new Date().toISOString()})+'<div class="cc-m cc-a" id="ccWait"><div class="cc-b cc-typing"><span></span><span></span><span></span> Reading the case…</div></div>');down();
   try{const r=await api(`/cases/${c.id}/chat`,{body:{message:t}});$e('#ccWait').remove();list.insertAdjacentHTML('beforeend',bub(r.messages[1]));
-   note(r.unreadable,r.hidden,r.scanned)}
+   note(r.unreadable,r.hidden,r.scanned,r.reference)}
   catch(e){const w=$e('#ccWait');if(w)w.remove();list.insertAdjacentHTML('beforeend',`<div class="cc-m cc-a"><div class="cc-b cc-err"><i class="bx bx-error-circle me-1"></i>${esc(e.message)}</div></div>`);inp.value=t}
   busy=false;send.disabled=false;down();inp.focus()};
- const note=(unread,hidden,scanned)=>{$e('#ccNote').innerHTML=(scanned&&scanned.length?`<div class="cc-priv text-muted"><i class="bx bx-scan me-1"></i>Read by text recognition: ${scanned.map(esc).join(', ')}. Scans can contain misread characters, so check names and numbers in the original.</div>`:'')+(unread&&unread.length?`<div class="tp-note mb-2"><i class="bx bx-info-circle"></i><span>The assistant cannot read ${unread.length} file${unread.length===1?'':'s'} (${unread.map(u=>esc(u.name)+(u.why?' — '+esc(u.why):'')).join('; ')}). Paste the text into a comment if it matters.</span></div>`:'')+(hidden?'<div class="cc-priv text-muted"><i class="bx bx-lock-alt me-1"></i>Privacy is on: ID, TIN and phone numbers are hidden from the AI.</div>':'')};
+ const note=(unread,hidden,scanned,ref)=>{$e('#ccNote').innerHTML=(ref&&ref.length?`<div class="cc-priv text-muted"><i class="bx bx-book-content me-1"></i>Checked against: ${ref.map(esc).join(', ')}.</div>`:CAN('reference.manage')?'<div class="cc-priv text-muted"><i class="bx bx-book-content me-1"></i>The Companies Act is not loaded yet. Add it in Settings → Reference library so answers are checked against it.</div>':'')+(scanned&&scanned.length?`<div class="cc-priv text-muted"><i class="bx bx-scan me-1"></i>Read by text recognition: ${scanned.map(esc).join(', ')}. Scans can contain misread characters, so check names and numbers in the original.</div>`:'')+(unread&&unread.length?`<div class="tp-note mb-2"><i class="bx bx-info-circle"></i><span>The assistant cannot read ${unread.length} file${unread.length===1?'':'s'} (${unread.map(u=>esc(u.name)+(u.why?' — '+esc(u.why):'')).join('; ')}). Paste the text into a comment if it matters.</span></div>`:'')+(hidden?'<div class="cc-priv text-muted"><i class="bx bx-lock-alt me-1"></i>Privacy is on: ID, TIN and phone numbers are hidden from the AI.</div>':'')};
  $e('#ccForm').onsubmit=e=>{e.preventDefault();ask_()};
  inp.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();ask_()}};
  $e('#ccClear').style.display=CAN('cases.edit')?'':'none';
@@ -36,7 +36,7 @@ window.CASE_CHAT=async c=>{
  el.dataset.case=c.id;list.innerHTML='<div class="text-muted p-3">Loading…</div>';
  bootstrap.Offcanvas.getOrCreateInstance(el).show();
  try{const d=await api(`/cases/${c.id}/chat`);const ok=d.ai.configured&&d.ai.can_use;
-  note(d.unread,d.ai.privacy==='standard',d.scanned);
+  note(d.unread,d.ai.privacy==='standard',d.scanned,d.reference);
   list.innerHTML=d.messages.length?d.messages.map(bub).join(''):empty();bindSug();down();
   if(!d.ai.configured){list.insertAdjacentHTML('afterbegin','<div class="alert alert-warning">The AI is not set up yet. A Manager can add an API key in Settings → AI assistant.</div>')}
   else if(!d.ai.can_use){list.insertAdjacentHTML('afterbegin','<div class="alert alert-warning">Your role is not allowed to use the AI.</div>')}

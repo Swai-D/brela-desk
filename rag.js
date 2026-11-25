@@ -12,6 +12,22 @@ function chunk(text,size=900){
   if(p.length>size){push();for(let i=0;i<p.length;i+=size-150)out.push(p.slice(i,i+size).trim());continue}
   if(cur.length+p.length+2>size)push();cur+=(cur?'\n\n':'')+p}
  push();return out.filter(Boolean)}
+// split a law into its sections, so an answer can cite "Section 12". A new section starts at a line such as "12.-(1) ..." or
+// "12. Name of company", and its number must follow the previous one (so numbered lists inside a section do not split it).
+function chunkAct(text,title='',size=1400){
+ const lines=String(text||'').split('\n'),secs=[];let cur={n:null,part:'',body:[]},last=0,part='';
+ const flush=()=>{if(cur.body.join('').trim())secs.push(cur)};
+ for(const l of lines){
+  const pm=l.match(/^\s*(PART\s+[IVXLC]+\b.*)$/);if(pm&&pm[1].length<90)part=pm[1].trim();
+  const m=l.match(/^\s*(\d{1,3})([A-Z]?)\s*\.\s*(?:[-–—]\s*)?(?=\(?[A-Za-z0-9])/);
+  if(m){const n=+m[1];if(n>last&&n<=last+6||(last===0&&n<=3)){flush();last=n;cur={n:m[1]+m[2],part,body:[]}}}
+  cur.body.push(l)}
+ flush();
+ const out=[];
+ for(const s of secs){const body=s.body.join('\n').trim(),lab=(title?title+' — ':'')+(s.n?'Section '+s.n:'Introduction')+(s.part?` (${s.part.replace(/\s+/g,' ').slice(0,60)})`:'');
+  if(body.length<=size){out.push({label:lab,text:body});continue}
+  let i=0,k=1;for(const c of chunk(body,size)){out.push({label:lab+(k>1?` (continued ${k})`:''),text:c});k++;i++}}
+ return out}
 // rank chunks [{file,n,text}] against a question: the best `k` first. With no matching words, the opening of each document is used.
 function rank(query,chunks,k=8){
  const q=[...new Set(tokens(query))],docs=chunks.map(c=>{const t=tokens(c.text+' '+(c.file||''));const tf={};for(const w of t)tf[w]=(tf[w]||0)+1;return{c,tf,len:t.length||1}});
@@ -24,4 +40,4 @@ function rank(query,chunks,k=8){
 function mask(text){
  return String(text||'').replace(/\+?\d[\d ()\-]{6,}\d/g,m=>{
   if(m.replace(/\D/g,'').length<8)return m;if(/^\d{4}-\d{2}-\d{2}$/.test(m)||/^\d{1,2}[ -]\d{1,2}[ -]\d{4}$/.test(m))return m;return '[number withheld]'})}
-module.exports={chunk,rank,mask,tokens};
+module.exports={chunk,chunkAct,rank,mask,tokens};
