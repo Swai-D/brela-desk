@@ -507,7 +507,7 @@ function fromDocModal(done){
 async function aiSettingsCard(){
  const box=$('ai');if(!box)return;let d=await api('/ai/settings'),live=[],msg='',usage=await api('/ai/usage').catch(()=>null);
  const collect=()=>{const p=$('ai-prov').value,sel=$('ai-model').value,model=sel==='__other'?$('ai-model-o').value.trim():sel,s=d.settings,models={...s.models};models[s.provider]=s.provider===p?model:s.models[s.provider];
-  const out={provider:p,models,temperature:+$('ai-temp').value,max_tokens:+$('ai-max').value,timeout_s:+$('ai-to').value,language:$('ai-lang').value,system_prompt:$('ai-prompt').value,industry_prompt:$('ai-iprompt').value,daily_limit:+$('ai-day').value,hourly_per_user:+$('ai-hr').value,privacy:$('ai-priv').value,custom_base_url:$('ai-url')?$('ai-url').value:s.custom_base_url};
+  const out={provider:p,models,temperature:+$('ai-temp').value,max_tokens:+$('ai-max').value,timeout_s:+$('ai-to').value,language:$('ai-lang').value,system_prompt:$('ai-prompt').value,industry_prompt:$('ai-iprompt').value,chat_prompt:$('ai-cprompt').value,daily_limit:+$('ai-day').value,hourly_per_user:+$('ai-hr').value,privacy:$('ai-priv').value,custom_base_url:$('ai-url')?$('ai-url').value:s.custom_base_url};
   const k=$('ai-key').value.trim();if(k)out.api_key=k;return out};
  const refreshStatus=async()=>{try{AIS=await api('/ai/status')}catch{}};
  const render=()=>{const s=d.settings,p=s.provider,P=d.providers[p],k=d.keys[p],models=[...new Set([...(P.models||[]),...live,...(s.models[p]?[s.models[p]]:[])])];
@@ -523,6 +523,7 @@ async function aiSettingsCard(){
    <div class="col-md-2"><label class="form-label">Timeout (s)</label><input id="ai-to" type="number" class="form-control" value="${s.timeout_s}" min="10" max="300"></div>
    <div class="col-12"><div class="d-flex justify-content-between"><label class="form-label">System prompt <small class="text-muted">(the AI's standing instructions; unknown facts are always left as gaps)</small></label><a href="#" id="ai-reset" class="small">Reset to the recommended prompt</a></div><textarea id="ai-prompt" class="form-control" rows="9" style="font-size:13px">${esc(s.system_prompt)}</textarea></div>
    <div class="col-12"><div class="d-flex justify-content-between"><label class="form-label">Business plan prompt <small class="text-muted">(the instructions and examples the AI follows when it drafts the wording of an industrial business plan; the senior can tune it here)</small></label><a href="#" id="ai-ireset" class="small">Reset to the recommended prompt</a></div><textarea id="ai-iprompt" class="form-control" rows="9" style="font-size:13px">${esc(s.industry_prompt)}</textarea></div>
+   <div class="col-12"><div class="d-flex justify-content-between"><label class="form-label">Case chat prompt <small class="text-muted">(how the assistant on a case answers, checks and rewrites; a senior can tune it here)</small></label><a href="#" id="ai-creset" class="small">Reset to the recommended prompt</a></div><textarea id="ai-cprompt" class="form-control" rows="9" style="font-size:13px">${esc(s.chat_prompt)}</textarea></div>
    <div class="col-md-3"><label class="form-label">Requests per day (everyone)</label><input id="ai-day" type="number" class="form-control" value="${s.daily_limit}" min="1"></div>
    <div class="col-md-3"><label class="form-label">Requests per hour (each person)</label><input id="ai-hr" type="number" class="form-control" value="${s.hourly_per_user}" min="1"></div>
    <div class="col-md-3"><label class="form-label">Privacy</label><select id="ai-priv" class="form-select"><option value="standard" ${s.privacy==='standard'?'selected':''}>Standard (recommended)</option><option value="off" ${s.privacy==='off'?'selected':''}>Off: send everything</option></select></div>
@@ -536,6 +537,7 @@ async function aiSettingsCard(){
   $('ai-temp').oninput=e=>$('ai-temp-v').textContent=e.target.value;
   $('ai-reset').onclick=e=>{e.preventDefault();$('ai-prompt').value=d.defaults.system_prompt};
   $('ai-ireset').onclick=e=>{e.preventDefault();$('ai-iprompt').value=d.defaults.industry_prompt};
+  $('ai-creset').onclick=e=>{e.preventDefault();$('ai-cprompt').value=d.defaults.chat_prompt};
   const cl=$('ai-clear');if(cl)cl.onclick=async e=>{e.preventDefault();if(!await ask('Documents that need the AI will not work until a new key is added.',{danger:true,ok:'Yes, remove',title:'Remove the saved API key for '+P.label+'?'}))return;try{d=await api('/ai/settings',{method:'PUT',body:{provider:p,clear_key:true}});await refreshStatus();msg='<span class="text-success">Key removed.</span>';render()}catch(x){toast(x.message,'error')}};
   $('ai-prov').onchange=()=>{const c=collect();d.settings={...d.settings,...c,provider:$('ai-prov').value};live=[];msg='';render()};
   const save=async()=>{const c=collect();d=await api('/ai/settings',{method:'PUT',body:c});await refreshStatus()};

@@ -218,8 +218,8 @@ module.exports=(app,{q,one,wrap,fail,need,can,P,audit,caseInfo,log,up,AI,E})=>{
  async function guard(req,kind){
   const st=await AI.status(req.user);if(!st.configured)fail(400,'The AI is not set up yet. A Manager can add an API key in Settings → AI assistant.');
   if(!st.can_use)fail(403,'Your role is not allowed to use the AI. A Manager can change this in Settings → AI assistant.');if(st.blocked)fail(429,st.blocked);return st}
- async function run(req,{kind,mode,caseId,templateId,system,user,maxTokens}){
-  let out;try{out=await AI.call({system,user,maxTokens})}catch(e){await AI.record({userId:req.user.id,caseId,templateId,kind,mode,ok:false,error:e.message});throw e}
+ async function run(req,{kind,mode,caseId,templateId,system,user,maxTokens,plain}){
+  let out;try{out=await AI.call({system,user,maxTokens,plain})}catch(e){await AI.record({userId:req.user.id,caseId,templateId,kind,mode,ok:false,error:e.message});throw e}
   const rec=await AI.record({userId:req.user.id,caseId,templateId,kind,mode,provider:out.provider,model:out.model,usage:out.usage,ms:out.ms,output:out.text});return{...out,run_id:rec.id}}
  const loadTemplate=async id=>{if(!id)return null;const t=await one('SELECT * FROM templates WHERE id=$1',[+id]);if(!t)fail(404,'Template not found');return{...t,body:await bodyOf(t)}};
  const tryGuard=async(req,kind)=>{try{await guard(req,kind);return true}catch{return false}};
