@@ -2,14 +2,10 @@
 // comments, company details and the text of its documents) using the AI chosen in Settings → AI assistant.
 const fs=require('fs'),path=require('path'),R=require('./rag'),OCR=require('./ocr');
 const FILES_DIR=process.env.FILES_DIR||'';
-const SYSTEM=`You are the case assistant inside BRELA Desk, helping a consultant in Tanzania work on ONE BRELA case.
-Answer only from the CASE MATERIAL you are given. Each part has an id: [C..] is the case itself, [D..] a document of the case, [R..] the law or guidance from the reference library (for example the Companies Act). After every statement that comes from the material, cite its id in square brackets, for example [D2] or [C3, R1].
-BRELA judges applications against the Companies Act. When you check a document or explain what to fix, compare it with the [R..] passages and name the section, for example "Section 12". Use only the [R..] text for what the law says. If the library does not cover the point, say so and do not state the law from memory.
-If the material does not contain the answer, say so plainly and say what to check or upload. Never guess or invent names, numbers, dates, forms or BRELA rules.
-When BRELA returned the case, first state exactly what BRELA asked to correct, then give the fix for each document or detail, one short point each.
-Some sensitive numbers (ID, TIN, phone, account) are hidden from you by the privacy setting. If the user asks for one, say it is hidden and where to find it in the case.
-Be short and practical: plain sentences, short lists when there are several points. Reply in the language the user writes in (English or Swahili).`;
-const BUDGET=14000,LAW=8000,HISTORY=6;
+
+const BUDGET=14000,LAW=8000,HISTORY=6,FULLDOC=14000;
+// asking to fix, rewrite, check or draft: the whole of the relevant documents is shown (not fragments) and the answer may be long
+const FIX=/\b(fix|correct(ion|ed|ions)?|rewrite|re-?draft|draft|amend|rectify|redo|revise|improve|replace|resolve|comply|compliant|check|review|rekebish\w*|sahihish\w*|andika|badilish\w*|boresh\w*|tengeneza)\b/i;
 module.exports=(app,{q,one,wrap,fail,can,need,audit,up,AI,E,contextFor,guard,run})=>{
  const refCache=new Map();
  // the active reference documents cut into sections (kept in memory until the text changes)
@@ -34,7 +30,7 @@ module.exports=(app,{q,one,wrap,fail,can,need,audit,up,AI,E,contextFor,guard,run
    if(row.text)out.push({id:f.id,name:f.filename,text:row.text,ocr:row.ocr});else unreadable.push({id:f.id,name:f.filename,why:row.error})}
   return{texts:out,unreadable,scanned}}
  const D=d=>d?new Date(d).toISOString().slice(0,10):'none';
- async function material(caseId,question,priv){
+ async function material(caseId,question,priv,fix){
   const x=await contextFor(caseId),c=x.c,hide=priv==='standard',m=t=>hide?R.mask(t):t,parts=[],cites={};
   const add=(id,label,body,file_id)=>{parts.push(`[${id}] ${label}\n${body}`);cites[id]={id,label,file_id:file_id||null}};
   const [docs,files,act,com]=await Promise.all([q('SELECT id,name,done,grp FROM case_docs WHERE case_id=$1 ORDER BY id',[caseId]),q('SELECT filename,case_doc_id,source,missing,checked_by FROM files WHERE case_id=$1 AND NOT inbox',[caseId]),
@@ -51,9 +47,13 @@ module.exports=(app,{q,one,wrap,fail,can,need,audit,up,AI,E,contextFor,guard,run
   const {texts,unreadable,scanned}=await caseTexts(caseId),chunks=[];
   for(const t of texts)R.chunk(t.text).forEach((tx,i)=>chunks.push({file:t.name+(t.ocr?' (scan read by OCR: may contain misread characters)':''),file_id:t.id,n:i+1,text:tx}));
   let used=parts.join('\n\n').length,n=0;
-  for(const ch of R.rank(question,chunks,10)){const body=m(ch.text);if(used+body.length>BUDGET&&n>=3)break;n++;used+=body.length;add('D'+n,`${ch.file} (part ${ch.n})`,body,ch.file_id)}
+  const lastRet=(act.find(a=>/marked as returned by BRELA/.test(a.text))||{}).text||'',top=R.rank(question+' '+lastRet,chunks,10),whole=[];
+  if(fix){ // the two documents that match best are given in full
+   for(const ch of top){if(!whole.includes(ch.file_id)&&whole.length<2)whole.push(ch.file_id)}
+   for(const id of whole){const t=texts.find(x=>x.id===id);n++;used+=Math.min(t.text.length,FULLDOC);add('D'+n,t.name+(t.ocr?' (scan read by OCR: may contain misread characters)':'')+(t.text.length>FULLDOC?' (first part of a long document)':' (whole document)'),m(t.text.slice(0,FULLDOC)),id)}}
+  for(const ch of top.filter(c=>!whole.includes(c.file_id)).slice(0,fix?4:10)){const body=m(ch.text);if(used+body.length>BUDGET&&n>=3)break;n++;used+=body.length;add('D'+n,`${ch.file} (part ${ch.n})`,body,ch.file_id)}
   // the law: ranked with the question and with what BRELA last asked to correct
-  const lastReturn=(act.find(a=>/marked as returned by BRELA/.test(a.text))||{}).text||'',lib=await refChunks();let lawUsed=0,k=0;
+  const lastReturn=lastRet,lib=await refChunks();let lawUsed=0,k=0;
   for(const ch of R.rank(question+' '+lastReturn,lib.chunks,6)){if(lawUsed+ch.text.length>LAW&&k>=2)break;k++;lawUsed+=ch.text.length;add('R'+k,ch.file,ch.text.length>2000?ch.text.slice(0,2000):ch.text)}
   return{text:parts.join('\n\n'),cites,unreadable,scanned,readable:texts.length,hidden:hide,reference:lib.docs.map(d=>d.title)}}
  const mine=(req,res,next)=>one('SELECT 1 FROM cases WHERE id=$1',[+req.params.id]).then(r=>r?next():res.status(404).json({error:'Case not found'})).catch(next);
@@ -64,11 +64,11 @@ module.exports=(app,{q,one,wrap,fail,can,need,audit,up,AI,E,contextFor,guard,run
  app.post('/api/cases/:id/chat',mine,wrap(async(req,res)=>{
   const id=+req.params.id,msg=String((req.body||{}).message||'').trim();
   if(!msg)fail(400,'Write a question first.');if(msg.length>2000)fail(400,'Keep the question under 2000 characters.');
-  await guard(req,'chat');const s=await AI.getSettings(),prior=await rows(id),mat=await material(id,msg+' '+prior.slice(-2).map(p=>p.role==='user'?p.body:'').join(' '),s.privacy);
+  await guard(req,'chat');const s=await AI.getSettings(),prior=await rows(id),fix=FIX.test(msg),mat=await material(id,msg+' '+prior.slice(-2).map(p=>p.role==='user'?p.body:'').join(' '),s.privacy,fix);
   const hist=prior.slice(-HISTORY).map(p=>`${p.role==='user'?'User':'Assistant'}: ${p.body.slice(0,1500)}`).join('\n');
   const user=`CASE MATERIAL\n${mat.text}\n\n${mat.unreadable.length?`Documents whose text could not be read (do not guess their content): ${mat.unreadable.map(u=>u.name).join(', ')}.\n\n`:''}${hist?`CONVERSATION SO FAR\n${hist}\n\n`:''}QUESTION\n${msg}`;
   const um=await one('INSERT INTO case_chat(case_id,user_id,role,body) VALUES($1,$2,\'user\',$3) RETURNING id,role,body,sources,created_at,user_id',[id,req.user.id,msg]);
-  const out=await run(req,{kind:'chat',mode:'ai',caseId:id,system:SYSTEM,user,maxTokens:1500});
+  const out=await run(req,{kind:'chat',mode:fix?'fix':'ask',caseId:id,system:s.chat_prompt,user,maxTokens:fix?4500:1500,plain:true});
   const used=[...new Set([...out.text.matchAll(/\[([CDR]\d+(?:\s*,\s*[CDR]\d+)*)\]/g)].flatMap(m=>m[1].split(',').map(x=>x.trim())))].filter(k=>mat.cites[k]).map(k=>mat.cites[k]);
   const am=await one('INSERT INTO case_chat(case_id,user_id,role,body,sources) VALUES($1,$2,\'assistant\',$3,$4::jsonb) RETURNING id,role,body,sources,created_at,user_id',[id,req.user.id,out.text.trim(),JSON.stringify(used)]);
   res.json({messages:[{...um,by:req.user.name},{...am,by:null}],unreadable:mat.unreadable,scanned:mat.scanned,reference:mat.reference,readable:mat.readable,hidden:mat.hidden})}));

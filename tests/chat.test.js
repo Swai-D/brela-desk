@@ -30,7 +30,7 @@ const upload=async(docId,name,text,type='text/plain')=>{const f=new FormData();f
  const sent=JSON.stringify((await mlog()).filter(x=>/messages$/.test(x.path)).pop().body);
  ok('the AI is given the case details, checklist, history with BRELA\'s return, comments and the document passage that matches the question',/CASE MATERIAL/.test(sent)&&/\[C1\] Case details/.test(sent)&&/\[C2\] Document checklist/.test(sent)&&/Director address is missing on Form 213a/.test(sent)&&/Client will bring the lease on Friday/.test(sent)&&/Plot 12, Sokoine Road, Arusha/.test(sent)&&/resolution\.txt/.test(sent),sent.slice(0,400));
  ok('privacy is on: the ID number and phone are hidden from the AI but the date and address are not',!/19900101123450000123/.test(sent)&&!/712 345 678/.test(sent)&&/number withheld/.test(sent)&&/2025-03-12/.test(sent));
- ok('the instructions say to answer only from the material and to cite',/only from the CASE MATERIAL/.test(sent)&&/cite/i.test(sent));
+ ok('the instructions say to cite the sources and never to guess',/cite its id/.test(sent)&&/Never guess/.test(sent));
  if(scanOk)ok('a scanned picture is read by text recognition, its text is searchable, and the AI is told it came from a scan',/Mama Neema/.test(sent)&&/read by OCR/.test(sent)&&(r.j.scanned||[]).includes('lease-scan.png'),[r.j.scanned,sent.slice(-900)]);
  ok('a picture is reported as unreadable instead of guessed',r.j.unreadable.some(u=>u.name==='scan.png'&&u.why)&&/scan\.png/.test(sent)&&!r.j.unreadable.some(u=>u.name==='lease-scan.png')||!scanOk);
  ok('only sources the AI really cited, and that exist, are shown (the made-up one is dropped)',JSON.stringify(r.j.messages[1].sources.map(s=>s.id))==='["D1","C1","C2"]'&&r.j.messages[1].sources[0].file_id>0&&!r.j.messages[1].sources.some(s=>s.id==='X9'),r.j.messages[1].sources);
@@ -79,4 +79,25 @@ const upload=async(docId,name,text,type='text/plain')=>{const f=new FormData();f
  await call('PATCH','/reference/'+ref.id,{active:true,title:'Companies Act (Cap. 212)'});
  ok('it can be renamed, and the change is in the audit log',(await call('GET','/reference')).j[0].title==='Companies Act (Cap. 212)'&&(await call('GET','/audit?size=100')).j.items.some(x=>x.action==='reference.add'));
  ok('a library document can be removed',(await call('DELETE','/reference/'+ref.id)).s===200&&(await call('GET','/reference')).j.length===0);
+
+ // ---- fixing: the whole document, a long answer, the editable prompt, and no document-only output rules
+ await as('boss@test.co',AP);
+ const cs2=(await call('POST','/cases',{clientName:'Fix Client',caseTypeId:types[0].id})).j,d2=(await call('GET','/cases/'+cs2.id)).j;
+ const LONG='Resolution of the members.\n\n'+Array.from({length:40},(_,i)=>`Clause ${i+1}. The company shall do thing number ${i+1} in accordance with the Articles of Association and the law.`).join('\n\n')+'\n\nThe director residential address is Plot 9, Moshi.';
+ await upload(d2.docs[0].id,'long-resolution.txt',LONG);
+ await mreset();await call('POST',`/cases/${cs2.id}/chat`,{message:'What is in the resolution?'});
+ const askLog=(await mlog()).filter(x=>/messages$/.test(x.path)).pop().body;
+ await mreset();await call('POST',`/cases/${cs2.id}/chat`,{message:'Please rewrite the director address clause so it is correct'});
+ const fixLog=(await mlog()).filter(x=>/messages$/.test(x.path)).pop().body,fixSent=JSON.stringify(fixLog);
+ ok('a plain question gets a short answer budget and fragments',askLog.max_tokens===1500&&!/whole document/.test(JSON.stringify(askLog)));
+ ok('a request to fix or rewrite gets the whole document, so nothing is guessed, and room for a long answer',fixLog.max_tokens===4500&&/long-resolution\.txt \(whole document\)/.test(fixSent)&&/Clause 40\./.test(fixSent)&&/Plot 9, Moshi/.test(fixSent),fixSent.slice(0,300));
+ ok('the default chat prompt asks for the current wording, the corrected wording ready to paste, and the facts still needed',/Corrected: the complete corrected wording, ready to paste/.test(fixLog.system)&&/Current: the exact wording/.test(fixLog.system)&&/Needed from the client/.test(fixLog.system));
+ ok('the chat is not given the document-filling output rules (no "reply with the document only")',!/reply with the document only/.test(fixLog.system));
+ const ps=(await call('GET','/ai/settings')).j;
+ ok('the chat prompt is listed in settings with its default',/case assistant/.test(ps.settings.chat_prompt)&&ps.defaults.chat_prompt===ps.settings.chat_prompt);
+ await call('PUT','/ai/settings',{chat_prompt:'Always answer in numbered steps. TEST-CHAT-PROMPT'});await mreset();await call('POST',`/cases/${cs2.id}/chat`,{message:'hello'});
+ ok('a prompt saved in settings is the one the chat uses',/TEST-CHAT-PROMPT/.test((await mlog()).filter(x=>/messages$/.test(x.path)).pop().body.system));
+ ok('an over-long chat prompt is refused',(await call('PUT','/ai/settings',{chat_prompt:'x'.repeat(12001)})).s===400);
+ await call('PUT','/ai/settings',{chat_prompt:''});
+ ok('an empty chat prompt goes back to the recommended one',/case assistant/.test((await call('GET','/ai/settings')).j.settings.chat_prompt));
 })().then(()=>{console.log(fails?'\n'+fails+' FAILED':'\nall passed');process.exit(fails?1:0)}).catch(e=>{console.error(e);process.exit(1)});

@@ -9,6 +9,8 @@ role: MANAGER
 
 ## Set it up
 
+The **Case chat prompt** box holds the instructions the case assistant follows (how it answers, checks and rewrites); **Reset to the recommended prompt** puts it back. Keep the source marks and the rule about not quoting the law from memory.
+
 1. **Provider:** pick one: Anthropic (Claude), OpenAI, Google (Gemini), xAI (Grok), Mistral AI, Moonshot (Kimi), DeepSeek or **OpenRouter** (one key for hundreds of models from many makers; model IDs look like `anthropic/claude-sonnet-4.5`, so press the refresh button to see the live list, or use `openrouter/auto` to let OpenRouter choose). For other services pick the OpenAI-compatible option and fill the **Endpoint URL**.
 2. **API key:** paste it. It is saved encrypted; afterwards you see only the last 4 characters. **Remove the saved key** deletes it.
 3. **Model:** type the **Model ID**, or press the refresh button to load the live list from the provider (it saves your changes first). Model names change often.

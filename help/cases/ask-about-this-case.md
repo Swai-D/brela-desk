@@ -31,6 +31,10 @@ Only this case:
 
 If the case does not contain the answer, the assistant says so instead of guessing. Always check the answer before you change a document.
 
+## Fix, rewrite or check
+
+When you ask it to **fix, correct, rewrite, draft or check**, or when BRELA returned the case, the assistant does the work, not only the diagnosis. For each problem it gives **Where**, **Current** (the wording now), **Corrected** (the full wording, ready to paste) and **Why** (the section of the Act or what BRELA raised). Facts it does not have, such as an address or ID number, are shown as a blank in the wording and listed under **Needed from the client**. For these requests it reads the best matching documents in full (very long ones in part), and the answer can be longer. The **Copy** link under an answer copies it. The assistant cannot change the file itself: paste the corrected wording into the document and upload it again.
+
 ## Good to know
 
 - The conversation belongs to the case: colleagues see it too, with the name of who asked.
