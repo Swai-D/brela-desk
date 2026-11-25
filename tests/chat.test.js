@@ -20,17 +20,19 @@ const upload=async(docId,name,text,type='text/plain')=>{const f=new FormData();f
  const doc=d.docs[0];
  await upload(doc.id,'resolution.txt','Resolution of the members.\n\nThe registered office of Kilimo Fresh is at Plot 12, Sokoine Road, Arusha.\n\nDirector Zawadi Mushi, national ID 19900101123450000123, phone +255 712 345 678, signed on 2025-03-12.');
  await upload(doc.id,'scan.png','not text','image/png');
+ let scanOk=false;try{const cp=require('child_process');cp.execSync('convert -size 760x120 xc:white -pointsize 28 -annotate +20+60 "The lease is signed by Mama Neema in Moshi" /tmp/chat-scan.png',{stdio:'ignore'});cp.execSync('tesseract --version',{stdio:'ignore'});await upload(doc.id,'lease-scan.png',require('fs').readFileSync('/tmp/chat-scan.png'),'image/png');scanOk=true}catch{}
  await call('POST',`/cases/${cs.id}/comments`,{body:'Client will bring the lease on Friday'});
  for(const x of d.docs)await call('PATCH','/case-docs/'+x.id,{done:true});
  await call('POST',`/cases/${cs.id}/move`,{to:'ready'});await call('POST',`/cases/${cs.id}/move`,{to:'submitted'});await call('POST',`/cases/${cs.id}/move`,{to:'returned',reason:'Director address is missing on Form 213a'});
  await mreset();
- const r=await call('POST',`/cases/${cs.id}/chat`,{message:'Where is the registered office?'});
+ const r=await call('POST',`/cases/${cs.id}/chat`,{message:'Where is the registered office? Who signed the lease?'});
  ok('a question gets an answer, stored as a question and an answer',r.s===200&&r.j.messages.length===2&&r.j.messages[0].role==='user'&&r.j.messages[1].role==='assistant'&&/Mock answer/.test(r.j.messages[1].body),r);
  const sent=JSON.stringify((await mlog()).filter(x=>/messages$/.test(x.path)).pop().body);
  ok('the AI is given the case details, checklist, history with BRELA\'s return, comments and the document passage that matches the question',/CASE MATERIAL/.test(sent)&&/\[C1\] Case details/.test(sent)&&/\[C2\] Document checklist/.test(sent)&&/Director address is missing on Form 213a/.test(sent)&&/Client will bring the lease on Friday/.test(sent)&&/Plot 12, Sokoine Road, Arusha/.test(sent)&&/resolution\.txt/.test(sent),sent.slice(0,400));
  ok('privacy is on: the ID number and phone are hidden from the AI but the date and address are not',!/19900101123450000123/.test(sent)&&!/712 345 678/.test(sent)&&/number withheld/.test(sent)&&/2025-03-12/.test(sent));
  ok('the instructions say to answer only from the material and to cite',/only from the CASE MATERIAL/.test(sent)&&/cite/i.test(sent));
- ok('a picture is reported as unreadable instead of guessed',r.j.unreadable.some(u=>u.name==='scan.png')&&/scan\.png/.test(sent));
+ if(scanOk)ok('a scanned picture is read by text recognition, its text is searchable, and the AI is told it came from a scan',/Mama Neema/.test(sent)&&/read by OCR/.test(sent)&&(r.j.scanned||[]).includes('lease-scan.png'),[r.j.scanned,sent.slice(-900)]);
+ ok('a picture is reported as unreadable instead of guessed',r.j.unreadable.some(u=>u.name==='scan.png'&&u.why)&&/scan\.png/.test(sent)&&!r.j.unreadable.some(u=>u.name==='lease-scan.png')||!scanOk);
  ok('only sources the AI really cited, and that exist, are shown (the made-up one is dropped)',JSON.stringify(r.j.messages[1].sources.map(s=>s.id))==='["D1","C1","C2"]'&&r.j.messages[1].sources[0].file_id>0&&!r.j.messages[1].sources.some(s=>s.id==='X9'),r.j.messages[1].sources);
  const h=await call('GET',`/cases/${cs.id}/chat`);
  ok('the conversation is kept for the case and tells who asked',h.j.messages.length===2&&h.j.messages[0].by==='Neema'&&h.j.unread.some(u=>u.name==='scan.png'));

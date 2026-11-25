@@ -18,9 +18,9 @@ Only this case:
 - **Document checklist**: which items are ready, their files, details still highlighted in yellow, and documents not yet checked by a second person.
 - **History**, including exactly what BRELA asked to correct, and the **comments**.
 - **Company details** saved on the client, and the people.
-- **The text of the documents** uploaded to the case (.docx, .pdf with real text, .txt). For each question the app picks the passages that match your words.
+- **The text of the documents** uploaded to the case (.docx, .pdf, .txt and scans). For each question the app picks the passages that match your words.
 
-It cannot read scans and pictures. The panel lists them: paste the text into a comment if it matters.
+**Scanned PDFs and pictures** (.png, .jpg, .tif) are read with text recognition (OCR) on the server, so they are not sent anywhere to be read. Scans can contain misread characters, so the panel names them and you should check names and numbers in the original. OCR reads English; a very faint or handwritten scan may give little or nothing. Files that still cannot be read are listed with the reason: paste the text into a comment if it matters. The first question about a case reads its files once, so it can take a little longer; later questions are quick.
 
 ## Ask
 

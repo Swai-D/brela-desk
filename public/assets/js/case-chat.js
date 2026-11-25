@@ -25,10 +25,10 @@ window.CASE_CHAT=async c=>{
   const e0=list.querySelector('.cc-empty');if(e0)e0.remove();
   list.insertAdjacentHTML('beforeend',bub({role:'user',body:t,by:ME.name,created_at:new Date().toISOString()})+'<div class="cc-m cc-a" id="ccWait"><div class="cc-b cc-typing"><span></span><span></span><span></span> Reading the case…</div></div>');down();
   try{const r=await api(`/cases/${c.id}/chat`,{body:{message:t}});$e('#ccWait').remove();list.insertAdjacentHTML('beforeend',bub(r.messages[1]));
-   note(r.unreadable.map(u=>({name:u.name,why:u.why})),r.hidden)}
+   note(r.unreadable,r.hidden,r.scanned)}
   catch(e){const w=$e('#ccWait');if(w)w.remove();list.insertAdjacentHTML('beforeend',`<div class="cc-m cc-a"><div class="cc-b cc-err"><i class="bx bx-error-circle me-1"></i>${esc(e.message)}</div></div>`);inp.value=t}
   busy=false;send.disabled=false;down();inp.focus()};
- const note=(unread,hidden)=>{$e('#ccNote').innerHTML=(unread&&unread.length?`<div class="tp-note mb-2"><i class="bx bx-info-circle"></i><span>The assistant cannot read ${unread.length} file${unread.length===1?'':'s'} (scans and pictures): ${unread.map(u=>esc(u.name)).join(', ')}. Paste the text into a comment if it matters.</span></div>`:'')+(hidden?'<div class="cc-priv text-muted"><i class="bx bx-lock-alt me-1"></i>Privacy is on: ID, TIN and phone numbers are hidden from the AI.</div>':'')};
+ const note=(unread,hidden,scanned)=>{$e('#ccNote').innerHTML=(scanned&&scanned.length?`<div class="cc-priv text-muted"><i class="bx bx-scan me-1"></i>Read by text recognition: ${scanned.map(esc).join(', ')}. Scans can contain misread characters, so check names and numbers in the original.</div>`:'')+(unread&&unread.length?`<div class="tp-note mb-2"><i class="bx bx-info-circle"></i><span>The assistant cannot read ${unread.length} file${unread.length===1?'':'s'} (${unread.map(u=>esc(u.name)+(u.why?' — '+esc(u.why):'')).join('; ')}). Paste the text into a comment if it matters.</span></div>`:'')+(hidden?'<div class="cc-priv text-muted"><i class="bx bx-lock-alt me-1"></i>Privacy is on: ID, TIN and phone numbers are hidden from the AI.</div>':'')};
  $e('#ccForm').onsubmit=e=>{e.preventDefault();ask_()};
  inp.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();ask_()}};
  $e('#ccClear').style.display=CAN('cases.edit')?'':'none';
@@ -36,7 +36,7 @@ window.CASE_CHAT=async c=>{
  el.dataset.case=c.id;list.innerHTML='<div class="text-muted p-3">Loading…</div>';
  bootstrap.Offcanvas.getOrCreateInstance(el).show();
  try{const d=await api(`/cases/${c.id}/chat`);const ok=d.ai.configured&&d.ai.can_use;
-  note(d.unread,d.ai.privacy==='standard');
+  note(d.unread,d.ai.privacy==='standard',d.scanned);
   list.innerHTML=d.messages.length?d.messages.map(bub).join(''):empty();bindSug();down();
   if(!d.ai.configured){list.insertAdjacentHTML('afterbegin','<div class="alert alert-warning">The AI is not set up yet. A Manager can add an API key in Settings → AI assistant.</div>')}
   else if(!d.ai.can_use){list.insertAdjacentHTML('afterbegin','<div class="alert alert-warning">Your role is not allowed to use the AI.</div>')}
