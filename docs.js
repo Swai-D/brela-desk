@@ -371,7 +371,7 @@ function docxTextToBody(text,l2k){
  return String(text||'').replace(/\[([A-Z][A-Z0-9 ]*(?:, IF ANY)?)\]/g,(m,l)=>{const k=l2k[l.trim()];return k?`{{${k.toLowerCase()}}}`:m}).replace(/\n{3,}/g,'\n\n').trim()}
 
 // ---- reading uploaded files (accepted documents used to create templates)
-async function extractText(buf,name='',mime=''){
+async function extractText(buf,name='',mime='',max=60000){
  const ext=(String(name).split('.').pop()||'').toLowerCase();let text;
  if(ext==='docx'||/wordprocessingml/.test(mime))text=(await require('mammoth').extractRawText({buffer:buf})).value;
  else if(ext==='pdf'||mime==='application/pdf')text=(await require('pdf-parse/lib/pdf-parse.js')(buf)).text;
@@ -379,6 +379,6 @@ async function extractText(buf,name='',mime=''){
  else{const e=new Error('Unsupported file type. Use .docx, .pdf (with real text, not a scan), .txt or paste the text.');e.status=400;throw e}
  text=String(text||'').replace(/\r/g,'').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
  if(text.length<20){const e=new Error('No readable text found in this file (scanned documents are not supported yet: paste the text instead).');e.status=400;throw e}
- return text.slice(0,60000)}
+ return text.slice(0,max)}
 
 module.exports={fields,render,gaps,applyGaps,reverse,buildContext,withhold,suggestScore,textToDocx,extractText,personScope,SENSITIVE_KEY,ROLE_LISTS,natName,mergePeople,personNeeds,labelFromKey,docxFill,docxScan,labelKey,docxToPdf,docxTargets,packageValues,docxTextToBody};

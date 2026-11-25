@@ -692,6 +692,10 @@ async function init(){
   // roles made before permissions existed start with their level's preset, so nobody gains or loses access; the old "who can use the AI" setting becomes the AI permission
   {const minLv=(await AI.getSettings()).min_level,rank=l=>LEVELS.length-1-LEVELS.indexOf(l);
    for(const r of await q('SELECT key,level FROM roles WHERE permissions IS NULL')){const p=P.preset(r.level).filter(k=>k!=='ai.use');if(rank(r.level)>=rank(minLv))p.push('ai.use');await q('UPDATE roles SET permissions=$2::jsonb WHERE key=$1',[r.key,JSON.stringify(p)])}}
+  // the reference library permission is new: roles that can manage roles get it once (after that it is theirs to untick)
+  if(!(await one(`SELECT 1 FROM audit_log WHERE action='system.migrate' AND details='reference.manage'`))){
+   await q(`UPDATE roles SET permissions=permissions||'["reference.manage"]'::jsonb WHERE permissions @> '["roles.manage"]'::jsonb AND NOT permissions @> '["reference.manage"]'::jsonb`);
+   await q(`INSERT INTO audit_log(actor_name,action,details) VALUES('system','system.migrate','reference.manage')`)}
   if(!(await one('SELECT 1 FROM users LIMIT 1'))){
     const pw=process.env.ADMIN_PASSWORD||crypto.randomBytes(6).toString('base64url'),email=(process.env.ADMIN_EMAIL||'admin@example.com').toLowerCase();
     await q('INSERT INTO users(name,email,role,password_hash) VALUES($1,$2,$3,$4)',[process.env.ADMIN_NAME||'Manager',email,'MANAGER',await bcrypt.hash(pw,10)]);

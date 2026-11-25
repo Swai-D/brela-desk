@@ -3,13 +3,21 @@
 const fs=require('fs'),path=require('path'),R=require('./rag'),OCR=require('./ocr');
 const FILES_DIR=process.env.FILES_DIR||'';
 const SYSTEM=`You are the case assistant inside BRELA Desk, helping a consultant in Tanzania work on ONE BRELA case.
-Answer only from the CASE MATERIAL you are given. Each part has an id such as [C3] or [D2]. After every statement that comes from the material, cite its id in square brackets, for example [D2] or [C3, D1].
+Answer only from the CASE MATERIAL you are given. Each part has an id: [C..] is the case itself, [D..] a document of the case, [R..] the law or guidance from the reference library (for example the Companies Act). After every statement that comes from the material, cite its id in square brackets, for example [D2] or [C3, R1].
+BRELA judges applications against the Companies Act. When you check a document or explain what to fix, compare it with the [R..] passages and name the section, for example "Section 12". Use only the [R..] text for what the law says. If the library does not cover the point, say so and do not state the law from memory.
 If the material does not contain the answer, say so plainly and say what to check or upload. Never guess or invent names, numbers, dates, forms or BRELA rules.
 When BRELA returned the case, first state exactly what BRELA asked to correct, then give the fix for each document or detail, one short point each.
 Some sensitive numbers (ID, TIN, phone, account) are hidden from you by the privacy setting. If the user asks for one, say it is hidden and where to find it in the case.
 Be short and practical: plain sentences, short lists when there are several points. Reply in the language the user writes in (English or Swahili).`;
-const BUDGET=14000,HISTORY=6;
-module.exports=(app,{q,one,wrap,fail,can,AI,E,contextFor,guard,run})=>{
+const BUDGET=14000,LAW=8000,HISTORY=6;
+module.exports=(app,{q,one,wrap,fail,can,need,audit,up,AI,E,contextFor,guard,run})=>{
+ const refCache=new Map();
+ // the active reference documents cut into sections (kept in memory until the text changes)
+ async function refChunks(){
+  const docs=await q('SELECT id,title,kind,size,text FROM reference_docs WHERE active ORDER BY id'),out=[];
+  for(const d of docs){let c=refCache.get(d.id);if(!c||c.size!==d.size||c.title!==d.title){c={size:d.size,title:d.title,chunks:R.chunkAct(d.text,d.title)};refCache.set(d.id,c)}
+   c.chunks.forEach((x,i)=>out.push({file:x.label,n:i+1,text:x.text,ref:d.title}))}
+  return{docs,chunks:out}}
  const readFile=async f=>{if(f.path&&FILES_DIR){const fp=path.resolve(FILES_DIR,f.path);if(!fp.startsWith(path.resolve(FILES_DIR)))throw new Error('bad path');return fs.readFileSync(fp)}return f.data};
  // text of every readable document of the case, read once and kept (a replaced file is read again)
  async function caseTexts(caseId){
@@ -44,12 +52,15 @@ module.exports=(app,{q,one,wrap,fail,can,AI,E,contextFor,guard,run})=>{
   for(const t of texts)R.chunk(t.text).forEach((tx,i)=>chunks.push({file:t.name+(t.ocr?' (scan read by OCR: may contain misread characters)':''),file_id:t.id,n:i+1,text:tx}));
   let used=parts.join('\n\n').length,n=0;
   for(const ch of R.rank(question,chunks,10)){const body=m(ch.text);if(used+body.length>BUDGET&&n>=3)break;n++;used+=body.length;add('D'+n,`${ch.file} (part ${ch.n})`,body,ch.file_id)}
-  return{text:parts.join('\n\n'),cites,unreadable,scanned,readable:texts.length,hidden:hide}}
+  // the law: ranked with the question and with what BRELA last asked to correct
+  const lastReturn=(act.find(a=>/marked as returned by BRELA/.test(a.text))||{}).text||'',lib=await refChunks();let lawUsed=0,k=0;
+  for(const ch of R.rank(question+' '+lastReturn,lib.chunks,6)){if(lawUsed+ch.text.length>LAW&&k>=2)break;k++;lawUsed+=ch.text.length;add('R'+k,ch.file,ch.text.length>2000?ch.text.slice(0,2000):ch.text)}
+  return{text:parts.join('\n\n'),cites,unreadable,scanned,readable:texts.length,hidden:hide,reference:lib.docs.map(d=>d.title)}}
  const mine=(req,res,next)=>one('SELECT 1 FROM cases WHERE id=$1',[+req.params.id]).then(r=>r?next():res.status(404).json({error:'Case not found'})).catch(next);
  const rows=id=>q('SELECT * FROM (SELECT m.id,m.role,m.body,m.sources,m.created_at,m.user_id,u.name AS by FROM case_chat m LEFT JOIN users u ON u.id=m.user_id WHERE m.case_id=$1 ORDER BY m.id DESC LIMIT 60) x ORDER BY id',[id]);
  app.get('/api/cases/:id/chat',mine,wrap(async(req,res)=>{
   const id=+req.params.id,files=await q('SELECT f.id,f.filename,f.mime,t.error,t.ocr,(t.text<>\'\') AS ok FROM files f LEFT JOIN file_text t ON t.file_id=f.id AND t.size=f.size WHERE f.case_id=$1 AND NOT f.inbox ORDER BY f.id',[id]);
-  res.json({messages:await rows(id),ai:await AI.status(req.user),files:files.length,unread:files.filter(f=>f.error).map(f=>({name:f.filename,why:f.error})),scanned:files.filter(f=>f.ocr).map(f=>f.filename)})}));
+  res.json({messages:await rows(id),ai:await AI.status(req.user),files:files.length,unread:files.filter(f=>f.error).map(f=>({name:f.filename,why:f.error})),scanned:files.filter(f=>f.ocr).map(f=>f.filename),reference:(await q('SELECT title FROM reference_docs WHERE active ORDER BY id')).map(r=>r.title)})}));
  app.post('/api/cases/:id/chat',mine,wrap(async(req,res)=>{
   const id=+req.params.id,msg=String((req.body||{}).message||'').trim();
   if(!msg)fail(400,'Write a question first.');if(msg.length>2000)fail(400,'Keep the question under 2000 characters.');
@@ -58,10 +69,30 @@ module.exports=(app,{q,one,wrap,fail,can,AI,E,contextFor,guard,run})=>{
   const user=`CASE MATERIAL\n${mat.text}\n\n${mat.unreadable.length?`Documents whose text could not be read (do not guess their content): ${mat.unreadable.map(u=>u.name).join(', ')}.\n\n`:''}${hist?`CONVERSATION SO FAR\n${hist}\n\n`:''}QUESTION\n${msg}`;
   const um=await one('INSERT INTO case_chat(case_id,user_id,role,body) VALUES($1,$2,\'user\',$3) RETURNING id,role,body,sources,created_at,user_id',[id,req.user.id,msg]);
   const out=await run(req,{kind:'chat',mode:'ai',caseId:id,system:SYSTEM,user,maxTokens:1500});
-  const used=[...new Set([...out.text.matchAll(/\[([CD]\d+(?:\s*,\s*[CD]\d+)*)\]/g)].flatMap(m=>m[1].split(',').map(x=>x.trim())))].filter(k=>mat.cites[k]).map(k=>mat.cites[k]);
+  const used=[...new Set([...out.text.matchAll(/\[([CDR]\d+(?:\s*,\s*[CDR]\d+)*)\]/g)].flatMap(m=>m[1].split(',').map(x=>x.trim())))].filter(k=>mat.cites[k]).map(k=>mat.cites[k]);
   const am=await one('INSERT INTO case_chat(case_id,user_id,role,body,sources) VALUES($1,$2,\'assistant\',$3,$4::jsonb) RETURNING id,role,body,sources,created_at,user_id',[id,req.user.id,out.text.trim(),JSON.stringify(used)]);
-  res.json({messages:[{...um,by:req.user.name},{...am,by:null}],unreadable:mat.unreadable,scanned:mat.scanned,readable:mat.readable,hidden:mat.hidden})}));
+  res.json({messages:[{...um,by:req.user.name},{...am,by:null}],unreadable:mat.unreadable,scanned:mat.scanned,reference:mat.reference,readable:mat.readable,hidden:mat.hidden})}));
  app.delete('/api/cases/:id/chat',mine,wrap(async(req,res)=>{
   if(!can(req.user,'cases.edit'))fail(403,'Your role cannot clear the chat');
   await q('DELETE FROM case_chat WHERE case_id=$1',[+req.params.id]);res.json({ok:1})}));
+
+ // ---- reference library: the Companies Act and guides, added to every case chat
+ const KINDS=['law','guide'];
+ app.get('/api/reference',wrap(async(req,res)=>res.json(await q('SELECT r.id,r.title,r.kind,r.filename,r.size,length(r.text) AS chars,r.ocr,r.active,r.created_at,u.name AS by FROM reference_docs r LEFT JOIN users u ON u.id=r.created_by ORDER BY r.id'))));
+ app.post('/api/reference',need('reference.manage'),up,wrap(async(req,res)=>{
+  const b=req.body||{},title=String(b.title||'').trim().slice(0,120),kind=KINDS.includes(b.kind)?b.kind:'law';
+  if(!req.file)fail(400,'Choose a file (.pdf, .docx or .txt).');if(!title)fail(400,'Give it a name, for example "Companies Act 2002".');
+  const name=Buffer.from(req.file.originalname,'latin1').toString('utf8');let text,viaOcr=false;
+  try{text=await E.extractText(req.file.buffer,name,req.file.mimetype,2000000)}
+  catch(e){if(/No readable text/.test(e.message)){try{text=await OCR.ocr(req.file.buffer,name,req.file.mimetype);viaOcr=true}catch(o){fail(400,o.message)}}else throw e}
+  const n=R.chunkAct(text,title).length;
+  const r=await one('INSERT INTO reference_docs(title,kind,filename,size,text,ocr,created_by) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id',[title,kind,name,text.length,text,viaOcr,req.user.id]);
+  await audit(req,'reference.add',`${title} (${n} sections)`);res.json({id:r.id,sections:n,ocr:viaOcr})}));
+ app.patch('/api/reference/:id',need('reference.manage'),wrap(async(req,res)=>{
+  const id=+req.params.id,r=await one('SELECT title,active FROM reference_docs WHERE id=$1',[id]);if(!r)fail(404,'Not found');
+  const title=req.body.title!==undefined?String(req.body.title).trim().slice(0,120):r.title,active=typeof req.body.active==='boolean'?req.body.active:r.active;if(!title)fail(400,'Give it a name.');
+  await q('UPDATE reference_docs SET title=$2,active=$3 WHERE id=$1',[id,title,active]);await audit(req,'reference.update',`${r.title}${title!==r.title?' → '+title:''}${active!==r.active?(active?': switched on':': switched off'):''}`);res.json({ok:1})}));
+ app.delete('/api/reference/:id',need('reference.manage'),wrap(async(req,res)=>{
+  const r=await one('SELECT title FROM reference_docs WHERE id=$1',[+req.params.id]);if(!r)fail(404,'Not found');
+  await q('DELETE FROM reference_docs WHERE id=$1',[+req.params.id]);refCache.delete(+req.params.id);await audit(req,'reference.delete',r.title);res.json({ok:1})}));
 };
