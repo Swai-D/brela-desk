@@ -113,3 +113,5 @@ order: 21
 **How do I set up the AI?** [AI settings](help:settings/ai-settings).
 
 **How do I let a role do more, or less?** Tick or untick its permissions in [Roles](help:settings/roles-and-access-levels).
+
+**Can I ask the AI what BRELA wants corrected?** Yes: [Ask about this case](help:cases/ask-about-this-case).

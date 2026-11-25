@@ -1,3 +1,4 @@
+# Tesseract and Poppler read scanned PDFs and pictures for the case chat; without them the chat skips scans.
 # LibreOffice makes the PDF copy of each generated Word document; without it the app still saves the Word file.
 [phases.setup]
-nixPkgs = ["...", "libreoffice", "liberation_ttf"]
+nixPkgs = ["...", "libreoffice", "liberation_ttf", "tesseract", "poppler_utils"]
