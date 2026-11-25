@@ -13,7 +13,8 @@ Client name (opens the client), the case code, the case type, the stage badge an
 - **Assigned to**, **Due** (with how late), **Documents** (for example 3 of 5 ready).
 - **BRELA track number:** type it after submitting and press the check button. The app warns if another case uses the same number.
 - A **stepper** with the six stages; finished stages show ✓.
-- **Edit case** (Senior or Manager) ([Edit a case](help:cases/edit-a-case)).
+- **Ask about this case**: a chat about this case and its documents ([Ask about this case](help:cases/ask-about-this-case)).
+- **Edit case** (needs the matching permission) ([Edit a case](help:cases/edit-a-case)).
 - If BRELA returned the case, a red band shows the reason.
 
 ## Left column
