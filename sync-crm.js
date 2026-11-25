@@ -103,8 +103,9 @@ function testEnv() {
   return env;
 }
 
+// Keep this list in step with tests/run.sh so --full runs every suite.
 const suites = FULL
-  ? ['api', 'whatsapp', 'report', 'playbook', 'crud', 'roles', 'deploy', 'pagination', 'track', 'frontend', 'history', 'lists', 'engine', 'ai', 'templates', 'package']
+  ? ['api', 'whatsapp', 'report', 'playbook', 'crud', 'roles', 'deploy', 'pagination', 'track', 'frontend', 'history', 'lists', 'engine', 'ai', 'templates', 'package', 'studio', 'registry', 'options', 'scenarios', 'wizards', 'chat', 'help']
   : ['frontend', 'package']; // frontend is static (no server); package needs the server
 
 (async () => {
