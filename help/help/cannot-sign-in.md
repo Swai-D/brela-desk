@@ -8,7 +8,7 @@ order: 2
 |---|---|
 | "Wrong email or password" | Check the email spelling and caps lock. Ask a Manager to reset the password if you forgot it. |
 | "Too many attempts. Try again in 10 minutes." | Wait 10 minutes. |
-| The page asks for a new password | You are on a temporary password. Set a new one (8+ characters). |
+| The page asks for a new password | You are on a temporary password. Set a new one (10+ characters). |
 | The lock screen appears | The app locked after 15 minutes idle. Type your password ([Lock screen](help:account/lock-screen)). |
 | Login works but the pages are empty or fail | Press **Ctrl+F5**. Check your internet. |
 | The email is not accepted | A Manager may have deactivated the account; ask them. |

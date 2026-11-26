@@ -1,6 +1,6 @@
 const express=require('express'),path=require('path'),fs=require('fs'),crypto=require('crypto');
 const {Pool}=require('pg'),bcrypt=require('bcryptjs'),jwt=require('jsonwebtoken'),multer=require('multer'),cookieParser=require('cookie-parser');
-const PROD=process.env.NODE_ENV==='production';
+const PROD=process.env.NODE_ENV==='production',SEC=require('./security');
 const pool=new Pool({connectionString:process.env.DATABASE_URL,ssl:process.env.PGSSL==='true'?{rejectUnauthorized:false}:false});
 const q=(t,p)=>pool.query(t,p).then(r=>r.rows);
 const one=async(t,p)=>(await q(t,p))[0];
@@ -25,7 +25,7 @@ const LOCK_THEMES=[
 ];
 const LOCK_SLOTS=[{id:'morning',label:'Morning',start:5,end:12},{id:'afternoon',label:'Afternoon',start:12,end:17},{id:'evening',label:'Evening',start:17,end:5}];
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:15*1024*1024}});
-const app=express();app.set('trust proxy',1);app.disable('x-powered-by');app.use(express.json({limit:'1mb',verify:(req,res,buf)=>{req.rawBody=buf}}));app.use(cookieParser());
+const app=express();app.set('trust proxy',1);app.disable('x-powered-by');app.use(SEC.headers);app.use(express.json({limit:'1mb',verify:(req,res,buf)=>{req.rawBody=buf}}));app.use(cookieParser());app.use('/api',SEC.sameOrigin);
 const rateLimit=require('express-rate-limit');
 if(process.env.NODE_ENV!=='test')app.use('/api',rateLimit({windowMs:60000,max:600,standardHeaders:true,legacyHeaders:false,message:{error:'Too many requests. Slow down a little.'}}));
 const wrap=f=>(req,res)=>f(req,res).catch(e=>{if(!e.status)console.error(e);res.status(e.status||500).json({error:e.status?e.message:'Server error',...(e.status&&e.data?e.data:{})})});
@@ -113,7 +113,7 @@ async function serveLockScreenImage(req,res){
  if(!row)return res.status(404).json({error:'Daily lock-screen image not found'});
  res.set({'Content-Type':row.image_mime,'Cache-Control':'public,max-age=86400,immutable','X-Content-Type-Options':'nosniff'}).send(row.image_data);
 }
-const auth=async(req,res,next)=>{try{const t=jwt.verify(req.cookies.t,SECRET),u=await one('SELECT u.id,u.name,u.email,u.phone,u.role,r.level,r.permissions,u.must_change_password,s.id AS session_id,s.last_activity FROM users u JOIN roles r ON r.key=u.role LEFT JOIN auth_sessions s ON s.user_id=u.id AND s.id=$2 WHERE u.id=$1 AND u.active',[t.id,t.jti]);if(!u)return res.status(401).json({error:'Please sign in',code:'SESSION_EXPIRED'});if(!u.session_id||Date.now()-new Date(u.last_activity).getTime()>=IDLE_TIMEOUT_MS){if(u.session_id)await q('DELETE FROM auth_sessions WHERE id=$1',[u.session_id]);return res.status(401).json({error:'Session expired due to inactivity',code:'SESSION_EXPIRED'})}req.user={id:u.id,name:u.name,email:u.email,phone:u.phone,role:u.role,level:u.level,perms:P.clean(u.permissions||P.preset(u.level)),must_change_password:u.must_change_password};req.sessionId=u.session_id;next()}catch(e){if(e.name==='JsonWebTokenError'||e.name==='TokenExpiredError'||e.name==='NotBeforeError')return res.status(401).json({error:'Please sign in',code:'SESSION_EXPIRED'});console.error('Authentication middleware failed:',e);res.status(500).json({error:'Authentication service unavailable'})}};
+const auth=async(req,res,next)=>{try{const t=jwt.verify(req.cookies.t,SECRET,{algorithms:['HS256']}),u=await one('SELECT u.id,u.name,u.email,u.phone,u.role,r.level,r.permissions,u.must_change_password,s.id AS session_id,s.last_activity FROM users u JOIN roles r ON r.key=u.role LEFT JOIN auth_sessions s ON s.user_id=u.id AND s.id=$2 WHERE u.id=$1 AND u.active',[t.id,t.jti]);if(!u)return res.status(401).json({error:'Please sign in',code:'SESSION_EXPIRED'});if(!u.session_id||Date.now()-new Date(u.last_activity).getTime()>=IDLE_TIMEOUT_MS){if(u.session_id)await q('DELETE FROM auth_sessions WHERE id=$1',[u.session_id]);return res.status(401).json({error:'Session expired due to inactivity',code:'SESSION_EXPIRED'})}req.user={id:u.id,name:u.name,email:u.email,phone:u.phone,role:u.role,level:u.level,perms:P.clean(u.permissions||P.preset(u.level)),must_change_password:u.must_change_password};req.sessionId=u.session_id;next()}catch(e){if(e.name==='JsonWebTokenError'||e.name==='TokenExpiredError'||e.name==='NotBeforeError')return res.status(401).json({error:'Please sign in',code:'SESSION_EXPIRED'});console.error('Authentication middleware failed:',e);res.status(500).json({error:'Authentication service unavailable'})}};
 const P=require('./permissions');
 // access is decided by the permissions ticked on the person's role (Settings → Roles); a route lets someone in if they hold any of the listed ones
 const allow=(...p)=>(req,res,next)=>p.some(x=>req.user.perms.includes(x))?next():res.status(403).json({error:'Your role cannot do this'});
@@ -129,13 +129,18 @@ const AI=require('./ai')({q,one,enc,dec}),E=require('./docs');
 const caseInfo=id=>one(CASE_SQL+' WHERE c.id=$1',[id]);
 app.get('/webhooks/whatsapp',WA.verify);app.post('/webhooks/whatsapp',WA.receive);
 // ---- auth (with simple brute-force guard)
-const tries=new Map();
+const tries=new Map(),DUMMY=bcrypt.hashSync('not-a-real-password',12);
+// attempts are counted per address (8) AND per account (40): one address trying many accounts stops quickly, and many addresses trying one account stop too, without letting a stranger lock a real person out after a few tries
+const throttle=(k,max=8)=>{const t=tries.get(k)||{n:0,at:Date.now()};if(Date.now()-t.at>6e5){t.n=0;t.at=Date.now()}tries.set(k,t);return t};
+setInterval(()=>{for(const [k,t] of tries)if(Date.now()-t.at>6e5)tries.delete(k)},6e5).unref();
 app.post('/api/login',wrap(async(req,res)=>{
-  const k=req.ip,t=tries.get(k)||{n:0,at:Date.now()};if(Date.now()-t.at>6e5){t.n=0;t.at=Date.now()}
-  if(t.n>=8)fail(429,'Too many attempts. Try again in 10 minutes.');
-  const u=await one('SELECT * FROM users WHERE lower(email)=lower($1) AND active',[String(req.body.email||'')]);
-  if(!u||!await bcrypt.compare(String(req.body.password||''),u.password_hash)){t.n++;tries.set(k,t);fail(401,'Wrong email or password')}
-  tries.delete(k);
+  const em=String(req.body.email||'').trim().toLowerCase().slice(0,200),k='ip:'+req.ip,ka='acct:'+em,t=throttle(k),ta=throttle(ka);
+  if(t.n>=8||ta.n>=40)fail(429,'Too many attempts. Try again in 10 minutes.');
+  const u=await one('SELECT * FROM users WHERE lower(email)=lower($1) AND active',[em]);
+  // the same work is done whether or not the account exists, so the response time does not reveal which emails are registered
+  const good=await bcrypt.compare(String(req.body.password||''),u?u.password_hash:DUMMY);
+  if(!u||!good){t.n++;ta.n++;fail(401,'Wrong email or password')}
+  tries.delete(k);tries.delete(ka);
   await q('DELETE FROM auth_sessions WHERE last_activity<now()-interval \'30 days\'');
   const sessionId=crypto.randomUUID();await q('INSERT INTO auth_sessions(id,user_id) VALUES($1,$2)',[sessionId,u.id]);
   res.cookie('t',jwt.sign({id:u.id,role:u.role,name:u.name},SECRET,{jwtid:sessionId,expiresIn:'7d'}),{httpOnly:true,sameSite:'lax',secure:PROD,maxAge:6048e5});
@@ -146,7 +151,12 @@ app.use('/api',auth);
 app.post('/api/logout',wrap(async(req,res)=>{await q('DELETE FROM auth_sessions WHERE id=$1',[req.sessionId]);res.clearCookie('t');res.json({ok:1})}));
 // a person with a temporary password must set their own before anything else (tests skip the gate)
 app.use('/api',(req,res,next)=>{if(req.user.must_change_password&&process.env.NODE_ENV!=='test'&&!/^(\/me\/password|\/logout|\/me|\/session\/activity|\/session\/lock)$/.test(req.url))return res.status(403).json({error:'Set a new password first'});next()});
-app.param('id',(req,res,next,v)=>/^\d+$/.test(v)?next():res.status(400).json({error:'Bad id'}));
+// the address of a case or client is a random code; it is turned back into the internal number here, so every route below keeps working with numbers
+app.param('id',(req,res,next,v)=>{
+  if(/^\d+$/.test(v))return next();
+  const tb=/^\/api\/cases\//.test(req.path)?'cases':/^\/api\/clients\//.test(req.path)?'clients':null;
+  if(!tb||!/^[0-9a-f]{32}$/.test(v))return res.status(400).json({error:'Bad id'});
+  one('SELECT id FROM '+tb+' WHERE uid=$1',[v]).then(r=>{if(!r)return res.status(404).json({error:'Not found'});req.params.id=String(r.id);next()},next)});
 app.get('/api/me',(req,res)=>res.json(req.user));
 app.post('/api/session/activity',wrap(async(req,res)=>{await q('UPDATE auth_sessions SET last_activity=now() WHERE id=$1',[req.sessionId]);res.json({ok:1})}));
 app.post('/api/session/lock',wrap(async(req,res)=>{await q('DELETE FROM auth_sessions WHERE id=$1',[req.sessionId]);res.clearCookie('t');res.json({ok:1})}));
@@ -169,9 +179,10 @@ app.get('/api/users/:id/avatar',wrap(async(req,res)=>{
   res.send(u.avatar)}));
 app.post('/api/me/password',wrap(async(req,res)=>{
  const p=String(req.body.password||''),current=String(req.body.currentPassword||'');
- if(p.length<8)fail(400,'Password must be at least 8 characters');
+ {const pr=SEC.passwordProblem(p,req.user.email);if(pr)fail(400,pr)}
  if(!req.user.must_change_password){const u=await one('SELECT password_hash FROM users WHERE id=$1',[req.user.id]);if(!u||!await bcrypt.compare(current,u.password_hash))fail(400,'Current password is incorrect')}
- await q('UPDATE users SET password_hash=$1,must_change_password=FALSE WHERE id=$2',[await bcrypt.hash(p,10),req.user.id]);
+ await q('UPDATE users SET password_hash=$1,must_change_password=FALSE WHERE id=$2',[await bcrypt.hash(p,12),req.user.id]);
+ await q('DELETE FROM auth_sessions WHERE user_id=$1 AND id<>$2',[req.user.id,req.sessionId]); // every other sign-in of this person ends
  await audit(req,'user.password','Changed own password');
  res.json({ok:1})}));
 app.get('/api/notifs',wrap(async(req,res)=>{
@@ -180,13 +191,13 @@ app.get('/api/notifs',wrap(async(req,res)=>{
  res.json({items,unread:u.n})}));
 app.post('/api/notifs/read',wrap(async(req,res)=>{
  await q('UPDATE notifs SET read=TRUE WHERE user_id=$1 AND NOT read',[req.user.id]);res.json({ok:1})}));
-const CASE_SQL=`SELECT c.id,c.code,c.track_number,c.status,c.completed_at,c.due::text AS due,c.rounds,c.note,c.assignee_id AS who,c.client_id,cl.name AS client,c.case_type_id,t.name AS type,c.created_at::date::text AS created,c.submitted_at::date::text AS submitted,
+const CASE_SQL=`SELECT c.id,c.uid,c.code,c.track_number,c.status,c.completed_at,c.due::text AS due,c.rounds,c.note,c.assignee_id AS who,c.client_id,cl.name AS client,c.case_type_id,t.name AS type,c.created_at::date::text AS created,c.submitted_at::date::text AS submitted,
  (SELECT count(*) FROM case_docs d WHERE d.case_id=c.id AND d.done)::int AS docs_done,(SELECT count(*) FROM case_docs d WHERE d.case_id=c.id)::int AS docs_total
  FROM cases c JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id`;
 app.get('/api/bootstrap',wrap(async(req,res)=>{
   const [users,types,docs,clients,cases,recent,inbox,guide,notifs,roles,performers]=await Promise.all([
    q('SELECT id,name,role,active'+(can(req.user,'team.manage')?',email,phone,wa_opt_in':'')+',avatar_at::text AS avatar FROM users ORDER BY id'),q('SELECT id,name,active,sop,options FROM case_types ORDER BY name'),
-   q('SELECT case_type_id,name FROM case_type_docs ORDER BY position,id'),q('SELECT id,name,phone,email,track_number FROM clients ORDER BY name'),
+   q('SELECT case_type_id,name FROM case_type_docs ORDER BY position,id'),q('SELECT id,uid,name,phone,email,track_number FROM clients ORDER BY name'),
    q(CASE_SQL+' ORDER BY c.id DESC'),
    q('SELECT a.text,a.created_at,a.user_id,a.case_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id]),one('SELECT count(*)::int AS n FROM notifs WHERE user_id=$1 AND NOT read',[req.user.id]),q(`SELECT key,name,level,team_queue,permissions FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`),q(`SELECT user_id,count(*)::int AS completed FROM activity WHERE created_at>=now()-interval '7 days' AND text LIKE 'moved % → done' GROUP BY user_id ORDER BY completed DESC,user_id`)]);
   const weeklyWork=await one(`SELECT count(DISTINCT a.case_id)::int AS assigned,
@@ -203,27 +214,41 @@ app.get('/api/bootstrap',wrap(async(req,res)=>{
   types.forEach(t=>t.docs=docs.filter(d=>d.case_type_id===t.id).map(d=>d.name));
   res.json({me:{...req.user,seenGuide:!!(guide&&guide.seen_guide)},roles,users,types,clients,cases,recent,inboxCount:inbox.n,notifs:notifs.n,performers,weeklyPerformance})}));
 // ---- team
+// Nobody can create, change, reset or delete someone whose role can do more than their own, or hand out a role that can do more than their own.
+const permsOfRole=async k=>P.clean(((await one('SELECT permissions,level FROM roles WHERE key=$1',[String(k)]))||{}).permissions||[]);
+const within=(user,perms)=>perms.every(p=>user.perms.includes(p));
+const NOT_ABOVE='You cannot change someone whose role can do more than yours, or give a role that can do more than yours';
 app.post('/api/users',allow('team.manage'),wrap(async(req,res)=>{
-  const {name,email,role,password,phone}=req.body;if(!name||!email||!role||String(password||'').length<8)fail(400,'Name, email, role and a password of 8+ characters are required');
+  const {name,email,role,password,phone}=req.body;if(!name||!email||!role||!password)fail(400,'Name, email, role and a password are required');{const pr=SEC.passwordProblem(password,email);if(pr)fail(400,pr)}
   if(!await roleExists(role))fail(400,'Choose a valid role');
-  try{res.json(await one('INSERT INTO users(name,email,role,password_hash,must_change_password,phone) VALUES($1,lower($2),$3,$4,TRUE,$5) RETURNING id,name,role,active',[name,email,role,await bcrypt.hash(password,10),phone||null]))}catch(e){fail(400,'That email is already used')}}));
+  if(!within(req.user,await permsOfRole(role)))fail(403,NOT_ABOVE);
+  try{res.json(await one('INSERT INTO users(name,email,role,password_hash,must_change_password,phone) VALUES($1,lower($2),$3,$4,TRUE,$5) RETURNING id,name,role,active',[name,email,role,await bcrypt.hash(password,12),phone||null]))}catch(e){fail(400,'That email is already used')}}));
 app.patch('/api/users/:id',allow('team.manage'),wrap(async(req,res)=>{
-  const {role,active,password,phone,waOptIn}=req.body,id=+req.params.id;
-  const {name,email}=req.body,who=await one('SELECT u.name,u.email,u.role,r.permissions FROM users u JOIN roles r ON r.key=u.role WHERE u.id=$1',[id]);if(!who)fail(404,'Not found');
-  if(name!==undefined){if(!String(name).trim())fail(400,'Name required');await q('UPDATE users SET name=$1 WHERE id=$2',[String(name).trim(),id])}
-  if(email!==undefined){if(!/^\S+@\S+\.\S+$/.test(String(email).trim()))fail(400,'Enter a valid email');try{await q('UPDATE users SET email=lower($1) WHERE id=$2',[String(email).trim(),id])}catch(e){fail(400,'That email is already used')}}
+  const {role,active,password,phone,waOptIn,name,email}=req.body,id=+req.params.id;
+  const who=await one('SELECT u.name,u.email,u.role,r.permissions FROM users u JOIN roles r ON r.key=u.role WHERE u.id=$1',[id]);if(!who)fail(404,'Not found');
+  // everything is checked first, so a refused change leaves nothing half done
+  if(id!==req.user.id&&!within(req.user,P.clean(who.permissions)))fail(403,NOT_ABOVE);
+  if(role&&role!==who.role){if(!await roleExists(role))fail(400,'Bad role');if(!within(req.user,await permsOfRole(role)))fail(403,NOT_ABOVE)}
+  if(name!==undefined&&!String(name).trim())fail(400,'Name required');
+  if(email!==undefined&&!/^\S+@\S+\.\S+$/.test(String(email).trim()))fail(400,'Enter a valid email');
+  if(id===req.user.id&&(active===false||(role&&role!==who.role)))fail(400,'You cannot demote or deactivate yourself');
+  if((who.permissions||[]).includes('roles.manage')&&(active===false||(role&&role!==who.role&&!(await roleAdmin(role))))&&!(await otherManagers(id)))fail(400,'At least one active Manager must remain');
+  if(password){const pr=SEC.passwordProblem(password,who.email);if(pr)fail(400,pr)}
+  if(email!==undefined){if(await one('SELECT 1 FROM users WHERE lower(email)=lower($1) AND id<>$2',[String(email).trim(),id]))fail(400,'That email is already used')}
+  if(name!==undefined)await q('UPDATE users SET name=$1 WHERE id=$2',[String(name).trim(),id]);
+  if(email!==undefined)await q('UPDATE users SET email=lower($1) WHERE id=$2',[String(email).trim(),id]);
   if(role||typeof active==='boolean'||password||name!==undefined||email!==undefined)await audit(req,'user.update',`${who.name}: ${[role&&`role ${who.role} → ${role}`,typeof active==='boolean'&&(active?'activated':'deactivated'),password&&'password reset',name!==undefined&&'name',email!==undefined&&'email'].filter(Boolean).join(', ')}`);
   if(phone!==undefined)await q('UPDATE users SET phone=$1 WHERE id=$2',[String(phone).trim()||null,id]);
   if(typeof waOptIn==='boolean')await q('UPDATE users SET wa_opt_in=$1 WHERE id=$2',[waOptIn,id]);
-  if(id===req.user.id&&(active===false||(role&&role!==who.role)))fail(400,'You cannot demote or deactivate yourself');
-  if((who.permissions||[]).includes('roles.manage')&&(active===false||(role&&role!==who.role&&!(await roleAdmin(role))))&&!(await otherManagers(id)))fail(400,'At least one active Manager must remain');
-  if(role){if(!await roleExists(role))fail(400,'Bad role');await q('UPDATE users SET role=$1 WHERE id=$2',[role,id])}
-  if(typeof active==='boolean')await q('UPDATE users SET active=$1 WHERE id=$2',[active,id]);
-  if(password){if(password.length<8)fail(400,'Password must be 8+ characters');await q('UPDATE users SET password_hash=$1'+(id===req.user.id?'':',must_change_password=TRUE')+' WHERE id=$2',[await bcrypt.hash(password,10),id])}
+  if(role)await q('UPDATE users SET role=$1 WHERE id=$2',[role,id]);
+  if(typeof active==='boolean'){await q('UPDATE users SET active=$1 WHERE id=$2',[active,id]);if(!active)await q('DELETE FROM auth_sessions WHERE user_id=$1',[id])}
+  // a reset password signs the person out everywhere (a stolen session does not survive a reset)
+  if(password){await q('UPDATE users SET password_hash=$1'+(id===req.user.id?'':',must_change_password=TRUE')+' WHERE id=$2',[await bcrypt.hash(password,12),id]);await q('DELETE FROM auth_sessions WHERE user_id=$1 AND id<>$2',[id,id===req.user.id?req.sessionId:'00000000-0000-0000-0000-000000000000'])}
   res.json({ok:1})}));
 app.delete('/api/users/:id',allow('team.manage'),wrap(async(req,res)=>{
   const id=+req.params.id;if(id===req.user.id)fail(400,'You cannot delete yourself');
   const u=await one('SELECT u.name,u.email,r.permissions FROM users u JOIN roles r ON r.key=u.role WHERE u.id=$1',[id]);if(!u)fail(404,'Not found');
+  if(!within(req.user,P.clean(u.permissions)))fail(403,NOT_ABOVE);
   if((u.permissions||[]).includes('roles.manage')&&!(await otherManagers(id)))fail(400,'At least one active Manager must remain');
   const used=await one(`SELECT (SELECT count(*) FROM cases WHERE assignee_id=$1 OR created_by=$1)+(SELECT count(*) FROM activity WHERE user_id=$1)+(SELECT count(*) FROM comments WHERE user_id=$1)+(SELECT count(*) FROM files WHERE uploaded_by=$1)+(SELECT count(*) FROM credentials WHERE created_by=$1)+(SELECT count(*) FROM credential_access WHERE user_id=$1) AS n`,[id]);
   if(+used.n)fail(400,'This person has work history. Deactivate them instead: their history stays correct.');
@@ -260,7 +285,7 @@ app.delete('/api/case-types/:id',allow('casetypes.manage'),wrap(async(req,res)=>
 // ---- clients, files, vault
 app.post('/api/clients',wrap(async(req,res)=>{
   const name=String(req.body.name||'').trim();if(!name)fail(400,'Client name required');
-  res.json(await one('INSERT INTO clients(name,phone,email,track_number) VALUES($1,$2,$3,$4) ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id,name',[name,req.body.phone||null,req.body.email||null,cleanTrack(req.body.track_number)]))}));
+  res.json(await one('INSERT INTO clients(name,phone,email,track_number) VALUES($1,$2,$3,$4) ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id,uid,name',[name,req.body.phone||null,req.body.email||null,cleanTrack(req.body.track_number)]))}));
 app.patch('/api/clients/:id',wrap(async(req,res)=>{const {name,phone,email,track_number}=req.body,id=+req.params.id;
   if(track_number!==undefined)await q('UPDATE clients SET track_number=$1 WHERE id=$2',[cleanTrack(track_number),id]);
   if(name!==undefined){if(!can(req.user,'clients.rename'))fail(403,'Only a Senior or Manager can rename a client');if(!String(name).trim())fail(400,'Name required');
@@ -278,7 +303,7 @@ app.get('/api/clients',wrap(async(req,res)=>{
   const total=(await one(`SELECT count(*)::int AS n FROM clients cl WHERE ${W('cl.')}`,[like,dl])).n,pages=Math.max(1,Math.ceil(total/size));
   let page=Math.min(pages,Math.max(1,parseInt(req.query.page)||1));const focus=parseInt(req.query.focus);
   if(focus&&await one(`SELECT 1 FROM clients cl WHERE cl.id=$3 AND ${W('cl.')}`,[like,dl,focus]))page=Math.floor((await one(`SELECT count(*)::int AS n FROM clients cl WHERE ${W('cl.')} AND cl.name<(SELECT name FROM clients WHERE id=$3)`,[like,dl,focus])).n/size)+1;
-  const items=await q(`SELECT cl.id,cl.name,cl.phone,cl.email,cl.track_number,(SELECT coalesce(json_agg(x.track_number ORDER BY x.id DESC),'[]'::json) FROM cases x WHERE x.client_id=cl.id AND x.track_number IS NOT NULL) AS tracks,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id AND c.status<>'done') AS open,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id) AS cases FROM clients cl WHERE ${W('cl.')} ORDER BY cl.name,cl.id LIMIT $3 OFFSET $4`,[like,dl,size,(page-1)*size]);
+  const items=await q(`SELECT cl.id,cl.uid,cl.name,cl.phone,cl.email,cl.track_number,(SELECT coalesce(json_agg(x.track_number ORDER BY x.id DESC),'[]'::json) FROM cases x WHERE x.client_id=cl.id AND x.track_number IS NOT NULL) AS tracks,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id AND c.status<>'done') AS open,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id) AS cases FROM clients cl WHERE ${W('cl.')} ORDER BY cl.name,cl.id LIMIT $3 OFFSET $4`,[like,dl,size,(page-1)*size]);
   res.json({items,total,page,pages,size})}));
 // ---- universal search (navbar suggestions + results page): clients, cases, files, comments, vault labels
 app.get('/api/search',wrap(async(req,res)=>{
@@ -294,7 +319,7 @@ app.get('/api/search',wrap(async(req,res)=>{
    can(req.user,'vault.manage')?q(`SELECT cr.id,cr.label,cr.client_id,cl.name AS client FROM credentials cr JOIN clients cl ON cl.id=cr.client_id WHERE cr.label ILIKE $1 ORDER BY cr.id DESC LIMIT 4`,[like]):[]]);
   res.json({q:qs,clients,cases,files,comments,creds})}));
 app.get('/api/clients/:id',wrap(async(req,res)=>{
-  const id=+req.params.id,client=await one('SELECT id,name,phone,email,track_number,profile,activities FROM clients WHERE id=$1',[id]);if(!client)fail(404,'Not found');
+  const id=+req.params.id,client=await one('SELECT id,uid,name,phone,email,track_number,profile,activities FROM clients WHERE id=$1',[id]);if(!client)fail(404,'Not found');
   const [cases,files,creds]=await Promise.all([q(CASE_SQL+' WHERE c.client_id=$1 ORDER BY c.id DESC',[id]),
    q(FILES+' WHERE f.client_id=$1 AND NOT f.inbox ORDER BY f.id DESC',[id]),
    q(`SELECT c.id,c.label,c.username,(SELECT u.name||' · '||to_char(a.created_at,'DD Mon HH24:MI') FROM credential_access a JOIN users u ON u.id=a.user_id WHERE a.credential_id=c.id ORDER BY a.id DESC LIMIT 1) AS last_access FROM credentials c WHERE c.client_id=$1 ORDER BY c.id`,[id])]);
@@ -309,7 +334,7 @@ app.post('/api/clients/:id/files',up,wrap(async(req,res)=>res.json(await putFile
 app.get('/api/files/:id',wrap(async(req,res)=>{
   const f=await one('SELECT filename,mime,data,path FROM files WHERE id=$1',[+req.params.id]);if(!f)fail(404,'Not found');
   const inline=req.query.inline&&/^(application\/pdf|image\/(png|jpe?g|webp|gif))$/i.test(f.mime||'');
-  res.set({'Content-Type':f.mime||'application/octet-stream','Content-Disposition':`${inline?'inline':'attachment'}; filename*=UTF-8''${encodeURIComponent(f.filename)}`,'X-Content-Type-Options':'nosniff'});
+  res.set({'Content-Type':f.mime||'application/octet-stream','Content-Disposition':`${inline?'inline':'attachment'}; filename*=UTF-8''${encodeURIComponent(f.filename)}`,'X-Content-Type-Options':'nosniff','Content-Security-Policy':inline?"frame-ancestors 'self'":"sandbox; default-src 'none'"});
   if(f.path&&FILES_DIR){const fp=path.resolve(FILES_DIR,f.path);if(!fp.startsWith(path.resolve(FILES_DIR)))fail(404,'Not found');return res.send(fs.readFileSync(fp))}
   res.send(f.data)}));
 app.get('/api/files/:id/info',wrap(async(req,res)=>{
@@ -417,7 +442,7 @@ app.post('/api/cases',wrap(async(req,res)=>{
   const {clientId,clientName,caseTypeId,assigneeId,due,options}=req.body;
   let cid=+clientId;if(!cid){const n=String(clientName||'').trim();if(!n)fail(400,'Client required');cid=(await one('INSERT INTO clients(name) VALUES($1) ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id',[n])).id}
   const t=await one('SELECT id,name,options FROM case_types WHERE id=$1 AND active',[+caseTypeId]);if(!t)fail(400,'Pick a case type');const pick=chosenDocs(t,options);
-  const c=await one(`INSERT INTO cases(code,client_id,case_type_id,assignee_id,due,created_by) VALUES('BR-'||nextval('case_code_seq'),$1,$2,$3,$4,$5) RETURNING id,code`,[cid,t.id,+assigneeId||req.user.id,due||null,req.user.id]);
+  const c=await one(`INSERT INTO cases(code,client_id,case_type_id,assignee_id,due,created_by) VALUES('BR-'||nextval('case_code_seq'),$1,$2,$3,$4,$5) RETURNING id,uid,code`,[cid,t.id,+assigneeId||req.user.id,due||null,req.user.id]);
   await q('UPDATE cases SET options=$1::jsonb WHERE id=$2',[JSON.stringify(pick.chosen),c.id]);
   await q('INSERT INTO case_assignments(case_id,user_id) VALUES($1,$2)',[c.id,+assigneeId||req.user.id]);
   await q('INSERT INTO case_docs(case_id,name) SELECT $1,name FROM case_type_docs WHERE case_type_id=$2 ORDER BY position,id',[c.id,t.id]);
@@ -545,6 +570,7 @@ app.post('/api/roles',allow('roles.manage'),wrap(async(req,res)=>{
   if(!goodLevel(req.body.level)||(req.body.level===undefined&&req.body.permissions===undefined))fail(400,'Choose an access level');
   if(await one('SELECT 1 FROM roles WHERE lower(name)=lower($1) OR key=$2',[name,key]))fail(400,'A role with this name already exists');
   const perms=rolePerms(req.body,[]);
+  if(!within(req.user,perms))fail(403,'You can only give a role the permissions you have yourself');
   await q('INSERT INTO roles(key,name,level,permissions,team_queue,summary,duties) VALUES($1,$2,$3,$4::jsonb,$5,$6,$7::jsonb)',[key,name,P.levelOf(perms),JSON.stringify(perms),!!req.body.team_queue,String(req.body.summary||'').trim(),JSON.stringify(strs(req.body.duties))]);
   await audit(req,'role.create',`${name}: ${perms.length} permission${perms.length===1?'':'s'}`);res.json({key})}));
 app.put('/api/roles/:key',allow('roles.manage'),wrap(async(req,res)=>{
@@ -553,12 +579,14 @@ app.put('/api/roles/:key',allow('roles.manage'),wrap(async(req,res)=>{
   if(name.length<2||name.length>40)fail(400,'Role name must be 2 to 40 characters');if(!goodLevel(b.level))fail(400,'Choose an access level');
   if(await one('SELECT 1 FROM roles WHERE lower(name)=lower($1) AND key<>$2',[name,k]))fail(400,'A role with this name already exists');
   const old=P.clean(r.permissions||P.preset(r.level)),perms=rolePerms(b,old);
+  if(!within(req.user,old)||!within(req.user,perms))fail(403,'You can only change a role that has permissions you have yourself, and give only permissions you have yourself');
   if(old.includes('roles.manage')&&!perms.includes('roles.manage')&&!(await one(`SELECT 1 FROM users u JOIN roles x ON x.key=u.role WHERE u.active AND x.permissions @> '["roles.manage"]'::jsonb AND x.key<>$1 LIMIT 1`,[k])))fail(400,'At least one active Manager must remain');
   await q('UPDATE roles SET name=$2,level=$3,permissions=$4::jsonb,team_queue=$5,summary=$6,duties=$7::jsonb WHERE key=$1',[k,name,P.levelOf(perms),JSON.stringify(perms),b.team_queue!==undefined?!!b.team_queue:r.team_queue,b.summary!==undefined?String(b.summary).trim():r.summary,JSON.stringify(b.duties!==undefined?strs(b.duties):r.duties)]);
   const added=perms.filter(x=>!old.includes(x)),removed=old.filter(x=>!perms.includes(x));
   if(name!==r.name||added.length||removed.length)await audit(req,'role.update',`${r.name}${name!==r.name?' → '+name:''}${added.length?`: allowed ${added.join(', ')}`:''}${removed.length?`${added.length?';':':'} no longer ${removed.join(', ')}`:''}`);res.json({ok:1})}));
 app.delete('/api/roles/:key',allow('roles.manage'),wrap(async(req,res)=>{
   const k=req.params.key,r=await one('SELECT * FROM roles WHERE key=$1',[k]);if(!r)fail(404,'Role not found');
+  if(!within(req.user,P.clean(r.permissions)))fail(403,'You can only delete a role whose permissions you have yourself');
   const n=(await one('SELECT count(*)::int AS n FROM users WHERE role=$1',[k])).n;if(n)fail(400,`${n} ${n===1?'person has':'people have'} this role. Move them to another role first.`);
   if((r.permissions||[]).includes('roles.manage')&&!(await one(`SELECT 1 FROM roles WHERE permissions @> '["roles.manage"]'::jsonb AND key<>$1`,[k])))fail(400,'Keep at least one Manager-level role');
   await q('DELETE FROM roles WHERE key=$1',[k]);await q('UPDATE stage_playbook SET owner_roles=owner_roles - $1::text',[k]);

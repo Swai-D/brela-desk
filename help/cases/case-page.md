@@ -36,3 +36,5 @@ Client name (opens the client), the case code, the case type, the stage badge an
 | **History** | Every action on the case, with who and when | [History](help:cases/history) |
 
 > Tip: the code in the header (for example the case code) is what Managers type to confirm deleting a case.
+
+The address of a case is a long random code, not a number. Copy it from the address bar to send a colleague a direct link; they must be signed in to open it. Links with the old `?id=` style still work.

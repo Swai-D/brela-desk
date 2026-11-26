@@ -34,7 +34,7 @@ const docOptions=sel=>ST.ctx.case?`<option value="">Client folder only (no check
 function ctxBar(){
  const c=ST.ctx;if(!c.clientId)return'<div class="text-muted small">No client chosen: you can edit and download, but nothing is saved to a case.</div>';
  const k=c.client.client,cs=c.case&&c.case.case;
- return`<div class="d-flex flex-wrap align-items-center gap-2"><i class="bx bx-user-circle font-size-20 text-primary"></i><b>${esc(k.name)}</b>${cs?`<span class="text-muted">·</span><a href="case-detail.html?id=${cs.id}">${esc(cs.code)}</a><span class="text-muted">${esc(cs.type)}</span>${badge(cs.status)}`:'<span class="text-muted">· client folder</span>'}</div>`}
+ return`<div class="d-flex flex-wrap align-items-center gap-2"><i class="bx bx-user-circle font-size-20 text-primary"></i><b>${esc(k.name)}</b>${cs?`<span class="text-muted">·</span><a href="${caseUrl(cs.id)}">${esc(cs.code)}</a><span class="text-muted">${esc(cs.type)}</span>${badge(cs.status)}`:'<span class="text-muted">· client folder</span>'}</div>`}
 
 // ======================================================= HOME
 function home(){
@@ -452,12 +452,12 @@ function showSaved({file,name,kind,doc,replaced}){
   <div class="small text-muted mt-3"><i class="bx bx-time-five me-1"></i>Written to the case history and audit log.</div>`,'Done',()=>{});
  el.querySelector('.modal-footer .btn-light').textContent='Close';
  const ft=el.querySelector('.modal-footer');ft.classList.add('flex-wrap','gap-2');
- ft.insertAdjacentHTML('afterbegin',`${cs?`<a class="btn btn-outline-secondary" href="case-detail.html?id=${cs.case.id}">Open case</a>`:''}<button type="button" class="btn btn-outline-secondary" id="sv-another">${kind==='PDF'?'Convert more':'Sign another'}</button>${missing?`<button type="button" class="btn btn-primary" id="sv-next"><i class="bx bx-plus me-1"></i>Add ${esc(missing.name)}</button>`:''}`);
+ ft.insertAdjacentHTML('afterbegin',`${cs?`<a class="btn btn-outline-secondary" href="${caseUrl(cs.case.id)}">Open case</a>`:''}<button type="button" class="btn btn-outline-secondary" id="sv-another">${kind==='PDF'?'Convert more':'Sign another'}</button>${missing?`<button type="button" class="btn btn-primary" id="sv-next"><i class="bx bx-plus me-1"></i>Add ${esc(missing.name)}</button>`:''}`);
  el.querySelector('.ok').style.display='none';
  const close=()=>bootstrap.Modal.getInstance(el).hide();
  el.querySelector('#sv-pv').onclick=()=>previewFile(file.id,[{id:file.id,filename:file.filename||name,mime:'application/pdf'}]);
  el.querySelector('#sv-another').onclick=()=>{close();home()};
- const nx=el.querySelector('#sv-next');if(nx)nx.onclick=()=>{close();location.href='case-detail.html?id='+cs.case.id};
+ const nx=el.querySelector('#sv-next');if(nx)nx.onclick=()=>{close();location.href=caseUrl(cs.case.id)};
  el.addEventListener('hidden.bs.modal',()=>{if(ST.view!=='home')home()},{once:true})}
 
 // ======================================================= entry point

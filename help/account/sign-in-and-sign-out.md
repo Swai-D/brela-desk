@@ -26,7 +26,7 @@ You return to the sign-in page. Do this on any shared or public computer. If you
 | Message | What it means and what to do |
 |---|---|
 | **Wrong email or password** | One of them is wrong, or your account has been switched off. Check the keyboard (caps lock). If you are sure, see [Forgot your password](help:account/forgot-password) |
-| **Too many attempts. Try again in 10 minutes.** | After 8 failed attempts from the same computer or network, sign-in is paused for 10 minutes. Wait, then try once, carefully |
+| **Too many attempts. Try again in 10 minutes.** | After 8 failed attempts from the same computer or network (or many failed attempts on one account from anywhere), sign-in is paused for 10 minutes. Wait, then try once, carefully |
 | **Session expired due to inactivity** / **Please sign in** | You were away more than 15 minutes, or signed out elsewhere. Sign in again |
 
 > The "too many attempts" pause is counted for the whole network, so colleagues in the same office who typed their passwords wrongly can also cause it.

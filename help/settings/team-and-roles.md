@@ -13,7 +13,7 @@ Open **Settings → Team & roles**. Only Managers can.
 2. Fill **Name**, **Email (login)**, **Role** and a temporary **Password** of 8+ characters.
 3. Save. The person signs in with that password and **must set their own** before the app opens ([Sign in](help:account/sign-in-and-sign-out)).
 
-Messages: "Name, email, role and a password of 8+ characters are required", "That email is already used", "Enter a valid email".
+Messages: "Name, email, role and a password are required", "Password must be at least 10 characters" (also the other password messages in [Change your password](help:account/change-password)), "That email is already used", "Enter a valid email".
 
 ## Edit a person
 
@@ -21,7 +21,7 @@ The pencil (**Edit person**) opens name, email (login) and WhatsApp number.
 
 ## Reset a password
 
-Press the key icon (**Reset password**) on the person's row, type a new temporary password (8+ characters) and save. The person must choose their own at the next sign-in ([Forgot password](help:account/forgot-password)).
+Press the key icon (**Reset password**) on the person's row, type a new temporary password (10+ characters) and save. The person must choose their own at the next sign-in ([Forgot password](help:account/forgot-password)).
 
 ## Change a role
 
@@ -37,3 +37,6 @@ Use the role menu on the person's row. It takes effect **immediately**. You cann
 > Always set the person's WhatsApp number so alerts reach them ([Notifications](help:account/notifications)).
 
 See also: [Roles and access levels](help:settings/roles-and-access-levels).
+
+## Who can change whom
+You can only add, edit, reset or delete a team member whose role can do no more than yours, and you can only give a role permissions you have yourself. Otherwise you see "You cannot change someone whose role can do more than yours, or give a role that can do more than yours". When you reset a password, deactivate or delete a person, they are signed out everywhere straight away.
