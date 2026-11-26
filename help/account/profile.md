@@ -35,7 +35,7 @@ Shows your role and access level with a link to the [Playbook](help:daily-work/p
 ## Change password
 
 1. Type your **Current password**.
-2. Type the **New password** (at least 8 characters) twice.
+2. Type the **New password** (at least 10 characters, not a common word or number pattern) twice.
 3. Press **Update password**.
 
 If the current password is wrong you see "Current password is incorrect". If the two new passwords differ: "The new passwords do not match".

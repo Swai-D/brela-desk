@@ -89,7 +89,7 @@ module.exports=({q,one,enc,dec})=>{
   n.industry_prompt=String(n.industry_prompt||'').trim()||DEFAULT_INDUSTRY_PROMPT;if(n.industry_prompt.length>12000)throw err(400,'The business plan prompt is too long (max 12000 characters)');
   n.language=String(n.language||'English').trim().slice(0,40)||'English';
   for(const k of Object.keys(n.models))n.models[k]=String(n.models[k]||'').trim().slice(0,120);
-  n.custom_base_url=String(n.custom_base_url||'').trim().replace(/\/+$/,'');if(n.custom_base_url&&!/^https?:\/\/[^\s]+$/.test(n.custom_base_url))throw err(400,'The custom endpoint must be a full URL starting with https://');
+  n.custom_base_url=String(n.custom_base_url||'').trim().replace(/\/+$/,'');if(n.custom_base_url){const bad=!/^https?:\/\/[^\s]+$/.test(n.custom_base_url)?'The custom endpoint must be a full URL starting with https://':require('./security').endpointProblem(n.custom_base_url);if(bad)throw err(400,bad)}
   const r=await row(),keys={...(r.keys||{})};
   if(clearKey)delete keys[n.provider];
   if(apiKey){const k=String(apiKey).trim().replace(/^Bearer\s+/i,'');if(k.length<8||k.length>500||/\s/.test(k))throw err(400,'That does not look like an API key');keys[n.provider]={enc:enc(k),last4:k.slice(-4)}}

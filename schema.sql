@@ -20,6 +20,13 @@ CREATE INDEX IF NOT EXISTS idx_files_case ON files(case_id);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS wa_opt_in BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE files ADD COLUMN IF NOT EXISTS source TEXT;
+-- random, unguessable public address of a case or client (the numeric id stays internal)
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS uid TEXT DEFAULT replace(gen_random_uuid()::text,'-','');
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS uid TEXT DEFAULT replace(gen_random_uuid()::text,'-','');
+UPDATE cases SET uid=replace(gen_random_uuid()::text,'-','') WHERE uid IS NULL;
+UPDATE clients SET uid=replace(gen_random_uuid()::text,'-','') WHERE uid IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS cases_uid_idx ON cases(uid);
+CREATE UNIQUE INDEX IF NOT EXISTS clients_uid_idx ON clients(uid);
 -- review step: a generated document is 'checked' by a second person before its checklist item counts as done
 ALTER TABLE files ADD COLUMN IF NOT EXISTS checked_by INT REFERENCES users(id) ON DELETE SET NULL;
 ALTER TABLE files ADD COLUMN IF NOT EXISTS checked_at TIMESTAMPTZ;

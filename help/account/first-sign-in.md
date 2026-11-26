@@ -10,7 +10,7 @@ When a Manager creates your account, they give you your **login email** and a **
 1. Open the BRELA Desk address given to you. You see the **Sign in** page.
 2. Type your **Email** and the temporary **Password**, then press **Sign in**. See [Sign in and sign out](help:account/sign-in-and-sign-out) if it does not work.
 3. A box named **Set your new password** appears with the text "Your account is using a temporary password. Choose your own to continue."
-4. Type your new password in **New password (8+ characters)**.
+4. Type your new password in **New password (10+ characters)**.
 5. Type the same password again in **Repeat new password**. Press the eye button on the right of a field to see what you typed.
 6. Press **Save & continue**. The page reloads and opens normally.
 
@@ -34,7 +34,10 @@ You can read all of it again at any time in the **Playbook**, and your role is a
 | Message | Meaning and fix |
 |---|---|
 | **The two passwords do not match** | Type both boxes again, exactly the same |
-| **Password must be at least 8 characters** | Choose a longer password |
+| **Password must be at least 10 characters** | Choose a longer password |
+| **Choose a password that is not a common word or number pattern** | Avoid words like "password" and runs like "1234567890" |
+| **The password must not contain your email name** | Do not use the first part of your email address |
+| **Use letters and other characters, not only numbers or one repeated character** | Mix letters, numbers and symbols |
 | **Set a new password first** | You tried to use the app before choosing a password. Reload the page and the box appears again |
 
 ## Tips for a good password

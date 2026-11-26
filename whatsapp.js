@@ -13,7 +13,10 @@ module.exports=({q,one,putDisk})=>{
   brela_case_approved:'Hi {{1}}, BRELA approved case {{2}} for {{3}}. Please send the final report and documents to the client.',
   brela_client_doc:'Hi {{1}}, {{2}} sent a document on WhatsApp: {{3}}. Please file it in the WhatsApp Inbox.',
   brela_daily_digest:'Good morning {{1}}. Your cases today: {{2}}'};
- const gfetch=(url,o={})=>fetch(url.startsWith('http')?url:`${BASE}/${V}/${url}`,{...o,headers:{Authorization:'Bearer '+E.WHATSAPP_TOKEN,...(o.headers||{})}});
+ // the WhatsApp token is only ever sent to Meta's own hosts (a media link in a reply is checked before it is followed)
+ const sameBase=u=>{try{return new URL(u).origin===new URL(BASE).origin}catch{return false}};
+ const metaHost=u=>{try{const x=new URL(u);return x.protocol==='https:'&&/(^|\.)(facebook\.com|fbcdn\.net|whatsapp\.net|whatsapp\.com)$/.test(x.hostname)}catch{return false}};
+ const gfetch=(url,o={})=>{if(url.startsWith('http')&&!metaHost(url)&&!sameBase(url))return Promise.reject(new Error('Blocked: not a Meta address'));return fetch(url.startsWith('http')?url:`${BASE}/${V}/${url}`,{...o,headers:{Authorization:'Bearer '+E.WHATSAPP_TOKEN,...(o.headers||{})}})};
  async function post(to,body,label,userId){
   if(!configured())return{ok:false,error:'WhatsApp is not configured'};
   let ok=false,error=null;
