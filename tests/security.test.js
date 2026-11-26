@@ -27,6 +27,7 @@ const GOOD=['Kilimanjaro','-Peak-84'].join('');
  // the pages themselves
  const fs=require('fs'),js=fs.readFileSync('public/assets/js/brela.js','utf8');
  ok('no link in the app puts a running number in the address bar',!/(case-detail|clients)\.html\?id=/.test(js)&&!/(case-detail|clients)\.html\?id=/.test(fs.readFileSync('public/assets/js/studio.js','utf8')));
+ ok('Doc Studio links use codes too',!/studio\.html\?(case|client)=\$\{c\.id\}/.test(js)&&/toNumber\('cases'/.test(fs.readFileSync('public/assets/js/studio.js','utf8')));
  ok('old ?id= links are still understood and replaced by the code',/pageKey\('c'\)/.test(js)&&/pageKey\('k'\)/.test(js)&&/showUrl\(/.test(js));
  // ---- headers
  const page=await fetch(ORIGIN+'/login.html'),h=page.headers;

@@ -191,13 +191,13 @@ app.get('/api/notifs',wrap(async(req,res)=>{
  res.json({items,unread:u.n})}));
 app.post('/api/notifs/read',wrap(async(req,res)=>{
  await q('UPDATE notifs SET read=TRUE WHERE user_id=$1 AND NOT read',[req.user.id]);res.json({ok:1})}));
-const CASE_SQL=`SELECT c.id,c.uid,c.code,c.track_number,c.status,c.completed_at,c.due::text AS due,c.rounds,c.note,c.assignee_id AS who,c.client_id,cl.name AS client,c.case_type_id,t.name AS type,c.created_at::date::text AS created,c.submitted_at::date::text AS submitted,
+const CASE_SQL=`SELECT c.id,c.uid,c.code,c.track_number,c.status,c.completed_at,c.due::text AS due,c.rounds,c.note,c.assignee_id AS who,c.client_id,cl.name AS client,cl.profile->>'incorporation_no' AS reg_no,c.case_type_id,t.name AS type,c.created_at::date::text AS created,c.submitted_at::date::text AS submitted,
  (SELECT count(*) FROM case_docs d WHERE d.case_id=c.id AND d.done)::int AS docs_done,(SELECT count(*) FROM case_docs d WHERE d.case_id=c.id)::int AS docs_total
  FROM cases c JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id`;
 app.get('/api/bootstrap',wrap(async(req,res)=>{
   const [users,types,docs,clients,cases,recent,inbox,guide,notifs,roles,performers]=await Promise.all([
    q('SELECT id,name,role,active'+(can(req.user,'team.manage')?',email,phone,wa_opt_in':'')+',avatar_at::text AS avatar FROM users ORDER BY id'),q('SELECT id,name,active,sop,options FROM case_types ORDER BY name'),
-   q('SELECT case_type_id,name FROM case_type_docs ORDER BY position,id'),q('SELECT id,uid,name,phone,email,track_number FROM clients ORDER BY name'),
+   q('SELECT case_type_id,name FROM case_type_docs ORDER BY position,id'),q("SELECT id,uid,name,phone,email,track_number,profile->>'incorporation_no' AS reg_no FROM clients ORDER BY name"),
    q(CASE_SQL+' ORDER BY c.id DESC'),
    q('SELECT a.text,a.created_at,a.user_id,a.case_id,c.code FROM activity a JOIN cases c ON c.id=a.case_id ORDER BY a.id DESC LIMIT 8'),one('SELECT count(*)::int AS n FROM files WHERE inbox'),one('SELECT seen_guide FROM users WHERE id=$1',[req.user.id]),one('SELECT count(*)::int AS n FROM notifs WHERE user_id=$1 AND NOT read',[req.user.id]),q(`SELECT key,name,level,team_queue,permissions FROM roles ORDER BY CASE level WHEN 'MANAGER' THEN 0 WHEN 'SENIOR' THEN 1 ELSE 2 END,name`),q(`SELECT user_id,count(*)::int AS completed FROM activity WHERE created_at>=now()-interval '7 days' AND text LIKE 'moved % → done' GROUP BY user_id ORDER BY completed DESC,user_id`)]);
   const weeklyWork=await one(`SELECT count(DISTINCT a.case_id)::int AS assigned,
@@ -299,11 +299,11 @@ const FILES='SELECT f.id,f.filename,f.mime,f.uploaded_by,f.size,f.case_doc_id,f.
 // Paginated list with search (name, email, phone: digits match even when the number has spaces) and 'focus' (jump to the page holding one client)
 app.get('/api/clients',wrap(async(req,res)=>{
   const n0=parseInt(req.query.size),size=n0>0?Math.min(50,n0):10,qs=String(req.query.q||'').trim().slice(0,80),like='%'+qs.replace(/[\\%_]/g,m=>'\\'+m)+'%',digits=qs.replace(/\D/g,''),dl=digits.length>=3?'%'+digits+'%':'';
-  const W=a=>`(${a}name ILIKE $1 OR ${a}email ILIKE $1 OR ${a}phone ILIKE $1 OR ${a}track_number ILIKE $1 OR EXISTS(SELECT 1 FROM cases x WHERE x.client_id=${a}id AND x.track_number ILIKE $1) OR ($2<>'' AND translate(coalesce(${a}phone,''),' +-().','') LIKE $2))`;
+  const W=a=>`(${a}name ILIKE $1 OR ${a}profile->>'incorporation_no' ILIKE $1 OR ${a}email ILIKE $1 OR ${a}phone ILIKE $1 OR ${a}track_number ILIKE $1 OR EXISTS(SELECT 1 FROM cases x WHERE x.client_id=${a}id AND x.track_number ILIKE $1) OR ($2<>'' AND translate(coalesce(${a}phone,''),' +-().','') LIKE $2))`;
   const total=(await one(`SELECT count(*)::int AS n FROM clients cl WHERE ${W('cl.')}`,[like,dl])).n,pages=Math.max(1,Math.ceil(total/size));
   let page=Math.min(pages,Math.max(1,parseInt(req.query.page)||1));const focus=parseInt(req.query.focus);
   if(focus&&await one(`SELECT 1 FROM clients cl WHERE cl.id=$3 AND ${W('cl.')}`,[like,dl,focus]))page=Math.floor((await one(`SELECT count(*)::int AS n FROM clients cl WHERE ${W('cl.')} AND cl.name<(SELECT name FROM clients WHERE id=$3)`,[like,dl,focus])).n/size)+1;
-  const items=await q(`SELECT cl.id,cl.uid,cl.name,cl.phone,cl.email,cl.track_number,(SELECT coalesce(json_agg(x.track_number ORDER BY x.id DESC),'[]'::json) FROM cases x WHERE x.client_id=cl.id AND x.track_number IS NOT NULL) AS tracks,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id AND c.status<>'done') AS open,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id) AS cases FROM clients cl WHERE ${W('cl.')} ORDER BY cl.name,cl.id LIMIT $3 OFFSET $4`,[like,dl,size,(page-1)*size]);
+  const items=await q(`SELECT cl.id,cl.uid,cl.name,cl.profile->>'incorporation_no' AS reg_no,cl.phone,cl.email,cl.track_number,(SELECT coalesce(json_agg(x.track_number ORDER BY x.id DESC),'[]'::json) FROM cases x WHERE x.client_id=cl.id AND x.track_number IS NOT NULL) AS tracks,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id AND c.status<>'done') AS open,(SELECT count(*)::int FROM cases c WHERE c.client_id=cl.id) AS cases FROM clients cl WHERE ${W('cl.')} ORDER BY cl.name,cl.id LIMIT $3 OFFSET $4`,[like,dl,size,(page-1)*size]);
   res.json({items,total,page,pages,size})}));
 // ---- universal search (navbar suggestions + results page): clients, cases, files, comments, vault labels
 app.get('/api/search',wrap(async(req,res)=>{
@@ -312,7 +312,7 @@ app.get('/api/search',wrap(async(req,res)=>{
   if(qs.length<2)return res.json(empty);
   const like='%'+qs.replace(/[\\%_]/g,m=>'\\'+m)+'%',digits=qs.replace(/\D/g,''),dl=digits.length>=3?'%'+digits+'%':'';
   const [clients,cases,files,comments,creds]=await Promise.all([
-   q(`SELECT id,name,phone,email,track_number FROM clients WHERE name ILIKE $1 OR coalesce(email,'') ILIKE $1 OR coalesce(phone,'') ILIKE $1 OR coalesce(track_number,'') ILIKE $1 OR ($2<>'' AND translate(coalesce(phone,''),' +-().','') LIKE $2) ORDER BY name LIMIT 5`,[like,dl]),
+   q(`SELECT id,uid,name,phone,email,track_number,profile->>'incorporation_no' AS reg_no FROM clients WHERE name ILIKE $1 OR coalesce(profile->>'incorporation_no','') ILIKE $1 OR coalesce(email,'') ILIKE $1 OR coalesce(phone,'') ILIKE $1 OR coalesce(track_number,'') ILIKE $1 OR ($2<>'' AND translate(coalesce(phone,''),' +-().','') LIKE $2) ORDER BY name LIMIT 5`,[like,dl]),
    q(`SELECT c.id,c.code,c.status,c.track_number,c.note,cl.name AS client,t.name AS type FROM cases c JOIN clients cl ON cl.id=c.client_id JOIN case_types t ON t.id=c.case_type_id WHERE c.code ILIKE $1 OR c.track_number ILIKE $1 OR cl.name ILIKE $1 OR t.name ILIKE $1 OR c.note ILIKE $1 ORDER BY c.id DESC LIMIT 6`,[like]),
    q(`SELECT f.id,f.filename,coalesce(cl.name,cl2.name) AS client,c.id AS case_id,c.code AS case_code FROM files f LEFT JOIN cases c ON c.id=f.case_id LEFT JOIN clients cl ON cl.id=f.client_id LEFT JOIN clients cl2 ON cl2.id=c.client_id WHERE f.filename ILIKE $1 AND NOT f.inbox ORDER BY f.id DESC LIMIT 5`,[like]),
    q(`SELECT m.id,m.body,m.case_id,c.code AS case_code,cl.name AS client,u.name AS by FROM comments m JOIN cases c ON c.id=m.case_id JOIN clients cl ON cl.id=c.client_id LEFT JOIN users u ON u.id=m.user_id WHERE m.body ILIKE $1 ORDER BY m.id DESC LIMIT 5`,[like]),

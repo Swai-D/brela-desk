@@ -29,6 +29,12 @@ const call=async(m,u,b)=>{const r=await fetch(B+u,{method:m,headers:{...(b?{'Con
  const ap=await call('POST',`/clients/${cid}/registry-import`,{text:SAMPLE,apply:true});
  const full=(await call('GET',`/clients/${cid}`)).j,prof=(full.client||full).profile,ppl=full.people||(await call('GET',`/clients/${cid}/people`)).j;
  ok('apply saves the company details, people and tracking number',ap.s===200&&ap.j.added===3&&prof.incorporation_no==='100000001'&&prof.registry_updated&&ppl.length===3,ap.j&&ap.j.error);
+ const lst=(await call('GET','/clients?size=50')).j.items.find(x=>x.id===cid),srch=(await call('GET','/search?q=100000001')).j;
+ ok('the incorporation number is on the client list and found by search',lst&&lst.reg_no==='100000001'&&srch.clients.some(x=>x.id===cid&&x.reg_no==='100000001'),[lst,srch.clients]);
+ const bsC=(await call('GET','/bootstrap')).j;ok('the case list carries the number too',bsC.clients.find(x=>x.id===cid).reg_no==='100000001');
+ const alt=R.parseRegistry(SAMPLE.replace(/Incorporation Number:/i,'Registration Number:')),none=R.parseRegistry(SAMPLE.replace(/Incorporation Number:\s*\S+/i,''));
+ ok('the number is read under another BRELA label',alt.values.incorporation_no==='100000001',alt.values);
+ ok('a missing number is reported, not silently dropped',!none.values.incorporation_no&&none.warnings.some(w=>/incorporation number/i.test(w)),none.warnings);
  const again=await call('POST',`/clients/${cid}/registry-import`,{text:SAMPLE});
  ok('the same page again changes nothing',again.j.fields.every(f=>f.status==='same')&&again.j.people.every(p=>p.status==='same'));
  // a hand-edited detail and an extra person survive; a registry change is shown as changed

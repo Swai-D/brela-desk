@@ -8,7 +8,7 @@ The **Company** tab is the company's file. Every document and wizard reads from 
 
 ## What you see
 
-- **The company card at the top:** name, number, type, registration date, registered office and contact details taken from BRELA.
+- **The company card at the top:** name, type, the green **Inc. no.** badge (the incorporation number; an amber **Incorporation number missing** badge shows when it is not saved yet, so import from BRELA or add it under **Edit company details**), registration date, registration date, registered office and contact details taken from BRELA.
 - **Main business activity** with **+N more** when the company has several; click it to see the full list with codes.
 - **Share capital:** authorised capital, nominal value and currency, and the number of shares issued.
 - **Shareholding table:** each shareholder, shares held and percentage.
