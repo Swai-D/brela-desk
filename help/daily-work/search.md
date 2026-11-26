@@ -1,7 +1,7 @@
 ---
 title: Search
 summary: Find a client, case, document, comment or saved login from anywhere with the top search box.
-keywords: search, find, look for, track number, phone, case code, filename, comment, vault, cannot find, results, shortcut
+keywords: search, find, look for, incorporation number, track number, phone, case code, filename, comment, vault, cannot find, results, shortcut
 order: 5
 ---
 The search box in the top bar finds things across the whole app.
@@ -11,6 +11,8 @@ The search box in the top bar finds things across the whole app.
 1. Click the box and type **at least 2 letters**. Results appear under the box while you type.
 2. Move with the **up and down arrow keys**, press **Enter** to open the highlighted result, or click one. **Esc** closes the list.
 3. Press **Enter** with nothing highlighted, or the search button, to open the full results page (**search.html**), which lists everything that matches.
+
+You can also search by **incorporation number**; client results show it as **Inc. no.**, and the case page shows it beside the case code.
 4. On a phone, use the magnifier icon in the top bar.
 
 ## What is searched

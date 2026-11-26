@@ -18,7 +18,7 @@ Instead of typing the company by hand, paste the page you see on the BRELA regis
 
 | Part | Details |
 |---|---|
-| Company | name, number, type, registration date, registered office, contacts, tracking numbers |
+| Company | name, **incorporation number**, type, registration date, registered office, contacts, tracking numbers |
 | Activities | every business activity with its code; the one marked **Main** is used as the main activity |
 | Share capital | authorised capital, nominal value, issued shares |
 | People | names, gender, nationality, date of birth, occupation, ID, address, roles, shares and share class, ownership, previous names, other directorships |
@@ -26,6 +26,7 @@ Instead of typing the company by hand, paste the page you see on the BRELA regis
 
 ## Warnings you may see
 
+- **The incorporation number was not found in the pasted page**: the page had no Incorporation Number (or Registration / Company Number). Copy the whole page again, or type it in under **Edit company details**.
 - **No activity is marked as Main**: the page had activities but none flagged Main. Choose it yourself after applying.
 - Warnings about fields the page did not contain or that look odd. Read each one; they do not block Apply.
 

@@ -34,7 +34,7 @@ function sections(text){
  const out={};idx.forEach(([k,i],n)=>{const end=n+1<idx.length?idx[n+1][1]:L.length;out[k]=(out[k]||[]).concat(L.slice(i+1,end))});
  return out}
 
-const COMPANY_LABELS=['Tracking Number','Incorporation Number','Company Name','Company Type','Date Of Incorporation','Originated From','Accounting Date','Accounting Month'];
+const COMPANY_LABELS=['Tracking Number','Incorporation Number','Incorporation No','Registration Number','Company Number','Company Name','Company Type','Date Of Incorporation','Originated From','Accounting Date','Accounting Month'];
 function pairs(blockLines,labels){
  const flat=blockLines.map(l=>l.trim()).filter(Boolean).join('  ').replace(/\t+/g,'  '),o={};
  const alt=labels.join('|');
@@ -80,7 +80,9 @@ function parseRegistry(raw){
  set('company_name',c['Company Name']);
  const nm=values.company_name||'',sp=nm.match(/^(.*?)\s+((?:COMPANY\s+)?(?:LIMITED|LTD\.?|PLC))$/i);
  if(nm){values.company_name_line_1=sp?sp[1]:nm;if(sp)values.company_name_line_2=sp[2]}
- set('incorporation_no',c['Incorporation Number']);set('company_type',c['Company Type']);
+ // the incorporation number matters most, so it is looked for under every label BRELA uses and, failing that, anywhere in the pasted page
+ const regNo=c['Incorporation Number']||c['Incorporation No']||c['Registration Number']||c['Company Number']||((text.match(/(?:Incorporation|Registration|Company)\s*(?:Number|No\.?)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\/.\-]{3,})/i)||[])[1]);
+ set('incorporation_no',regNo);if(!values.incorporation_no)warnings.push('The incorporation number was not found in the pasted page. Type it in under Edit company details.');set('company_type',c['Company Type']);
  const di=dateOf(c['Date Of Incorporation']);if(di){values.date_of_incorporation=di.text;values.date_of_incorporation_iso=di.iso}else if(c['Date Of Incorporation'])warnings.push('The incorporation date could not be read.');
  const ad=num(c['Accounting Date']),am=num(c['Accounting Month']);if(ad&&am>=1&&am<=12)values.financial_year_end=`${ad} ${MONTHS[am-1]}`;
  const tracking=NONE(c['Tracking Number']);

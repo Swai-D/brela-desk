@@ -8,8 +8,8 @@ Open **Clients** in the menu. The page has the list of clients on the left and t
 
 ## The list
 
-- Each row shows the client's name, their BRELA track number (or phone, or number of cases) and a small number: the **open cases**. It is green when above zero.
-- Type in the search box to filter by name; it waits a moment after you stop typing.
+- Each row shows the client's name, their **Inc. no.** (incorporation number) when saved, their BRELA track number (or phone, or number of cases) and a small number: the **open cases**. It is green when above zero.
+- Type in the search box to filter by name, incorporation number, phone, email or track number; it waits a moment after you stop typing.
 - The list shows 10 at a time. Use the arrows under it to change page.
 - The line under the title says how many clients you have, or how many match.
 - Press **New client** to add one ([Add a client](help:clients/add-a-client)).
