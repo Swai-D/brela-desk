@@ -32,7 +32,7 @@ order: 21
 
 ## Cases
 
-**Why does the case address show a long random code instead of a number?** The address (for example `case-detail.html?c=…`) uses a random code so nobody can guess other cases by changing a number. Share it only with people who already have an account; they still need to sign in. Old links with `?id=` still open and change to the new address.
+**Why does the case address show a long random code instead of a number?** The address (for example `case-detail.html?c=…`) uses a random code so nobody can guess other cases by changing a number. Share it only with people who already have an account; they still need to sign in. Doc Studio links to a file use a random code too. Old links with `?id=` still open and change to the new address.
 
 **How do I add another change to a case?** **Add another change** above the checklist ([Create a case](help:cases/create-a-case)).
 

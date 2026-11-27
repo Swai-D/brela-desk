@@ -154,7 +154,7 @@ app.use('/api',(req,res,next)=>{if(req.user.must_change_password&&process.env.NO
 // the address of a case or client is a random code; it is turned back into the internal number here, so every route below keeps working with numbers
 app.param('id',(req,res,next,v)=>{
   if(/^\d+$/.test(v))return next();
-  const tb=/^\/api\/cases\//.test(req.path)?'cases':/^\/api\/clients\//.test(req.path)?'clients':null;
+  const tb=/^\/api\/cases\//.test(req.path)?'cases':/^\/api\/clients\//.test(req.path)?'clients':/^\/api\/files\//.test(req.path)?'files':null;
   if(!tb||!/^[0-9a-f]{32}$/.test(v))return res.status(400).json({error:'Bad id'});
   one('SELECT id FROM '+tb+' WHERE uid=$1',[v]).then(r=>{if(!r)return res.status(404).json({error:'Not found'});req.params.id=String(r.id);next()},next)});
 app.get('/api/me',(req,res)=>res.json(req.user));
@@ -295,7 +295,7 @@ app.delete('/api/clients/:id',allow('clients.delete'),wrap(async(req,res)=>{
   const id=+req.params.id,c=await one('SELECT name FROM clients WHERE id=$1',[id]);if(!c)fail(404,'Not found');
   if((await one('SELECT count(*)::int AS n FROM cases WHERE client_id=$1',[id])).n)fail(400,'This client has cases. Delete or move those cases first.');
   await q('DELETE FROM clients WHERE id=$1',[id]);await audit(req,'client.delete',`${c.name} (with their documents and saved logins)`);res.json({ok:1})}));
-const FILES='SELECT f.id,f.filename,f.mime,f.uploaded_by,f.size,f.case_doc_id,f.case_id,f.created_at,f.source,f.missing,f.checked_by,f.checked_at,u.name AS by,cu.name AS checked_by_name FROM files f LEFT JOIN users u ON u.id=f.uploaded_by LEFT JOIN users cu ON cu.id=f.checked_by';
+const FILES='SELECT f.id,f.uid,f.filename,f.mime,f.uploaded_by,f.size,f.case_doc_id,f.case_id,f.created_at,f.source,f.missing,f.checked_by,f.checked_at,u.name AS by,cu.name AS checked_by_name FROM files f LEFT JOIN users u ON u.id=f.uploaded_by LEFT JOIN users cu ON cu.id=f.checked_by';
 // Paginated list with search (name, email, phone: digits match even when the number has spaces) and 'focus' (jump to the page holding one client)
 app.get('/api/clients',wrap(async(req,res)=>{
   const n0=parseInt(req.query.size),size=n0>0?Math.min(50,n0):10,qs=String(req.query.q||'').trim().slice(0,80),like='%'+qs.replace(/[\\%_]/g,m=>'\\'+m)+'%',digits=qs.replace(/\D/g,''),dl=digits.length>=3?'%'+digits+'%':'';
@@ -338,7 +338,7 @@ app.get('/api/files/:id',wrap(async(req,res)=>{
   if(f.path&&FILES_DIR){const fp=path.resolve(FILES_DIR,f.path);if(!fp.startsWith(path.resolve(FILES_DIR)))fail(404,'Not found');return res.send(fs.readFileSync(fp))}
   res.send(f.data)}));
 app.get('/api/files/:id/info',wrap(async(req,res)=>{
-  const f=await one('SELECT f.id,f.filename,f.mime,f.size,f.client_id,f.case_id,f.case_doc_id,f.uploaded_by,f.inbox,c.code AS case_code,d.name AS doc_name FROM files f LEFT JOIN cases c ON c.id=f.case_id LEFT JOIN case_docs d ON d.id=f.case_doc_id WHERE f.id=$1',[+req.params.id]);if(!f)fail(404,'Not found');res.json(f)}));
+  const f=await one('SELECT f.id,f.uid,f.filename,f.mime,f.size,f.client_id,f.case_id,f.case_doc_id,f.uploaded_by,f.inbox,c.code AS case_code,d.name AS doc_name FROM files f LEFT JOIN cases c ON c.id=f.case_id LEFT JOIN case_docs d ON d.id=f.case_doc_id WHERE f.id=$1',[+req.params.id]);if(!f)fail(404,'Not found');res.json(f)}));
 app.delete('/api/files/:id',wrap(async(req,res)=>{
   const f=await one('SELECT uploaded_by,filename,path FROM files WHERE id=$1',[+req.params.id]);if(!f)fail(404,'Not found');
   if(!can(req.user,'files.manage')&&f.uploaded_by!==req.user.id)fail(403,'Only the uploader, a Senior or a Manager can delete this');
@@ -639,7 +639,7 @@ app.get('/api/reports/monthly',allow('reports.view'),wrap(async(req,res)=>{
    prev,byType,byPerson,teamPerformance:performance.map(p=>({id:p.id,name:p.name,role:p.role,assigned:p.assigned,completed:p.completed,rate:p.assigned?Math.round(p.completed/p.assigned*1000)/10:0})),byClient,completed:done.map(d=>({id:d.id,code:d.code,track:d.track_number,client:d.client,type:d.type,who:d.who,created:d.created,completed:d.completed,days:Math.round(+d.days*10)/10,rounds:d.rounds})),
    returnsList:rets.map(r=>({at:r.created_at,code:r.code,client:r.client,type:r.type,who:r.who,reason:reason(r.text)}))})}));
 // ---- WhatsApp inbox + admin
-app.get('/api/inbox',wrap(async(req,res)=>res.json(await q(`SELECT f.id,f.filename,f.size,f.mime,f.created_at,f.sender_phone,f.sender_name,f.note,f.client_id,cl.name AS client FROM files f LEFT JOIN clients cl ON cl.id=f.client_id WHERE f.inbox ORDER BY f.id DESC`))));
+app.get('/api/inbox',wrap(async(req,res)=>res.json(await q(`SELECT f.id,f.uid,f.filename,f.size,f.mime,f.created_at,f.sender_phone,f.sender_name,f.note,f.client_id,cl.name AS client FROM files f LEFT JOIN clients cl ON cl.id=f.client_id WHERE f.inbox ORDER BY f.id DESC`))));
 app.post('/api/inbox/:id/file',wrap(async(req,res)=>{
   const f=await one('SELECT * FROM files WHERE id=$1 AND inbox',[+req.params.id]);if(!f)fail(404,'Already filed or not found');
   let {clientId,caseDocId,linkPhone}=req.body,caseId=null;

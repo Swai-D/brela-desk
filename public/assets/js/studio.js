@@ -464,7 +464,7 @@ function showSaved({file,name,kind,doc,replaced}){
 window.STUDIO_PAGE=async()=>{
  const qs=new URLSearchParams(location.search);await loadSigs();
  try{
-  if(qs.get('file')){await openFile(+qs.get('file'));if(qs.get('tool')==='images'&&ST.view==='home')window.SD.openImages({preselect:+qs.get('file')});return}
+  if(qs.get('file')){const fi=await api('/files/'+qs.get('file')+'/info'),fid=fi.id;if(fi.uid)showUrl('studio.html?file='+fi.uid+(qs.get('tool')?'&tool='+encodeURIComponent(qs.get('tool')):''));await openFile(fid);if(qs.get('tool')==='images'&&ST.view==='home')window.SD.openImages({preselect:fid});return}
   if(qs.get('case'))await setCtx({caseId:await toNumber('cases',qs.get('case'))});else if(qs.get('client'))await setCtx({clientId:await toNumber('clients',qs.get('client'))});
   if(qs.get('tool')==='images'&&ST.ctx.clientId)return window.SD.openImages({docId:+qs.get('doc')||null})}
  catch(e){toast(e.message,'error')}
