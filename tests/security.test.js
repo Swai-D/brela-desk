@@ -29,6 +29,11 @@ const GOOD=['Kilimanjaro','-Peak-84'].join('');
  ok('no link in the app puts a running number in the address bar',!/(case-detail|clients)\.html\?id=/.test(js)&&!/(case-detail|clients)\.html\?id=/.test(fs.readFileSync('public/assets/js/studio.js','utf8')));
  ok('Doc Studio links use codes too',!/studio\.html\?(case|client)=\$\{c\.id\}/.test(js)&&/toNumber\('cases'/.test(fs.readFileSync('public/assets/js/studio.js','utf8')));
  ok('old ?id= links are still understood and replaced by the code',/pageKey\('c'\)/.test(js)&&/pageKey\('k'\)/.test(js)&&/showUrl\(/.test(js));
+ // files open by code too
+ const fup=await fetch(B+`/clients/${bk.uid}/files`,{method:'POST',headers:{cookie:ck},body:(()=>{const f=new FormData();f.append('file',new Blob(['%PDF-1.4 x'],{type:'application/pdf'}),'a.pdf');return f})()}).then(r=>r.json());
+ const finfo=await call('GET',`/files/${fup.id}/info`),fcode=(await call('GET',`/clients/${bk.uid}`)).j.files.find(x=>x.id===fup.id);
+ ok('a file has a code and opens by it',/^[0-9a-f]{32}$/.test(fcode&&fcode.uid||'')&&(await call('GET',`/files/${fcode.uid}/info`)).j.id===fup.id&&finfo.s===200,[fcode,finfo.s]);
+ ok('Doc Studio file links use the code',!/studio\.html\?file=\$\{f\.id\}/.test(js)&&/files\/'\+qs\.get\('file'\)/.test(fs.readFileSync('public/assets/js/studio.js','utf8')));
  // ---- headers
  const page=await fetch(ORIGIN+'/login.html'),h=page.headers;
  ok('pages are sent with a content security policy',/default-src 'self'/.test(h.get('content-security-policy')||'')&&/frame-ancestors 'self'/.test(h.get('content-security-policy')||''),h.get('content-security-policy'));

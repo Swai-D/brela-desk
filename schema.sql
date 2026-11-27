@@ -27,6 +27,9 @@ UPDATE cases SET uid=replace(gen_random_uuid()::text,'-','') WHERE uid IS NULL;
 UPDATE clients SET uid=replace(gen_random_uuid()::text,'-','') WHERE uid IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS cases_uid_idx ON cases(uid);
 CREATE UNIQUE INDEX IF NOT EXISTS clients_uid_idx ON clients(uid);
+ALTER TABLE files ADD COLUMN IF NOT EXISTS uid TEXT DEFAULT replace(gen_random_uuid()::text,'-','');
+UPDATE files SET uid=replace(gen_random_uuid()::text,'-','') WHERE uid IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS files_uid_idx ON files(uid);
 -- review step: a generated document is 'checked' by a second person before its checklist item counts as done
 ALTER TABLE files ADD COLUMN IF NOT EXISTS checked_by INT REFERENCES users(id) ON DELETE SET NULL;
 ALTER TABLE files ADD COLUMN IF NOT EXISTS checked_at TIMESTAMPTZ;

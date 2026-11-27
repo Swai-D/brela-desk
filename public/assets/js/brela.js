@@ -46,7 +46,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('.cp');if(!
   b.querySelector('i').className='bx bx-check text-success';b.title='Copied ✓';setTimeout(()=>{if(b.isConnected){b.querySelector('i').className='bx bx-copy';b.title=old}},1500);
  }catch(x){toast('Copy failed — select the text and copy manually','error')}});
 const canFile=f=>CAN('files.manage')||f.uploaded_by===ME.id;
-const studioBtn=f=>/pdf/i.test(f.mime||'')?`<a href="studio.html?file=${f.id}" class="btn btn-icon btn-light sdo" title="Sign / edit in Doc Studio" aria-label="Sign or edit in Doc Studio"><i class="mdi mdi-draw"></i></a> `:/^image\//i.test(f.mime||'')&&PV_OK(f.mime)?`<a href="studio.html?file=${f.id}&tool=images" class="btn btn-icon btn-light sdo" title="Convert to PDF in Doc Studio" aria-label="Convert to PDF in Doc Studio"><i class="bx bx-images"></i></a> `:'';
+const studioBtn=f=>/pdf/i.test(f.mime||'')?`<a href="studio.html?file=${f.uid||f.id}" class="btn btn-icon btn-light sdo" title="Sign / edit in Doc Studio" aria-label="Sign or edit in Doc Studio"><i class="mdi mdi-draw"></i></a> `:/^image\//i.test(f.mime||'')&&PV_OK(f.mime)?`<a href="studio.html?file=${f.uid||f.id}&tool=images" class="btn btn-icon btn-light sdo" title="Convert to PDF in Doc Studio" aria-label="Convert to PDF in Doc Studio"><i class="bx bx-images"></i></a> `:'';
 /* review step: documents the app generated must be checked by a second person */
 const reviewTag=f=>{if(!['template','ai'].includes(f.source))return'';
  if(f.checked_by)return`<span class="badge bg-success-subtle text-success" title="Checked ${esc(f.checked_at?new Date(f.checked_at).toLocaleString():'')}"><i class="bx bx-check-shield me-1"></i>Checked by ${esc(f.checked_by_name||'a colleague')}</span> `;
