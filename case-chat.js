@@ -15,9 +15,10 @@ module.exports=(app,{q,one,wrap,fail,can,need,audit,up,AI,E,contextFor,guard,run
    c.chunks.forEach((x,i)=>out.push({file:x.label,n:i+1,text:x.text,ref:d.title}))}
   return{docs,chunks:out}}
  const readFile=async f=>{if(f.path&&FILES_DIR){const fp=path.resolve(FILES_DIR,f.path);if(!fp.startsWith(path.resolve(FILES_DIR)))throw new Error('bad path');return fs.readFileSync(fp)}return f.data};
- // text of every readable document of the case, read once and kept (a replaced file is read again)
- async function caseTexts(caseId){
-  const files=await q('SELECT id,filename,mime,size,path FROM files WHERE case_id=$1 AND NOT inbox ORDER BY id LIMIT 40',[caseId]),out=[],unreadable=[],scanned=[];
+ // text of every readable document of the case AND of the company itself (documents filed on the client, shared by
+ // every case of that company), read once and kept (a replaced file is read again)
+ async function caseTexts(caseId,clientId){
+  const files=await q('SELECT id,filename,mime,size,path,case_id FROM files WHERE NOT inbox AND (case_id=$1 OR (case_id IS NULL AND client_id=$2)) ORDER BY id LIMIT 60',[caseId,clientId]),out=[],unreadable=[],scanned=[];
   for(const f of files){
    let row=await one('SELECT size,text,error,ocr FROM file_text WHERE file_id=$1',[f.id]);
    if(!row||row.size!==f.size){
@@ -26,13 +27,16 @@ module.exports=(app,{q,one,wrap,fail,can,need,audit,up,AI,E,contextFor,guard,run
     if(buf){try{if(/^image\//.test(f.mime||''))throw Object.assign(new Error('picture'),{scan:1});text=await E.extractText(buf,f.filename,f.mime)}
      catch(e){if(e.scan||/No readable text/.test(e.message)){try{text=await OCR.ocr(buf,f.filename,f.mime);viaOcr=true}catch(o){error=o.message}}else error=e.message}}
     await q('INSERT INTO file_text(file_id,size,text,error,ocr) VALUES($1,$2,$3,$4,$5) ON CONFLICT(file_id) DO UPDATE SET size=$2,text=$3,error=$4,ocr=$5,at=now()',[f.id,f.size,text,error,viaOcr]);row={text,error,ocr:viaOcr}}
+   const company=!f.case_id;
    if(row.ocr)scanned.push(f.filename);
-   if(row.text)out.push({id:f.id,name:f.filename,text:row.text,ocr:row.ocr});else unreadable.push({id:f.id,name:f.filename,why:row.error})}
+   if(row.text)out.push({id:f.id,name:f.filename,text:row.text,ocr:row.ocr,company});else unreadable.push({id:f.id,name:f.filename,why:row.error,company})}
   return{texts:out,unreadable,scanned}}
  const D=d=>d?new Date(d).toISOString().slice(0,10):'none';
  async function material(caseId,question,priv,fix){
   const x=await contextFor(caseId),c=x.c,hide=priv==='standard',m=t=>hide?R.mask(t):t,parts=[],cites={};
   const add=(id,label,body,file_id)=>{parts.push(`[${id}] ${label}\n${body}`);cites[id]={id,label,file_id:file_id||null}};
+  // company documents are labelled, so the answer can say where the fact came from
+  const docLabel=t=>t.name+(t.company?' (company document)':'')+(t.ocr?' (scan read by OCR: may contain misread characters)':'');
   const [docs,files,act,com]=await Promise.all([q('SELECT id,name,done,grp FROM case_docs WHERE case_id=$1 ORDER BY id',[caseId]),q('SELECT filename,case_doc_id,source,missing,checked_by FROM files WHERE case_id=$1 AND NOT inbox',[caseId]),
    q('SELECT a.text,a.created_at,u.name FROM activity a LEFT JOIN users u ON u.id=a.user_id WHERE a.case_id=$1 ORDER BY a.id DESC LIMIT 40',[caseId]),q('SELECT m.body,m.created_at,u.name FROM comments m LEFT JOIN users u ON u.id=m.user_id WHERE m.case_id=$1 ORDER BY m.id DESC LIMIT 30',[caseId])]);
   const opts=(x.cd&&x.cd.options)||[];
@@ -44,13 +48,15 @@ module.exports=(app,{q,one,wrap,fail,can,need,audit,up,AI,E,contextFor,guard,run
   const ppl=(w.lists.people||[]).map(p=>[p.full_name,(p.roles||[]).join('/'),p.nationality,p.shares&&`shares ${p.shares}`].filter(v=>v&&!/^\{\{/.test(String(v))).join(', ')).filter(Boolean);
   if(vals.length||ppl.length)add('C5','Company details saved on the client',[...vals,ppl.length?'People: '+ppl.join(' | '):''].filter(Boolean).join('\n'));
   if(opts.length)add('C6','What kind of change this case is',opts.map(o=>`${o.name}${o.actions&&o.actions.length?': '+o.actions.join(', '):''}`).join('\n'));
-  const {texts,unreadable,scanned}=await caseTexts(caseId),chunks=[];
-  for(const t of texts)R.chunk(t.text).forEach((tx,i)=>chunks.push({file:t.name+(t.ocr?' (scan read by OCR: may contain misread characters)':''),file_id:t.id,n:i+1,text:tx}));
+  const {texts,unreadable,scanned}=await caseTexts(caseId,c.client_id),chunks=[];
+  const companyDocs=[...texts.filter(t=>t.company),...unreadable.filter(u=>u.company)];
+  if(companyDocs.length)add('C7','Company documents (shared by every case of this client)',companyDocs.map(t=>`- ${t.name}${t.why?` (could not be read: ${t.why})`:''}`).join('\n'));
+  for(const t of texts)R.chunk(t.text).forEach((tx,i)=>chunks.push({file:docLabel(t),file_id:t.id,n:i+1,text:tx}));
   let used=parts.join('\n\n').length,n=0;
   const lastRet=(act.find(a=>/marked as returned by BRELA/.test(a.text))||{}).text||'',top=R.rank(question+' '+lastRet,chunks,10),whole=[];
   if(fix){ // the two documents that match best are given in full
    for(const ch of top){if(!whole.includes(ch.file_id)&&whole.length<2)whole.push(ch.file_id)}
-   for(const id of whole){const t=texts.find(x=>x.id===id);n++;used+=Math.min(t.text.length,FULLDOC);add('D'+n,t.name+(t.ocr?' (scan read by OCR: may contain misread characters)':'')+(t.text.length>FULLDOC?' (first part of a long document)':' (whole document)'),m(t.text.slice(0,FULLDOC)),id)}}
+   for(const id of whole){const t=texts.find(x=>x.id===id);n++;used+=Math.min(t.text.length,FULLDOC);add('D'+n,docLabel(t)+(t.text.length>FULLDOC?' (first part of a long document)':' (whole document)'),m(t.text.slice(0,FULLDOC)),id)}}
   for(const ch of top.filter(c=>!whole.includes(c.file_id)).slice(0,fix?4:10)){const body=m(ch.text);if(used+body.length>BUDGET&&n>=3)break;n++;used+=body.length;add('D'+n,`${ch.file} (part ${ch.n})`,body,ch.file_id)}
   // the law: ranked with the question and with what BRELA last asked to correct
   const lastReturn=lastRet,lib=await refChunks();let lawUsed=0,k=0;
@@ -59,7 +65,7 @@ module.exports=(app,{q,one,wrap,fail,can,need,audit,up,AI,E,contextFor,guard,run
  const mine=(req,res,next)=>one('SELECT 1 FROM cases WHERE id=$1',[+req.params.id]).then(r=>r?next():res.status(404).json({error:'Case not found'})).catch(next);
  const rows=id=>q('SELECT * FROM (SELECT m.id,m.role,m.body,m.sources,m.created_at,m.user_id,u.name AS by FROM case_chat m LEFT JOIN users u ON u.id=m.user_id WHERE m.case_id=$1 ORDER BY m.id DESC LIMIT 60) x ORDER BY id',[id]);
  app.get('/api/cases/:id/chat',mine,wrap(async(req,res)=>{
-  const id=+req.params.id,files=await q('SELECT f.id,f.filename,f.mime,t.error,t.ocr,(t.text<>\'\') AS ok FROM files f LEFT JOIN file_text t ON t.file_id=f.id AND t.size=f.size WHERE f.case_id=$1 AND NOT f.inbox ORDER BY f.id',[id]);
+  const id=+req.params.id,files=await q('SELECT f.id,f.filename,f.mime,t.error,t.ocr,(t.text<>\'\') AS ok FROM files f LEFT JOIN file_text t ON t.file_id=f.id AND t.size=f.size WHERE NOT f.inbox AND (f.case_id=$1 OR (f.case_id IS NULL AND f.client_id=(SELECT client_id FROM cases WHERE id=$1))) ORDER BY f.id',[id]);
   res.json({messages:await rows(id),ai:await AI.status(req.user),files:files.length,unread:files.filter(f=>f.error).map(f=>({name:f.filename,why:f.error})),scanned:files.filter(f=>f.ocr).map(f=>f.filename),reference:(await q('SELECT title FROM reference_docs WHERE active ORDER BY id')).map(r=>r.title)})}));
  app.post('/api/cases/:id/chat',mine,wrap(async(req,res)=>{
   const id=+req.params.id,msg=String((req.body||{}).message||'').trim();

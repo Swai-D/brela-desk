@@ -54,6 +54,19 @@ const upload=async(docId,name,text,type='text/plain')=>{const f=new FormData();f
  ok('a manager can clear the conversation',(await call('DELETE',`/cases/${cs.id}/chat`)).s===200&&(await call('GET',`/cases/${cs.id}/chat`)).j.messages.length===0);
  ok('chat runs are in the AI usage report as their own kind',(await call('GET','/ai/usage')).j.byKind.some(x=>x.kind==='chat'));
 
+ // ---- company documents: filed on the client, so every case of that company can use them
+ const clId=d.case.client_id;
+ const uploadClient=async(name,text)=>{const f=new FormData();f.append('file',new Blob([text],{type:'text/plain'}),name);return call('POST','/clients/'+clId+'/files',f,true)};
+ ok('a document can be uploaded to the company itself',(await uploadClient('company-mandate.txt','Company bank mandate. The share transfer deed for the company is held by Mama Asha of Dodoma.')).s===200);
+ await mreset();
+ await call('POST',`/cases/${cs.id}/chat`,{message:'Who keeps the share transfer deed?'});
+ const csent=JSON.stringify((await mlog()).filter(x=>/messages$/.test(x.path)).pop().body);
+ ok('the AI reads the company documents too, and they are labelled as company documents',/share transfer deed/.test(csent)&&/Mama Asha/.test(csent)&&/company-mandate\.txt \(company document\)/.test(csent)&&/Company documents \(shared by every case of this client\)/.test(csent),csent.slice(0,1200));
+ const cs3=(await call('POST','/cases',{clientId:clId,caseTypeId:types[0].id})).j;
+ await mreset();await call('POST',`/cases/${cs3.id}/chat`,{message:'Who keeps the share transfer deed?'});
+ const csent3=JSON.stringify((await mlog()).filter(x=>/messages$/.test(x.path)).pop().body);
+ ok('the company document is shared with another case of the same client, while that case\'s own documents stay private',/share transfer deed/.test(csent3)&&/company-mandate\.txt/.test(csent3)&&!/Sokoine Road/.test(csent3),csent3.slice(0,1200));
+
  // ---- reference library: the Companies Act is part of every case chat
  await as('boss@test.co',AP);
  const ACT='PART I\nPRELIMINARY\n1. Short title.\nThis Act may be cited as the Companies Act.\n2. Interpretation.\nIn this Act company means a company formed under this Act.\n3.-(1) Any two or more persons may form a company by subscribing their names to a memorandum.\n(2) Each subscriber shall take at least one share.\nPART II\n4. Name of company.\nThe name of a company limited by shares shall end with the word Limited.\n5. Registered office.\nEvery company shall have a registered office in Tanzania to which communications may be addressed.\n6. Directors address.\nThe particulars of each director, including the residential address, shall be filed with the Registrar.\n';
